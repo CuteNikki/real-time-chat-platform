@@ -7,6 +7,7 @@ import { MessageCircle, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { UserAvatar } from "@/components/user-avatar"
 import { ChatRoom } from "@/components/chat-room"
+import { UserPreviewDialog } from "@/components/user-preview"
 import { getMessages } from "@/app/actions/chat"
 import { cn } from "@/lib/utils"
 import type { ChatMessage } from "@/lib/types"
@@ -34,6 +35,7 @@ export function MessagesWorkspace({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState("")
+  const [previewUserId, setPreviewUserId] = useState<string | null>(null)
 
   // Keep the URL in sync so refresh/deep-link works.
   useEffect(() => {
@@ -159,9 +161,10 @@ export function MessagesWorkspace({
               >
                 Back
               </button>
-              <Link
-                href={active.partnerUsername ? `/app/u/${active.partnerUsername}` : "#"}
-                className="flex items-center gap-3 hover:opacity-80"
+              <button
+                type="button"
+                onClick={() => active.partnerId && setPreviewUserId(active.partnerId)}
+                className="flex items-center gap-3 text-left hover:opacity-80"
               >
                 <UserAvatar name={active.partnerName} image={active.partnerImage} className="size-9" />
                 <div className="leading-tight">
@@ -170,7 +173,7 @@ export function MessagesWorkspace({
                     <p className="text-xs text-muted-foreground">@{active.partnerUsername}</p>
                   ) : null}
                 </div>
-              </Link>
+              </button>
             </header>
 
             <div className="min-h-0 flex-1">
@@ -186,6 +189,7 @@ export function MessagesWorkspace({
                   currentUserName={currentUserName}
                   initialMessages={messages}
                   allowImages
+                  onUserClick={setPreviewUserId}
                   emptyState={
                     <p className="text-sm text-muted-foreground text-balance">
                       This is the start of your conversation with {active.partnerName}. Say hello!
@@ -206,6 +210,8 @@ export function MessagesWorkspace({
           </div>
         )}
       </section>
+
+      <UserPreviewDialog userId={previewUserId} onClose={() => setPreviewUserId(null)} />
     </div>
   )
 }

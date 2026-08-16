@@ -54,24 +54,17 @@ async function relationship(viewerId: string, targetId: string) {
   return { friendStatus, dmChatId }
 }
 
-export async function getProfileByUsername(
-  username: string,
-): Promise<UserProfile | null> {
-  const viewer = await getCurrentUser()
-  const uname = normalizeUsername(username)
-  const [u] = await db
-    .select()
-    .from(user)
-    .where(sql`lower(${user.username}) = ${uname}`)
-    .limit(1)
-  if (!u) return null
-
+// Build the full profile payload for a resolved user row, from the viewer's POV.
+async function buildProfile(
+  viewerId: string,
+  u: typeof user.$inferSelect,
+): Promise<UserProfile> {
   const [{ c: postCount }] = await db
     .select({ c: sql<number>`count(*)::int` })
     .from(post)
     .where(eq(post.userId, u.id))
 
-  const rel = await relationship(viewer.id, u.id)
+  const rel = await relationship(viewerId, u.id)
   const fc = await friendCount(u.id)
 
   return {
@@ -83,10 +76,34 @@ export async function getProfileByUsername(
     postCount,
     friendCount: fc,
     createdAt: u.createdAt.toISOString(),
-    isSelf: u.id === viewer.id,
+    isSelf: u.id === viewerId,
     friendStatus: rel.friendStatus,
     dmChatId: rel.dmChatId,
   }
+}
+
+export async function getProfileByUsername(
+  username: string,
+): Promise<UserProfile | null> {
+  const viewer = await getCurrentUser()
+  const uname = normalizeUsername(username)
+  const [u] = await db
+    .select()
+    .from(user)
+    .where(sql`lower(${user.username}) = ${uname}`)
+    .limit(1)
+  if (!u) return null
+  return buildProfile(viewer.id, u)
+}
+
+// Lightweight profile lookup by id, used by the in-chat profile preview popup.
+export async function getProfilePreview(
+  userId: string,
+): Promise<UserProfile | null> {
+  const viewer = await getCurrentUser()
+  const [u] = await db.select().from(user).where(eq(user.id, userId)).limit(1)
+  if (!u) return null
+  return buildProfile(viewer.id, u)
 }
 
 export async function getMyProfile() {

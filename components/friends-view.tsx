@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Loader2, Search, UserPlus } from "lucide-react"
+import { Clock, Loader2, Search, UserPlus, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/user-avatar"
 import { toast } from "sonner"
 import { searchUsers } from "@/app/actions/profile"
-import { respondToRequest, sendFriendRequest } from "@/app/actions/invites"
+import { cancelFriendRequest, respondToRequest, sendFriendRequest } from "@/app/actions/invites"
 import type { InviteSummary } from "@/lib/types"
 
 type SearchResult = {
@@ -58,6 +58,19 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
       toast.success(`Request sent to ${target.username ? "@" + target.username : target.name}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not send request")
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function cancelRequest(target: SearchResult) {
+    setBusy(target.id)
+    try {
+      await cancelFriendRequest(target.id)
+      setResults((rs) => rs.map((r) => (r.id === target.id ? { ...r, friendStatus: "none" } : r)))
+      toast.success("Request canceled")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not cancel")
     } finally {
       setBusy(null)
     }
@@ -172,6 +185,25 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
                     Respond
                   </Button>
                 </Link>
+              ) : r.friendStatus === "outgoing" ? (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="group/req gap-1.5"
+                  disabled={busy === r.id}
+                  onClick={() => cancelRequest(r)}
+                >
+                  {busy === r.id ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <>
+                      <Clock className="size-4 group-hover/req:hidden" aria-hidden />
+                      <X className="hidden size-4 group-hover/req:block" aria-hidden />
+                    </>
+                  )}
+                  <span className="group-hover/req:hidden">Requested</span>
+                  <span className="hidden group-hover/req:inline">Cancel</span>
+                </Button>
               ) : (
                 <Button
                   size="sm"

@@ -37,6 +37,7 @@ export function ChatRoom({
   showSenderNames = false,
   onEnded,
   emptyState,
+  onUserClick,
 }: {
   chatId: string
   currentUserId: string
@@ -46,6 +47,8 @@ export function ChatRoom({
   showSenderNames?: boolean
   onEnded?: () => void
   emptyState?: React.ReactNode
+  // When provided, tapping another user's avatar or name opens their preview.
+  onUserClick?: (userId: string) => void
 }) {
   const { messages, ended, appendLocal } = useChat({ chatId, initialMessages, onEnded })
   const [text, setText] = useState("")
@@ -134,17 +137,41 @@ export function ChatRoom({
               const mine = m.senderId === currentUserId
               return (
                 <li key={m.id} className={cn("flex gap-3", mine && "flex-row-reverse")}>
-                  {!mine && (
-                    <Avatar className="mt-1 size-8 shrink-0">
-                      <AvatarFallback className="bg-secondary text-xs font-medium text-secondary-foreground">
-                        {initials(m.senderName)}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
+                  {!mine &&
+                    (onUserClick ? (
+                      <button
+                        type="button"
+                        onClick={() => onUserClick(m.senderId)}
+                        className="mt-1 shrink-0 rounded-full outline-none ring-ring transition-opacity hover:opacity-80 focus-visible:ring-2"
+                        aria-label={`View ${m.senderName}'s profile`}
+                      >
+                        <Avatar className="size-8">
+                          <AvatarFallback className="bg-secondary text-xs font-medium text-secondary-foreground">
+                            {initials(m.senderName)}
+                          </AvatarFallback>
+                        </Avatar>
+                      </button>
+                    ) : (
+                      <Avatar className="mt-1 size-8 shrink-0">
+                        <AvatarFallback className="bg-secondary text-xs font-medium text-secondary-foreground">
+                          {initials(m.senderName)}
+                        </AvatarFallback>
+                      </Avatar>
+                    ))}
                   <div className={cn("flex max-w-[75%] flex-col gap-1", mine && "items-end")}>
-                    {showSenderNames && !mine && (
-                      <span className="px-1 text-xs font-medium text-muted-foreground">{m.senderName}</span>
-                    )}
+                    {showSenderNames &&
+                      !mine &&
+                      (onUserClick ? (
+                        <button
+                          type="button"
+                          onClick={() => onUserClick(m.senderId)}
+                          className="px-1 text-xs font-medium text-muted-foreground hover:underline"
+                        >
+                          {m.senderName}
+                        </button>
+                      ) : (
+                        <span className="px-1 text-xs font-medium text-muted-foreground">{m.senderName}</span>
+                      ))}
                     <div
                       className={cn(
                         "rounded-2xl px-4 py-2.5 text-sm leading-relaxed",

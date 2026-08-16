@@ -71,6 +71,30 @@ export async function sendFriendRequestByUsername(username: string) {
   return sendFriendRequest(target.id)
 }
 
+// Pull back a friend request you sent that is still pending.
+export async function cancelFriendRequest(targetUserId: string) {
+  const me = await getCurrentUser()
+  const rows = await db
+    .select()
+    .from(invite)
+    .where(
+      and(
+        eq(invite.senderId, me.id),
+        eq(invite.receiverId, targetUserId),
+        eq(invite.status, "PENDING"),
+      ),
+    )
+  if (rows.length === 0) throw new Error("No pending request to cancel")
+  for (const r of rows) {
+    await db.delete(invite).where(eq(invite.id, r.id))
+  }
+  // Let the recipient's client drop the incoming request in real time.
+  await pusherServer.trigger(userChannel(targetUserId), EVENTS.INVITE_CANCELED, {
+    senderId: me.id,
+  })
+  return { ok: true }
+}
+
 export async function respondToRequest(inviteId: string, accept: boolean) {
   const me = await getCurrentUser()
 

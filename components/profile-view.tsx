@@ -7,9 +7,9 @@ import { toast } from "sonner"
 import { UserAvatar } from "@/components/user-avatar"
 import { Button } from "@/components/ui/button"
 import { PostGrid } from "@/components/post-grid"
-import { sendFriendRequest, respondToRequest, removeFriend } from "@/app/actions/invites"
+import { sendFriendRequest, respondToRequest, removeFriend, cancelFriendRequest } from "@/app/actions/invites"
 import type { PostSummary, UserProfile } from "@/lib/types"
-import { Check, MessageCircle, Pencil, UserMinus, UserPlus, Clock } from "lucide-react"
+import { Check, MessageCircle, Pencil, UserMinus, UserPlus, Clock, X } from "lucide-react"
 
 export function ProfileView({
   profile,
@@ -62,6 +62,20 @@ export function ProfileView({
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not accept")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function cancelRequest() {
+    setBusy(true)
+    try {
+      await cancelFriendRequest(profile.id)
+      setStatus("none")
+      toast.success("Request canceled")
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not cancel")
     } finally {
       setBusy(false)
     }
@@ -145,9 +159,16 @@ export function ProfileView({
                 Accept request
               </Button>
             ) : status === "outgoing" ? (
-              <Button variant="secondary" className="gap-2" disabled>
-                <Clock className="size-4" aria-hidden />
-                Requested
+              <Button
+                variant="secondary"
+                className="group/req gap-2"
+                disabled={busy}
+                onClick={cancelRequest}
+              >
+                <Clock className="size-4 group-hover/req:hidden" aria-hidden />
+                <X className="hidden size-4 group-hover/req:block" aria-hidden />
+                <span className="group-hover/req:hidden">Requested</span>
+                <span className="hidden group-hover/req:inline">Cancel request</span>
               </Button>
             ) : (
               <Button className="gap-2" disabled={busy} onClick={add}>

@@ -10,6 +10,7 @@ import { createRoom, joinRoom, leaveRoom } from "@/app/actions/rooms"
 import { getMessages } from "@/app/actions/chat"
 import { useRoomMembers } from "@/hooks/use-room-members"
 import { ChatRoom } from "@/components/chat-room"
+import { UserPreviewDialog } from "@/components/user-preview"
 import type { ChatMessage, RoomSummary } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -60,6 +61,9 @@ export function RoomsWorkspace({
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
   const [leaving, setLeaving] = useState(false)
+
+  // The user whose profile preview popup is open (null = closed).
+  const [previewUserId, setPreviewUserId] = useState<string | null>(null)
 
   // Dialog state for creating a channel.
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -245,22 +249,33 @@ export function RoomsWorkspace({
             ) : (
               <ul className="flex flex-col gap-0.5">
                 {members.map((m) => (
-                  <li key={m.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-                    <div className="relative shrink-0">
-                      <Avatar className="size-7">
-                        <AvatarFallback className="bg-secondary text-[11px] font-medium text-secondary-foreground">
-                          {initials(m.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span
-                        className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-card bg-primary"
-                        aria-hidden
-                      />
-                    </div>
-                    <span className="min-w-0 flex-1 truncate text-sm">
-                      {m.name}
-                      {m.isMe && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
-                    </span>
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => !m.isMe && setPreviewUserId(m.id)}
+                      disabled={m.isMe}
+                      className={cn(
+                        "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors",
+                        !m.isMe && "hover:bg-secondary",
+                      )}
+                      aria-label={m.isMe ? undefined : `View ${m.name}'s profile`}
+                    >
+                      <div className="relative shrink-0">
+                        <Avatar className="size-7">
+                          <AvatarFallback className="bg-secondary text-[11px] font-medium text-secondary-foreground">
+                            {initials(m.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span
+                          className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-card bg-primary"
+                          aria-hidden
+                        />
+                      </div>
+                      <span className="min-w-0 flex-1 truncate text-sm">
+                        {m.name}
+                        {m.isMe && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
+                      </span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -328,6 +343,7 @@ export function RoomsWorkspace({
                   currentUserName={me.name}
                   initialMessages={messages}
                   showSenderNames
+                  onUserClick={setPreviewUserId}
                   emptyState={
                     <div className="text-center">
                       <p className="text-sm font-medium">Welcome to #{activeRoom?.name ?? "channel"}</p>
@@ -340,6 +356,8 @@ export function RoomsWorkspace({
           </>
         )}
       </main>
+
+      <UserPreviewDialog userId={previewUserId} onClose={() => setPreviewUserId(null)} />
     </div>
   )
 }
