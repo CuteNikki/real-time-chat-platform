@@ -4,7 +4,7 @@ import { and, asc, eq, isNull } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { chat, chatParticipant, message, user } from "@/lib/db/schema"
 import { getCurrentUser, getUserId } from "@/lib/session"
-import { pusher } from "@/lib/pusher/server"
+import { pusherServer } from "@/lib/pusher/server"
 import { chatChannel, EVENTS } from "@/lib/pusher/channels"
 import { newId } from "@/lib/id"
 import type { ChatMessage } from "@/lib/types"
@@ -110,7 +110,7 @@ export async function sendMessage(input: {
     createdAt: createdAt.toISOString(),
   }
 
-  await pusher.trigger(chatChannel(input.chatId), EVENTS.NEW_MESSAGE, payload)
+  await pusherServer.trigger(chatChannel(input.chatId), EVENTS.NEW_MESSAGE, payload)
 
   return payload
 }

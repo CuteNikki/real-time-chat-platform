@@ -51,7 +51,7 @@ export default async function HomePage() {
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="h-12 px-7 text-base">
-              <Link href={session?.user ? "/app" : "/sign-up"}>
+              <Link href={session?.user ? "/app" : "/sign-up"} className="flex items-center gap-2">
                 Start chatting
                 <ArrowRight className="size-4" aria-hidden />
               </Link>

@@ -4,7 +4,7 @@ import { and, desc, eq, isNull, ne, or } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { chat, chatParticipant, invite, message, user } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/session"
-import { pusher } from "@/lib/pusher/server"
+import { pusherServer } from "@/lib/pusher/server"
 import { userChannel, EVENTS } from "@/lib/pusher/channels"
 import { newId } from "@/lib/id"
 import type { InviteSummary } from "@/lib/types"
@@ -44,7 +44,7 @@ export async function sendInvite(email: string) {
   })
 
   // Realtime notify the receiver.
-  await pusher.trigger(userChannel(receiver.id), EVENTS.INVITE_RECEIVED, {
+  await pusherServer.trigger(userChannel(receiver.id), EVENTS.INVITE_RECEIVED, {
     id,
     senderName: me.name,
     senderEmail: me.email,
@@ -66,7 +66,7 @@ export async function respondToInvite(inviteId: string, accept: boolean) {
       .update(invite)
       .set({ status: "DECLINED", respondedAt: new Date() })
       .where(eq(invite.id, inviteId))
-    await pusher.trigger(userChannel(inv.senderId), EVENTS.INVITE_RESPONDED, {
+    await pusherServer.trigger(userChannel(inv.senderId), EVENTS.INVITE_RESPONDED, {
       id: inviteId,
       accepted: false,
     })
@@ -85,7 +85,7 @@ export async function respondToInvite(inviteId: string, accept: boolean) {
     .set({ status: "ACCEPTED", respondedAt: new Date(), chatId })
     .where(eq(invite.id, inviteId))
 
-  await pusher.trigger(userChannel(inv.senderId), EVENTS.INVITE_RESPONDED, {
+  await pusherServer.trigger(userChannel(inv.senderId), EVENTS.INVITE_RESPONDED, {
     id: inviteId,
     accepted: true,
     chatId,

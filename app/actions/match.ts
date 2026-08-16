@@ -4,7 +4,7 @@ import { and, eq, isNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { chat, chatParticipant, randomQueue } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/session"
-import { pusher } from "@/lib/pusher/server"
+import { pusherServer } from "@/lib/pusher/server"
 import { userChannel, chatChannel, EVENTS } from "@/lib/pusher/channels"
 import { newId } from "@/lib/id"
 
@@ -48,7 +48,7 @@ export async function requestMatch(): Promise<MatchResult> {
       const partnerName = (partnerRow.rows[0] as { name: string } | undefined)?.name ?? "Someone"
 
       // Notify the waiting partner in real time so they navigate in.
-      await pusher.trigger(userChannel(partner.userId), EVENTS.MATCH_FOUND, {
+      await pusherServer.trigger(userChannel(partner.userId), EVENTS.MATCH_FOUND, {
         chatId,
         partnerName: me.name,
       })
@@ -91,7 +91,7 @@ export async function endRandomChat(chatId: string) {
     .set({ leftAt: new Date() })
     .where(and(eq(chatParticipant.chatId, chatId), isNull(chatParticipant.leftAt)))
 
-  await pusher.trigger(chatChannel(chatId), EVENTS.CHAT_ENDED, { by: me.name })
+  await pusherServer.trigger(chatChannel(chatId), EVENTS.CHAT_ENDED, { by: me.name })
   return { ok: true }
 }
 
