@@ -19,7 +19,7 @@ export default async function FeedPage() {
       </div>
 
       {posts.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border py-16 text-center">
+        <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
           <p className="text-sm text-muted-foreground text-balance">
             Your feed is quiet. Add friends to see their posts here, or share your first post above.
           </p>
