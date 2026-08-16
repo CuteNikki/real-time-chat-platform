@@ -9,31 +9,38 @@ import { userChannel, EVENTS } from "@/lib/pusher/channels"
 import { newId } from "@/lib/id"
 import type { InviteSummary } from "@/lib/types"
 
-// Send a private-chat invite to a user by email.
-export async function sendInvite(email: string) {
+// Send a friend request to a user by their id (resolved from a profile/search).
+export async function sendFriendRequest(targetUserId: string) {
   const me = await getCurrentUser()
-  const target = email.trim().toLowerCase()
-  if (!target) throw new Error("Enter an email address")
-  if (target === me.email.toLowerCase()) throw new Error("You can't invite yourself")
+  if (targetUserId === me.id) throw new Error("You can't add yourself")
 
-  const [receiver] = await db.select().from(user).where(eq(user.email, target)).limit(1)
-  if (!receiver) throw new Error("No account found with that email")
+  const [receiver] = await db
+    .select()
+    .from(user)
+    .where(eq(user.id, targetUserId))
+    .limit(1)
+  if (!receiver) throw new Error("User not found")
 
-  // Prevent duplicate pending invites in either direction.
-  const [existingPending] = await db
+  // If already friends or a request already exists in either direction, stop.
+  const existing = await db
     .select()
     .from(invite)
     .where(
-      and(
-        eq(invite.status, "PENDING"),
-        or(
-          and(eq(invite.senderId, me.id), eq(invite.receiverId, receiver.id)),
-          and(eq(invite.senderId, receiver.id), eq(invite.receiverId, me.id)),
-        ),
+      or(
+        and(eq(invite.senderId, me.id), eq(invite.receiverId, receiver.id)),
+        and(eq(invite.senderId, receiver.id), eq(invite.receiverId, me.id)),
       ),
     )
-    .limit(1)
-  if (existingPending) throw new Error("There's already a pending invite between you two")
+  const accepted = existing.find((e) => e.status === "ACCEPTED")
+  if (accepted) throw new Error("You're already friends")
+  const pending = existing.find((e) => e.status === "PENDING")
+  if (pending) {
+    // If they already requested us, accept it instead of creating a dup.
+    if (pending.receiverId === me.id) {
+      return respondToRequest(pending.id, true)
+    }
+    throw new Error("Friend request already sent")
+  }
 
   const id = newId("inv")
   await db.insert(invite).values({
@@ -43,23 +50,34 @@ export async function sendInvite(email: string) {
     status: "PENDING",
   })
 
-  // Realtime notify the receiver.
   await pusherServer.trigger(userChannel(receiver.id), EVENTS.INVITE_RECEIVED, {
     id,
     senderName: me.name,
-    senderEmail: me.email,
+    senderUsername: me.username ?? null,
   })
 
-  return { ok: true }
+  return { ok: true, status: "sent" as const }
 }
 
-export async function respondToInvite(inviteId: string, accept: boolean) {
+// Convenience wrapper: send a request by username.
+export async function sendFriendRequestByUsername(username: string) {
+  const uname = username.trim().toLowerCase().replace(/^@/, "")
+  const [target] = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.username, uname))
+    .limit(1)
+  if (!target) throw new Error("No user found with that username")
+  return sendFriendRequest(target.id)
+}
+
+export async function respondToRequest(inviteId: string, accept: boolean) {
   const me = await getCurrentUser()
 
   const [inv] = await db.select().from(invite).where(eq(invite.id, inviteId)).limit(1)
-  if (!inv) throw new Error("Invite not found")
-  if (inv.receiverId !== me.id) throw new Error("This invite isn't for you")
-  if (inv.status !== "PENDING") throw new Error("This invite was already handled")
+  if (!inv) throw new Error("Request not found")
+  if (inv.receiverId !== me.id) throw new Error("This request isn't for you")
+  if (inv.status !== "PENDING") throw new Error("This request was already handled")
 
   if (!accept) {
     await db
@@ -73,7 +91,7 @@ export async function respondToInvite(inviteId: string, accept: boolean) {
     return { status: "declined" as const }
   }
 
-  // Accept: create a PRIVATE chat with both participants.
+  // Accept: create a PRIVATE chat with both participants so they can DM.
   const chatId = newId("chat")
   await db.insert(chat).values({ id: chatId, type: "PRIVATE", name: null })
   await db.insert(chatParticipant).values([
@@ -95,7 +113,28 @@ export async function respondToInvite(inviteId: string, accept: boolean) {
   return { status: "accepted" as const, chatId }
 }
 
-// Invites the current user has received that are still pending.
+// Remove a friend (delete the accepted relationship + close DM).
+export async function removeFriend(otherUserId: string) {
+  const me = await getCurrentUser()
+  const rows = await db
+    .select()
+    .from(invite)
+    .where(
+      and(
+        eq(invite.status, "ACCEPTED"),
+        or(
+          and(eq(invite.senderId, me.id), eq(invite.receiverId, otherUserId)),
+          and(eq(invite.senderId, otherUserId), eq(invite.receiverId, me.id)),
+        ),
+      ),
+    )
+  for (const r of rows) {
+    await db.delete(invite).where(eq(invite.id, r.id))
+  }
+  return { ok: true }
+}
+
+// Friend requests the current user has received that are still pending.
 export async function getPendingInvites(): Promise<InviteSummary[]> {
   const me = await getCurrentUser()
   const rows = await db
@@ -107,7 +146,8 @@ export async function getPendingInvites(): Promise<InviteSummary[]> {
       chatId: invite.chatId,
       createdAt: invite.createdAt,
       senderName: user.name,
-      senderEmail: user.email,
+      senderUsername: user.username,
+      senderImage: user.image,
     })
     .from(invite)
     .innerJoin(user, eq(user.id, invite.senderId))
@@ -118,7 +158,8 @@ export async function getPendingInvites(): Promise<InviteSummary[]> {
     id: r.id,
     senderId: r.senderId,
     senderName: r.senderName,
-    senderEmail: r.senderEmail,
+    senderUsername: r.senderUsername,
+    senderImage: r.senderImage,
     receiverId: r.receiverId,
     status: r.status as InviteSummary["status"],
     chatId: r.chatId,
@@ -128,10 +169,13 @@ export async function getPendingInvites(): Promise<InviteSummary[]> {
 
 export type PrivateConversation = {
   chatId: string
-  partnerName: string
   partnerId: string
+  partnerName: string
+  partnerUsername: string | null
+  partnerImage: string | null
   lastMessage: string | null
   lastAt: string | null
+  lastFromMe: boolean
 }
 
 // Active private chats for the current user, with a short preview.
@@ -154,14 +198,19 @@ export async function getPrivateConversations(): Promise<PrivateConversation[]> 
   const results: PrivateConversation[] = []
   for (const { chatId } of myChats) {
     const [partner] = await db
-      .select({ id: user.id, name: user.name })
+      .select({ id: user.id, name: user.name, username: user.username, image: user.image })
       .from(chatParticipant)
       .innerJoin(user, eq(user.id, chatParticipant.userId))
       .where(and(eq(chatParticipant.chatId, chatId), ne(chatParticipant.userId, me.id)))
       .limit(1)
 
     const [last] = await db
-      .select({ content: message.content, imageUrl: message.imageUrl, createdAt: message.createdAt })
+      .select({
+        content: message.content,
+        imageUrl: message.imageUrl,
+        createdAt: message.createdAt,
+        senderId: message.senderId,
+      })
       .from(message)
       .where(eq(message.chatId, chatId))
       .orderBy(desc(message.createdAt))
@@ -171,12 +220,28 @@ export async function getPrivateConversations(): Promise<PrivateConversation[]> 
       chatId,
       partnerId: partner?.id ?? "",
       partnerName: partner?.name ?? "Unknown",
+      partnerUsername: partner?.username ?? null,
+      partnerImage: partner?.image ?? null,
       lastMessage: last ? (last.content ?? (last.imageUrl ? "Sent an image" : null)) : null,
       lastAt: last ? last.createdAt.toISOString() : null,
+      lastFromMe: last ? last.senderId === me.id : false,
     })
   }
 
-  // Sort by most recent activity.
   results.sort((a, b) => (b.lastAt ?? "").localeCompare(a.lastAt ?? ""))
   return results
+}
+
+// Ids of the current user's accepted friends (used to scope the home feed).
+export async function getFriendIds(userId: string): Promise<string[]> {
+  const rows = await db
+    .select({ senderId: invite.senderId, receiverId: invite.receiverId })
+    .from(invite)
+    .where(
+      and(
+        eq(invite.status, "ACCEPTED"),
+        or(eq(invite.senderId, userId), eq(invite.receiverId, userId)),
+      ),
+    )
+  return rows.map((r) => (r.senderId === userId ? r.receiverId : r.senderId))
 }

@@ -32,6 +32,12 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  user: {
+    additionalFields: {
+      username: { type: "string", required: false, input: false },
+      bio: { type: "string", required: false, input: false },
+    },
+  },
   ...(process.env.NODE_ENV === "development"
     ? {
         advanced: {
