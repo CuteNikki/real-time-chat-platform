@@ -117,10 +117,10 @@ export function ChatView({
         </div>
 
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="shrink-0" aria-label="Chat options">
-              <MoreVertical className="size-5" aria-hidden />
-            </Button>
+          <DropdownMenuTrigger
+            render={<Button variant="ghost" size="icon" className="shrink-0" aria-label="Chat options" />}
+          >
+            <MoreVertical className="size-5" aria-hidden />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             {!isGroup && (

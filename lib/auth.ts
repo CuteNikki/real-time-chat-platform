@@ -14,6 +14,9 @@ function getTrustedOrigins() {
   const origins: string[] = []
   if (process.env.NODE_ENV === "development") {
     if (process.env.V0_RUNTIME_URL) origins.push(process.env.V0_RUNTIME_URL)
+    // The v0 preview iframe is served from rotating *.vercel.run / *.v0.build
+    // hosts, so trust those wildcard origins in development only.
+    origins.push("https://*.vercel.run", "https://*.v0.build")
   } else {
     if (process.env.VERCEL_URL) origins.push(`https://${process.env.VERCEL_URL}`)
     if (process.env.VERCEL_PROJECT_PRODUCTION_URL)

@@ -133,11 +133,9 @@ export function PrivateBrowser({
           <p className="mt-1 text-sm text-muted-foreground">Invite friends by email and chat one-on-one.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <UserPlus className="size-4" aria-hidden />
-              <span className="hidden sm:inline">Invite</span>
-            </Button>
+          <DialogTrigger render={<Button className="gap-2" />}>
+            <UserPlus className="size-4" aria-hidden />
+            <span className="hidden sm:inline">Invite</span>
           </DialogTrigger>
           <DialogContent>
             <form onSubmit={handleInvite}>

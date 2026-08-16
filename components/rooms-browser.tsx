@@ -72,11 +72,9 @@ export function RoomsBrowser({ initialRooms }: { initialRooms: RoomSummary[] }) 
           <p className="mt-1 text-sm text-muted-foreground">Jump into an open room or start your own.</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="size-4" aria-hidden />
-              <span className="hidden sm:inline">New room</span>
-            </Button>
+          <DialogTrigger render={<Button className="gap-2" />}>
+            <Plus className="size-4" aria-hidden />
+            <span className="hidden sm:inline">New room</span>
           </DialogTrigger>
           <DialogContent>
             <form onSubmit={handleCreate}>

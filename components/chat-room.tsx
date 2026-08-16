@@ -163,7 +163,9 @@ export function ChatRoom({
                       )}
                       {m.content && <p className="whitespace-pre-wrap break-words">{m.content}</p>}
                     </div>
-                    <span className="px-1 text-[11px] text-muted-foreground">{timeLabel(m.createdAt)}</span>
+                    <span className="px-1 text-[11px] text-muted-foreground" suppressHydrationWarning>
+                    {timeLabel(m.createdAt)}
+                  </span>
                   </div>
                 </li>
               )

@@ -5,12 +5,13 @@ import { usePathname, useRouter } from "next/navigation"
 import useSWR from "swr"
 import { authClient } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -90,20 +91,20 @@ export function AppNav({
         </nav>
 
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-10 gap-2 px-2">
-              <Avatar className="size-8">
-                <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </Button>
+          <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost" }), "h-10 gap-2 px-2")}>
+            <Avatar className="size-8">
+              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="flex flex-col">
-              <span className="truncate font-medium">{user.name}</span>
-              <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="flex flex-col">
+                <span className="truncate font-medium">{user.name}</span>
+                <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
               <LogOut className="size-4" aria-hidden />
