@@ -74,6 +74,7 @@ export async function sendMessage(input: {
   chatId: string
   content?: string
   imageUrl?: string
+  clientId?: string
 }): Promise<ChatMessage> {
   const currentUser = await getCurrentUser()
   const userId = currentUser.id
@@ -89,7 +90,9 @@ export async function sendMessage(input: {
   if (!c) throw new Error("Chat not found")
   if (c.endedAt) throw new Error("This chat has ended")
 
-  const id = newId("msg")
+  // Reuse the client-provided id so the sender's optimistic message, the saved
+  // row, and the realtime echo all share one id and dedupe cleanly.
+  const id = input.clientId || newId("msg")
   const createdAt = new Date()
   await db.insert(message).values({
     id,

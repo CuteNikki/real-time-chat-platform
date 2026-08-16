@@ -92,9 +92,11 @@ export function ChatRoom({
     const content = text.trim()
     if ((!content && !pendingImage) || sending || ended) return
 
-    // Optimistic message.
+    // Optimistic message. The client-generated id is passed to the server so
+    // the saved row and realtime echo reuse it, keeping a single deduped copy.
+    const clientId = newId("msg")
     const optimistic: ChatMessage = {
-      id: newId("tmp"),
+      id: clientId,
       chatId,
       senderId: currentUserId,
       senderName: currentUserName,
@@ -108,9 +110,7 @@ export function ChatRoom({
     setPendingImage(null)
     setSending(true)
     try {
-      const saved = await sendMessage({ chatId, content, imageUrl: imageUrl ?? undefined })
-      // Replace optimistic with the real one (dedupe by id happens on realtime echo).
-      appendLocal(saved)
+      await sendMessage({ chatId, content, imageUrl: imageUrl ?? undefined, clientId })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Message failed to send")
     } finally {
