@@ -16,3 +16,9 @@ export async function getCurrentUser() {
   if (!session?.user) throw new Error("Unauthorized")
   return session.user
 }
+
+// Non-throwing variant for routes that gracefully degrade when signed out.
+export async function getCurrentUserOrNull() {
+  const session = await getSession()
+  return session?.user ?? null
+}
