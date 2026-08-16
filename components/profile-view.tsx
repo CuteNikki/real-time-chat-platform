@@ -129,7 +129,7 @@ export function ProfileView({
                 <Button
                   className="gap-2"
                   disabled={!dmChatId}
-                  onClick={() => dmChatId && router.push(`/app/private?c=${dmChatId}`)}
+                  onClick={() => dmChatId && router.push(`/app/messages?c=${dmChatId}`)}
                 >
                   <MessageCircle className="size-4" aria-hidden />
                   Message

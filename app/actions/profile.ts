@@ -188,5 +188,29 @@ export async function searchUsers(query: string) {
       ),
     )
     .limit(10)
-  return rows
+
+  // Annotate each result with the viewer's relationship so the UI can show the
+  // right action (Add / Requested / Respond / Friends).
+  const rels = await db
+    .select({
+      senderId: invite.senderId,
+      receiverId: invite.receiverId,
+      status: invite.status,
+    })
+    .from(invite)
+    .where(or(eq(invite.senderId, me.id), eq(invite.receiverId, me.id)))
+
+  function statusFor(otherId: string): "none" | "friends" | "incoming" | "outgoing" {
+    for (const r of rels) {
+      const involves =
+        (r.senderId === me.id && r.receiverId === otherId) ||
+        (r.senderId === otherId && r.receiverId === me.id)
+      if (!involves) continue
+      if (r.status === "ACCEPTED") return "friends"
+      if (r.status === "PENDING") return r.senderId === me.id ? "outgoing" : "incoming"
+    }
+    return "none"
+  }
+
+  return rows.map((r) => ({ ...r, friendStatus: statusFor(r.id) }))
 }

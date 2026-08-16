@@ -6,8 +6,8 @@ import useSWR from "swr"
 import { authClient } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { UserAvatar } from "@/components/user-avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,38 +17,31 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Orbit, Shuffle, Users, Lock, LogOut } from "lucide-react"
+import { Orbit, Home, Shuffle, Users, MessageCircle, UserPlus, User, Settings, LogOut } from "lucide-react"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 const links = [
+  { href: "/app/feed", label: "Feed", icon: Home, exact: false },
   { href: "/app", label: "Match", icon: Shuffle, exact: true },
   { href: "/app/rooms", label: "Rooms", icon: Users, exact: false },
-  { href: "/app/private", label: "Private", icon: Lock, exact: false },
+  { href: "/app/messages", label: "Messages", icon: MessageCircle, exact: false },
+  { href: "/app/friends", label: "Friends", icon: UserPlus, exact: false },
 ]
 
 export function AppNav({
   user,
 }: {
-  user: { name: string; email: string; image: string | null }
+  user: { name: string; email: string; image: string | null; username: string | null }
 }) {
   const pathname = usePathname()
   const router = useRouter()
 
-  // Poll pending invites for the badge; realtime events also revalidate this.
+  // Poll pending friend requests for the badge; realtime events also revalidate this.
   const { data } = useSWR<{ count: number }>("/api/invites/pending-count", fetcher, {
     refreshInterval: 15000,
   })
   const pendingInvites = data?.count ?? 0
-
-  const initials = user.name
-    ? user.name
-        .split(" ")
-        .map((p) => p[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
-    : user.email[0]?.toUpperCase()
 
   async function signOut() {
     await authClient.signOut()
@@ -56,10 +49,12 @@ export function AppNav({
     router.refresh()
   }
 
+  const profileHref = user.username ? `/app/u/${user.username}` : "/app/settings"
+
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/app" className="flex items-center gap-2">
+        <Link href="/app/feed" className="flex items-center gap-2">
           <Orbit className="size-6 text-primary" aria-hidden />
           <span className="hidden text-lg font-semibold tracking-tight sm:inline">Orbit</span>
         </Link>
@@ -68,7 +63,7 @@ export function AppNav({
           {links.map((link) => {
             const active = link.exact ? pathname === link.href : pathname.startsWith(link.href)
             const Icon = link.icon
-            const showBadge = link.href === "/app/private" && pendingInvites > 0
+            const showBadge = link.href === "/app/friends" && pendingInvites > 0
             return (
               <Link
                 key={link.href}
@@ -79,7 +74,7 @@ export function AppNav({
                 )}
               >
                 <Icon className="size-4" aria-hidden />
-                <span className="hidden sm:inline">{link.label}</span>
+                <span className="hidden md:inline">{link.label}</span>
                 {showBadge && (
                   <Badge className="ml-0.5 h-5 min-w-5 justify-center px-1 tabular-nums" variant="default">
                     {pendingInvites}
@@ -92,19 +87,26 @@ export function AppNav({
 
         <DropdownMenu>
           <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost" }), "h-10 gap-2 px-2")}>
-            <Avatar className="size-8">
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <UserAvatar name={user.name} image={user.image} className="size-8 text-xs" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="flex flex-col">
                 <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs font-normal text-muted-foreground">{user.email}</span>
+                <span className="truncate text-xs font-normal text-muted-foreground">
+                  {user.username ? `@${user.username}` : user.email}
+                </span>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem render={<Link href={profileHref} />}>
+              <User className="size-4" aria-hidden />
+              My profile
+            </DropdownMenuItem>
+            <DropdownMenuItem render={<Link href="/app/settings" />}>
+              <Settings className="size-4" aria-hidden />
+              Edit profile
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
               <LogOut className="size-4" aria-hidden />

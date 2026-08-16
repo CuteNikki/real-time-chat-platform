@@ -69,7 +69,7 @@ export function ChatView({
       } else {
         await endRandomChat(chatId)
         toast.success("Chat ended")
-        router.push(type === "RANDOM" ? "/app" : "/app/private")
+        router.push(type === "RANDOM" ? "/app" : "/app/messages")
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong")
