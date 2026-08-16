@@ -4,6 +4,8 @@ import PusherClient from "pusher-js"
 
 let client: PusherClient | null = null
 
+// Lazily create a single browser Pusher client. Presence/private channels are
+// authorized via /api/pusher/auth.
 export function getPusherClient() {
   if (!client) {
     client = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
@@ -13,19 +15,3 @@ export function getPusherClient() {
   }
   return client
 }
-
-// Mirror of lib/pusher/server.ts naming so the client subscribes correctly.
-export const channels = {
-  chat: (chatId: string) => `chat-${chatId}`,
-  user: (userId: string) => `user-${userId}`,
-  presence: (chatId: string) => `presence-chat-${chatId}`,
-}
-
-export const events = {
-  newMessage: "new-message",
-  chatEnded: "chat-ended",
-  participantsChanged: "participants-changed",
-  matchFound: "match-found",
-  inviteReceived: "invite-received",
-  inviteAccepted: "invite-accepted",
-} as const

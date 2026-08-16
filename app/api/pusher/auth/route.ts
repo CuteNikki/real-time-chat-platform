@@ -47,5 +47,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(authResponse)
   }
 
+  // Per-user private channel "private-user-<userId>" for invites and match
+  // notifications. Only the owner may subscribe.
+  if (channelName.startsWith("private-user-")) {
+    const ownerId = channelName.replace("private-user-", "")
+    if (ownerId !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+    const authResponse = pusherServer.authorizeChannel(socketId, channelName)
+    return NextResponse.json(authResponse)
+  }
+
   return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 }

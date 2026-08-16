@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { Orbit, Shuffle, Users, Lock, ArrowRight } from "lucide-react"
 
 export default async function HomePage() {
@@ -16,17 +16,17 @@ export default async function HomePage() {
         </div>
         <nav className="flex items-center gap-2">
           {session?.user ? (
-            <Button asChild>
-              <Link href="/app">Open app</Link>
-            </Button>
+            <Link href="/app" className={buttonVariants()}>
+              Open app
+            </Link>
           ) : (
             <>
-              <Button asChild variant="ghost">
-                <Link href="/sign-in">Sign in</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/sign-up">Get started</Link>
-              </Button>
+              <Link href="/sign-in" className={buttonVariants({ variant: "ghost" })}>
+                Sign in
+              </Link>
+              <Link href="/sign-up" className={buttonVariants()}>
+                Get started
+              </Link>
             </>
           )}
         </nav>
@@ -50,15 +50,19 @@ export default async function HomePage() {
             in real time.
           </p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <Button asChild size="lg" className="h-12 px-7 text-base">
-              <Link href={session?.user ? "/app" : "/sign-up"}>
-                Start chatting
-                <ArrowRight className="size-4" aria-hidden />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="h-12 px-7 text-base bg-transparent">
-              <Link href="/sign-in">I have an account</Link>
-            </Button>
+            <Link
+              href={session?.user ? "/app" : "/sign-up"}
+              className={buttonVariants({ size: "lg", className: "h-12 gap-2 px-7 text-base" })}
+            >
+              Start chatting
+              <ArrowRight className="size-4" aria-hidden />
+            </Link>
+            <Link
+              href="/sign-in"
+              className={buttonVariants({ variant: "outline", size: "lg", className: "h-12 px-7 text-base" })}
+            >
+              I have an account
+            </Link>
           </div>
         </section>
 

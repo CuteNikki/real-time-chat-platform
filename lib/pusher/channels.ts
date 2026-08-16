@@ -13,4 +13,5 @@ export const EVENTS = {
   MATCH_FOUND: "match-found",
   INVITE_RECEIVED: "invite-received",
   INVITE_RESPONDED: "invite-responded",
+  INVITE_CANCELED: "invite-canceled",
 } as const

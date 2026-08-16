@@ -8,9 +8,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user) redirect("/sign-in")
 
+  const u = session.user as typeof session.user & { username?: string | null }
+
   return (
     <div className="flex min-h-svh flex-col bg-background">
-      <AppNav user={{ name: session.user.name, email: session.user.email, image: session.user.image ?? null }} />
+      <AppNav
+        user={{
+          name: session.user.name,
+          email: session.user.email,
+          image: session.user.image ?? null,
+          username: u.username ?? null,
+        }}
+      />
       <div className="flex-1">{children}</div>
     </div>
   )

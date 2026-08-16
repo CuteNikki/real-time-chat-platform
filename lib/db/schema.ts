@@ -10,15 +10,24 @@ import {
 // ---------------------------------------------------------------------------
 // Better Auth tables (do not rename columns — they match Better Auth defaults)
 // ---------------------------------------------------------------------------
-export const user = pgTable("user", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("emailVerified").notNull().default(false),
-  image: text("image"),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-})
+export const user = pgTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("emailVerified").notNull().default(false),
+    image: text("image"),
+    // App profile fields.
+    username: text("username"),
+    bio: text("bio"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    usernameUnique: uniqueIndex("user_username_unique").on(t.username),
+  }),
+)
 
 export const session = pgTable("session", {
   id: text("id").primaryKey(),
@@ -141,3 +150,34 @@ export const report = pgTable("report", {
   reason: text("reason"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
+
+// Profile posts (Instagram-style): an image with an optional caption.
+export const post = pgTable(
+  "post",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    imageUrl: text("imageUrl").notNull(),
+    caption: text("caption"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    userCreatedIdx: index("post_user_created_idx").on(t.userId, t.createdAt),
+  }),
+)
+
+export const postLike = pgTable(
+  "post_like",
+  {
+    id: text("id").primaryKey(),
+    postId: text("postId").notNull(),
+    userId: text("userId").notNull(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    postUserUnique: uniqueIndex("post_like_post_user_unique").on(
+      t.postId,
+      t.userId,
+    ),
+  }),
+)
