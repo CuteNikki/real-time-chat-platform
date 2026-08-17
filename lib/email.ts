@@ -67,7 +67,7 @@ function renderEmailShell({
                 <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top: 28px;">
                   <tr>
                     <td style="border-radius: 10px; background-color: ${BRAND};">
-                      
+                      <a
                         href="${ctaUrl}"
                         style="display:inline-block; padding: 11px 22px; font-size: 14px; font-weight: 600; color:#ffffff; text-decoration:none; border-radius: 10px;"
                       >
