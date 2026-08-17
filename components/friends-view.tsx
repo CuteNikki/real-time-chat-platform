@@ -130,90 +130,8 @@ export function FriendsView({
 
   return (
     <div className="space-y-8">
-      {/* Incoming requests */}
-      {incoming.length > 0 ? (
-        <section id="requests">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Incoming requests ({incoming.length})
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {incoming.map((inv) => (
-              <li
-                key={inv.id}
-                className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
-              >
-                <Link href={inv.senderUsername ? `/app/u/${inv.senderUsername}` : "#"}>
-                  <UserAvatar name={inv.senderName} image={inv.senderImage} className="size-10" />
-                </Link>
-                <div className="min-w-0 flex-1 leading-tight">
-                  <p className="truncate font-medium">{inv.senderName}</p>
-                  {inv.senderUsername ? (
-                    <p className="truncate text-xs text-muted-foreground">@{inv.senderUsername}</p>
-                  ) : null}
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => respond(inv, true)} disabled={busy === inv.id}>
-                    Accept
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => respond(inv, false)}
-                    disabled={busy === inv.id}
-                  >
-                    Decline
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {/* Outgoing (sent) requests — lets you pull back a request even if you
-          can no longer find that user in search. */}
-      {outgoing.length > 0 ? (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Sent requests ({outgoing.length})
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {outgoing.map((inv) => (
-              <li key={inv.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
-                <Link href={inv.receiverUsername ? `/app/u/${inv.receiverUsername}` : "#"}>
-                  <UserAvatar name={inv.receiverName} image={inv.receiverImage} className="size-10" />
-                </Link>
-                <div className="min-w-0 flex-1 leading-tight">
-                  <p className="truncate font-medium">{inv.receiverName}</p>
-                  {inv.receiverUsername ? (
-                    <p className="truncate text-xs text-muted-foreground">@{inv.receiverUsername}</p>
-                  ) : null}
-                </div>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  className="group/req gap-1.5"
-                  disabled={busy === inv.receiverId}
-                  onClick={() => cancelRequest(inv.receiverId)}
-                >
-                  {busy === inv.receiverId ? (
-                    <Loader2 className="size-4 animate-spin" aria-hidden />
-                  ) : (
-                    <>
-                      <Clock className="size-4 group-hover/req:hidden" aria-hidden />
-                      <X className="hidden size-4 group-hover/req:block" aria-hidden />
-                    </>
-                  )}
-                  <span className="group-hover/req:hidden">Pending</span>
-                  <span className="hidden group-hover/req:inline">Cancel</span>
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {/* Search */}
+      {/* Search — the primary action, kept at the top so pending requests
+          never push it down the page. */}
       <section>
         <div className="relative">
           <Search
@@ -299,6 +217,89 @@ export function FriendsView({
           ) : null}
         </ul>
       </section>
+
+      {/* Incoming requests */}
+      {incoming.length > 0 ? (
+        <section id="requests">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Incoming requests ({incoming.length})
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {incoming.map((inv) => (
+              <li
+                key={inv.id}
+                className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
+              >
+                <Link href={inv.senderUsername ? `/app/u/${inv.senderUsername}` : "#"}>
+                  <UserAvatar name={inv.senderName} image={inv.senderImage} className="size-10" />
+                </Link>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <p className="truncate font-medium">{inv.senderName}</p>
+                  {inv.senderUsername ? (
+                    <p className="truncate text-xs text-muted-foreground">@{inv.senderUsername}</p>
+                  ) : null}
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => respond(inv, true)} disabled={busy === inv.id}>
+                    Accept
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => respond(inv, false)}
+                    disabled={busy === inv.id}
+                  >
+                    Decline
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* Outgoing (sent) requests — lets you pull back a request even if you
+          can no longer find that user in search. */}
+      {outgoing.length > 0 ? (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Sent requests ({outgoing.length})
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {outgoing.map((inv) => (
+              <li key={inv.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                <Link href={inv.receiverUsername ? `/app/u/${inv.receiverUsername}` : "#"}>
+                  <UserAvatar name={inv.receiverName} image={inv.receiverImage} className="size-10" />
+                </Link>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <p className="truncate font-medium">{inv.receiverName}</p>
+                  {inv.receiverUsername ? (
+                    <p className="truncate text-xs text-muted-foreground">@{inv.receiverUsername}</p>
+                  ) : null}
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="group/req gap-1.5"
+                  disabled={busy === inv.receiverId}
+                  onClick={() => cancelRequest(inv.receiverId)}
+                >
+                  {busy === inv.receiverId ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <>
+                      <Clock className="size-4 group-hover/req:hidden" aria-hidden />
+                      <X className="hidden size-4 group-hover/req:block" aria-hidden />
+                    </>
+                  )}
+                  <span className="group-hover/req:hidden">Pending</span>
+                  <span className="hidden group-hover/req:inline">Cancel</span>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   )
 }
