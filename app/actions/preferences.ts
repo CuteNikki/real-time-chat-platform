@@ -17,6 +17,19 @@ export async function getMyNotificationPreferences(): Promise<NotificationPrefer
   return parsePrefs(row?.prefs ?? null)
 }
 
+// Preferences for an arbitrary user, used server-side when deciding whether to
+// notify a recipient (e.g. the author of a liked post).
+export async function getNotificationPreferencesFor(
+  targetUserId: string,
+): Promise<NotificationPreferences> {
+  const [row] = await db
+    .select({ prefs: user.notificationPrefs })
+    .from(user)
+    .where(eq(user.id, targetUserId))
+    .limit(1)
+  return parsePrefs(row?.prefs ?? null)
+}
+
 export async function updateNotificationPreferences(
   prefs: NotificationPreferences,
 ): Promise<NotificationPreferences> {

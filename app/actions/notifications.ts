@@ -39,7 +39,7 @@ export async function createNotification(input: {
 }
 
 // The "Messages" tab collapses per-chat message notifications; "Requests"
-// covers friend requests and accepts. We categorize by type.
+// covers friend requests, accepts, and likes (general activity).
 function categoryOf(type: string): "requests" | "messages" {
   return type === "MESSAGE" ? "messages" : "requests"
 }

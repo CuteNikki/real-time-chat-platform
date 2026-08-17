@@ -4,6 +4,8 @@ import { db } from "@/lib/db"
 import { post, postLike, user, invite } from "@/lib/db/schema"
 import { newId } from "@/lib/id"
 import { getCurrentUser, getUserId } from "@/lib/session"
+import { createNotification } from "@/app/actions/notifications"
+import { getNotificationPreferencesFor } from "@/app/actions/preferences"
 import type { PostLiker, PostSummary } from "@/lib/types"
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -175,5 +177,34 @@ export async function toggleLike(postId: string) {
     .insert(postLike)
     .values({ id: newId("like"), postId, userId })
     .onConflictDoNothing()
+
+  // Notify the post's author that someone liked their post, unless they liked
+  // their own post or have opted out of like popups.
+  try {
+    const [p] = await db
+      .select({ authorId: post.userId })
+      .from(post)
+      .where(eq(post.id, postId))
+      .limit(1)
+    if (p && p.authorId !== userId) {
+      const prefs = await getNotificationPreferencesFor(p.authorId)
+      if (prefs.categories.like.popup) {
+        const [liker] = await db
+          .select({ name: user.name })
+          .from(user)
+          .where(eq(user.id, userId))
+          .limit(1)
+        await createNotification({
+          userId: p.authorId,
+          type: "LIKE",
+          actorId: userId,
+          body: `${liker?.name ?? "Someone"} liked your post`,
+        })
+      }
+    }
+  } catch {
+    // Notification failures must never block the like itself.
+  }
+
   return { liked: true }
 }
