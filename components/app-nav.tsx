@@ -12,9 +12,7 @@ import { NotificationBell } from "@/components/notification-bell"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -99,15 +97,17 @@ export function AppNav({
           <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost" }), "h-10 gap-2 px-2")}>
             <UserAvatar name={user.name} image={user.image} className="size-8 text-xs" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="flex flex-col">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs font-normal text-muted-foreground">
+          <DropdownMenuContent align="end" className="w-64">
+            {/* Profile header: avatar + name/handle aligned with the items below. */}
+            <div className="flex items-center gap-3 p-2">
+              <UserAvatar name={user.name} image={user.image} className="size-10 text-sm" />
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-sm font-medium">{user.name}</span>
+                <span className="truncate text-xs text-muted-foreground">
                   {user.username ? `@${user.username}` : user.email}
                 </span>
-              </DropdownMenuLabel>
-            </DropdownMenuGroup>
+              </div>
+            </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href={profileHref} />}>
               <User className="size-4" aria-hidden />
@@ -115,7 +115,7 @@ export function AppNav({
             </DropdownMenuItem>
             <DropdownMenuItem render={<Link href="/app/settings" />}>
               <Settings className="size-4" aria-hidden />
-              Edit profile
+              Settings
             </DropdownMenuItem>
             {(user.role === "ADMIN" || user.role === "MODERATOR") && (
               <DropdownMenuItem render={<Link href="/app/admin" />}>
