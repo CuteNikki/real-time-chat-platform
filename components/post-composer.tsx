@@ -84,7 +84,7 @@ export function PostComposer({
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             placeholder='Write a caption...'
-            className='block min-h-15 w-full resize-none rounded-none border-none bg-transparent p-0 text-base leading-relaxed wrap-break-word whitespace-pre-wrap shadow-none focus-visible:ring-0 md:text-base'
+            className='block min-h-15 w-full resize-none rounded-none border-none bg-transparent! p-0 text-base leading-relaxed wrap-break-word whitespace-pre-wrap shadow-none focus-visible:ring-0 md:text-base'
             maxLength={500}
           />
 
