@@ -2,7 +2,7 @@
 
 import { and, desc, eq, isNull, inArray, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { notification, user } from "@/lib/db/schema"
+import { invite, notification, user } from "@/lib/db/schema"
 import { getCurrentUser, getUserId } from "@/lib/session"
 import { pusherServer } from "@/lib/pusher/server"
 import { userChannel, EVENTS } from "@/lib/pusher/channels"
@@ -65,6 +65,27 @@ export async function getNotifications(): Promise<NotificationSummary[]> {
     .orderBy(desc(notification.createdAt))
     .limit(100)
 
+  // For friend-request notifications, resolve the still-pending invite so the
+  // menu can offer inline Accept/Decline. One extra query for all of them.
+  const requestActorIds = rows
+    .filter((r) => r.type === "FRIEND_REQUEST" && r.actorId)
+    .map((r) => r.actorId as string)
+
+  const inviteByActor = new Map<string, string>()
+  if (requestActorIds.length) {
+    const invites = await db
+      .select({ id: invite.id, senderId: invite.senderId })
+      .from(invite)
+      .where(
+        and(
+          eq(invite.receiverId, me.id),
+          eq(invite.status, "PENDING"),
+          inArray(invite.senderId, requestActorIds),
+        ),
+      )
+    for (const iv of invites) inviteByActor.set(iv.senderId, iv.id)
+  }
+
   return rows.map((r) => ({
     id: r.id,
     type: r.type as NotificationType,
@@ -76,7 +97,32 @@ export async function getNotifications(): Promise<NotificationSummary[]> {
     body: r.body,
     read: r.readAt !== null,
     createdAt: r.createdAt.toISOString(),
+    inviteId:
+      r.type === "FRIEND_REQUEST" && r.actorId ? (inviteByActor.get(r.actorId) ?? null) : null,
   }))
+}
+
+// Delete a single notification (used to dismiss after reading).
+export async function deleteNotification(id: string) {
+  const userId = await getUserId()
+  await db.delete(notification).where(and(eq(notification.id, id), eq(notification.userId, userId)))
+  return { ok: true }
+}
+
+// Delete many notifications at once: a whole category, or everything.
+export async function clearNotifications(opts?: { category?: "requests" | "messages" }) {
+  const userId = await getUserId()
+  const base = eq(notification.userId, userId)
+  if (opts?.category === "messages") {
+    await db.delete(notification).where(and(base, eq(notification.type, "MESSAGE")))
+  } else if (opts?.category === "requests") {
+    await db
+      .delete(notification)
+      .where(and(base, inArray(notification.type, ["FRIEND_REQUEST", "FRIEND_ACCEPT"])))
+  } else {
+    await db.delete(notification).where(base)
+  }
+  return { ok: true }
 }
 
 // Unread counts split into the two inbox tabs plus a total for the bell badge.

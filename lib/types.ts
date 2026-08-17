@@ -69,6 +69,9 @@ export type NotificationSummary = {
   body: string | null
   read: boolean
   createdAt: string
+  // For FRIEND_REQUEST notifications: the still-pending invite id, so the
+  // request can be accepted/declined inline. Null once handled or gone.
+  inviteId: string | null
 }
 
 export type PostSummary = {
