@@ -74,7 +74,7 @@ export function PostComposer({ userName, userImage }: { userName: string; userIm
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
             placeholder="Write a caption..."
-            className="min-h-[60px] resize-none border-none bg-transparent p-0 shadow-none focus-visible:ring-0"
+            className="block min-h-[60px] resize-none rounded-none border-none bg-transparent p-0 text-base leading-relaxed shadow-none focus-visible:ring-0 md:text-base"
             maxLength={2200}
           />
 

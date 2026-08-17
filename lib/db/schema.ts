@@ -19,8 +19,10 @@ export const user = pgTable(
     emailVerified: boolean("emailVerified").notNull().default(false),
     image: text("image"),
     // App profile fields.
-    username: text("username"),
+    username: text("username").notNull(),
     bio: text("bio"),
+    // Access role: "ADMIN" | "MODERATOR" | "MEMBER". Members are the default.
+    role: text("role").notNull().default("MEMBER"),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
     updatedAt: timestamp("updatedAt").notNull().defaultNow(),
   },
@@ -179,5 +181,45 @@ export const postLike = pgTable(
       t.postId,
       t.userId,
     ),
+  }),
+)
+
+// Interest tags a user adds to their profile. `tag` is stored lowercased and
+// slug-normalized so search/matching can compare directly.
+export const interest = pgTable(
+  "interest",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    tag: text("tag").notNull(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    userTagUnique: uniqueIndex("interest_user_tag_unique").on(t.userId, t.tag),
+    tagIdx: index("interest_tag_idx").on(t.tag),
+  }),
+)
+
+// A notification for a user: friend requests, accepts, and new messages.
+// type: "FRIEND_REQUEST" | "FRIEND_ACCEPT" | "MESSAGE"
+export const notification = pgTable(
+  "notification",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    type: text("type").notNull(),
+    actorId: text("actorId"),
+    chatId: text("chatId"),
+    // Free-form context: sender name, message preview, etc.
+    body: text("body"),
+    readAt: timestamp("readAt"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    userCreatedIdx: index("notification_user_created_idx").on(
+      t.userId,
+      t.createdAt,
+    ),
+    userReadIdx: index("notification_user_read_idx").on(t.userId, t.readAt),
   }),
 )

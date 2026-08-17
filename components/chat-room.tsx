@@ -45,7 +45,7 @@ export function ChatRoom({
   initialMessages: ChatMessage[]
   allowImages?: boolean
   showSenderNames?: boolean
-  onEnded?: () => void
+  onEnded?: (payload?: { by?: string; disconnected?: boolean }) => void
   emptyState?: React.ReactNode
   // When provided, tapping another user's avatar or name opens their preview.
   onUserClick?: (userId: string) => void
@@ -165,7 +165,7 @@ export function ChatRoom({
                         <button
                           type="button"
                           onClick={() => onUserClick(m.senderId)}
-                          className="px-1 text-xs font-medium text-muted-foreground hover:underline"
+                          className="self-start px-1 text-left text-xs font-medium text-muted-foreground hover:underline"
                         >
                           {m.senderName}
                         </button>

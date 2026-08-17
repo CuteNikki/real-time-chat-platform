@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/user-avatar"
+import { InterestTags } from "@/components/interest-tags"
 import { getProfilePreview } from "@/app/actions/profile"
 import {
   sendFriendRequest,
@@ -122,6 +123,7 @@ export function UserPreviewDialog({
                 {profile.bio}
               </p>
             ) : null}
+            <InterestTags interests={profile.interests} className="mt-3 justify-center" max={6} />
 
             <div className="mt-3 flex items-center gap-6 text-sm">
               <span>

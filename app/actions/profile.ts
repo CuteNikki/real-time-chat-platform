@@ -1,16 +1,38 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { user, post, invite } from "@/lib/db/schema"
+import { user, post, invite, interest } from "@/lib/db/schema"
 import { getCurrentUser, getUserId } from "@/lib/session"
+import { newId } from "@/lib/id"
 import type { UserProfile } from "@/lib/types"
-import { and, eq, or, sql, ne } from "drizzle-orm"
+import { and, eq, or, sql, ne, inArray } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/
+const MAX_INTERESTS = 10
 
 function normalizeUsername(u: string) {
   return u.trim().toLowerCase()
+}
+
+// Normalize an interest tag: lowercase, trim, collapse whitespace to single
+// spaces, strip leading '#'. Returns "" if nothing usable remains.
+function normalizeTag(raw: string) {
+  return raw
+    .trim()
+    .replace(/^#+/, "")
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .slice(0, 30)
+}
+
+async function getInterests(userId: string): Promise<string[]> {
+  const rows = await db
+    .select({ tag: interest.tag })
+    .from(interest)
+    .where(eq(interest.userId, userId))
+    .orderBy(interest.tag)
+  return rows.map((r) => r.tag)
 }
 
 // Count accepted friendships involving a user.
@@ -66,6 +88,7 @@ async function buildProfile(
 
   const rel = await relationship(viewerId, u.id)
   const fc = await friendCount(u.id)
+  const interests = await getInterests(u.id)
 
   return {
     id: u.id,
@@ -73,6 +96,8 @@ async function buildProfile(
     username: u.username,
     image: u.image,
     bio: u.bio,
+    interests,
+    role: u.role === "ADMIN" || u.role === "MODERATOR" ? u.role : "MEMBER",
     postCount,
     friendCount: fc,
     createdAt: u.createdAt.toISOString(),
@@ -109,15 +134,47 @@ export async function getProfilePreview(
 export async function getMyProfile() {
   const me = await getCurrentUser()
   const [u] = await db.select().from(user).where(eq(user.id, me.id)).limit(1)
-  return u
-    ? {
-        id: u.id,
-        name: u.name,
-        username: u.username,
-        image: u.image,
-        bio: u.bio,
-      }
-    : null
+  if (!u) return null
+  const interests = await getInterests(u.id)
+  return {
+    id: u.id,
+    name: u.name,
+    username: u.username,
+    image: u.image,
+    bio: u.bio,
+    interests,
+  }
+}
+
+// Replace the current user's interest tags with a new set (deduped, capped).
+export async function updateInterests(tags: string[]) {
+  const userId = await getUserId()
+  const cleaned: string[] = []
+  for (const raw of tags) {
+    const t = normalizeTag(raw)
+    if (t && !cleaned.includes(t)) cleaned.push(t)
+    if (cleaned.length >= MAX_INTERESTS) break
+  }
+
+  // Diff against existing so we only insert/delete what changed.
+  const existing = await getInterests(userId)
+  const toAdd = cleaned.filter((t) => !existing.includes(t))
+  const toRemove = existing.filter((t) => !cleaned.includes(t))
+
+  if (toRemove.length) {
+    await db
+      .delete(interest)
+      .where(and(eq(interest.userId, userId), inArray(interest.tag, toRemove)))
+  }
+  for (const tag of toAdd) {
+    await db
+      .insert(interest)
+      .values({ id: newId("int"), userId, tag })
+      .onConflictDoNothing({ target: [interest.userId, interest.tag] })
+  }
+
+  revalidatePath("/app/settings")
+  return { interests: cleaned }
 }
 
 export async function isUsernameAvailable(username: string) {
@@ -181,12 +238,31 @@ export async function updateProfile(input: {
   return { ok: true }
 }
 
-// Directory search by username or display name (for the "add friend" search).
+// Directory search by username, display name, or interest tag (for the "add
+// friend" search). A leading '#' forces an interest-only search.
 export async function searchUsers(query: string) {
   const me = await getCurrentUser()
-  const q = query.trim()
+  const raw = query.trim()
+  if (raw.length < 2) return []
+
+  const tagOnly = raw.startsWith("#")
+  const q = raw.replace(/^#+/, "").trim().toLowerCase()
   if (q.length < 2) return []
-  const like = `%${q.toLowerCase()}%`
+  const like = `%${q}%`
+
+  // Ids of users whose interest tags match the query.
+  const tagMatches = await db
+    .select({ userId: interest.userId })
+    .from(interest)
+    .where(sql`${interest.tag} like ${like}`)
+    .limit(50)
+  const tagUserIds = Array.from(new Set(tagMatches.map((r) => r.userId))).filter((id) => id !== me.id)
+
+  const nameMatch = or(
+    sql`lower(${user.username}) like ${like}`,
+    sql`lower(${user.name}) like ${like}`,
+  )
+
   const rows = await db
     .select({
       id: user.id,
@@ -198,13 +274,31 @@ export async function searchUsers(query: string) {
     .where(
       and(
         ne(user.id, me.id),
-        or(
-          sql`lower(${user.username}) like ${like}`,
-          sql`lower(${user.name}) like ${like}`,
-        ),
+        tagOnly
+          ? tagUserIds.length
+            ? inArray(user.id, tagUserIds)
+            : sql`false`
+          : tagUserIds.length
+            ? or(nameMatch, inArray(user.id, tagUserIds))
+            : nameMatch,
       ),
     )
     .limit(10)
+
+  // Fetch interests for the matched users in one query.
+  const resultIds = rows.map((r) => r.id)
+  const interestRows = resultIds.length
+    ? await db
+        .select({ userId: interest.userId, tag: interest.tag })
+        .from(interest)
+        .where(inArray(interest.userId, resultIds))
+    : []
+  const interestsByUser = new Map<string, string[]>()
+  for (const r of interestRows) {
+    const arr = interestsByUser.get(r.userId) ?? []
+    arr.push(r.tag)
+    interestsByUser.set(r.userId, arr)
+  }
 
   // Annotate each result with the viewer's relationship so the UI can show the
   // right action (Add / Requested / Respond / Friends).
@@ -229,5 +323,9 @@ export async function searchUsers(query: string) {
     return "none"
   }
 
-  return rows.map((r) => ({ ...r, friendStatus: statusFor(r.id) }))
+  return rows.map((r) => ({
+    ...r,
+    friendStatus: statusFor(r.id),
+    interests: (interestsByUser.get(r.id) ?? []).slice(0, 5),
+  }))
 }

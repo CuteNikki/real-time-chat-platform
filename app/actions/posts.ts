@@ -35,7 +35,7 @@ async function decoratePosts(
     caption: string | null
     createdAt: Date
     authorName: string
-    authorUsername: string | null
+    authorUsername: string
     authorImage: string | null
   }[],
   viewerId: string,

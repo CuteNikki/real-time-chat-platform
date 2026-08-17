@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { createRoom, joinRoom, leaveRoom } from "@/app/actions/rooms"
+import { createRoom, joinRoom, deleteRoom } from "@/app/actions/rooms"
 import { getMessages } from "@/app/actions/chat"
 import { useRoomMembers } from "@/hooks/use-room-members"
 import { ChatRoom } from "@/components/chat-room"
@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Users, Hash, ArrowLeft, LogOut, MessageSquare, Loader2 } from "lucide-react"
+import { Plus, Users, Hash, ArrowLeft, MessageSquare, Loader2, Trash2 } from "lucide-react"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -44,9 +44,13 @@ function initials(name: string) {
 export function RoomsWorkspace({
   initialRooms,
   me,
+  canCreate = false,
+  canDelete = false,
 }: {
   initialRooms: RoomSummary[]
   me: { id: string; name: string }
+  canCreate?: boolean
+  canDelete?: boolean
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -60,7 +64,6 @@ export function RoomsWorkspace({
   const [activeChatId, setActiveChatId] = useState<string | null>(urlChatId)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
-  const [leaving, setLeaving] = useState(false)
 
   // The user whose profile preview popup is open (null = closed).
   const [previewUserId, setPreviewUserId] = useState<string | null>(null)
@@ -70,15 +73,39 @@ export function RoomsWorkspace({
   const [name, setName] = useState("")
   const [creating, setCreating] = useState(false)
 
+  // Confirmation dialog state for deleting the active channel.
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
   const members = useRoomMembers(activeChatId)
   const activeRoom = rooms.find((r) => r.id === activeChatId) ?? null
 
   // Track the last channel we loaded so re-renders don't refetch endlessly.
   const loadedFor = useRef<string | null>(null)
 
+  // Fire-and-forget leave that survives page unloads (uses sendBeacon).
+  const beaconLeave = useCallback((chatId: string) => {
+    if (!chatId) return
+    const payload = JSON.stringify({ chatId })
+    if (typeof navigator !== "undefined" && navigator.sendBeacon) {
+      navigator.sendBeacon("/api/rooms/leave", new Blob([payload], { type: "application/json" }))
+    } else {
+      void fetch("/api/rooms/leave", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+        keepalive: true,
+      })
+    }
+  }, [])
+
   const openChannel = useCallback(
     async (chatId: string) => {
       if (loadedFor.current === chatId) return
+      // Leave the previously active channel before switching.
+      if (loadedFor.current && loadedFor.current !== chatId) {
+        beaconLeave(loadedFor.current)
+      }
       loadedFor.current = chatId
       setActiveChatId(chatId)
       setLoading(true)
@@ -96,8 +123,21 @@ export function RoomsWorkspace({
         setLoading(false)
       }
     },
-    [router, mutate],
+    [router, mutate, beaconLeave],
   )
+
+  // Auto-leave the active channel when the user navigates away, closes the tab,
+  // or this workspace unmounts — no explicit "Leave" button needed.
+  useEffect(() => {
+    function handlePageHide() {
+      if (loadedFor.current) beaconLeave(loadedFor.current)
+    }
+    window.addEventListener("pagehide", handlePageHide)
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide)
+      if (loadedFor.current) beaconLeave(loadedFor.current)
+    }
+  }, [beaconLeave])
 
   // Open the channel referenced in the URL on first load / back-forward nav.
   useEffect(() => {
@@ -127,26 +167,29 @@ export function RoomsWorkspace({
     }
   }
 
-  async function handleLeave() {
-    if (!activeChatId) return
-    setLeaving(true)
+  async function handleDelete() {
+    if (!activeChatId || deleting) return
+    const roomName = activeRoom?.name ?? "channel"
+    setDeleting(true)
     try {
-      await leaveRoom(activeChatId)
-      toast.success("You left the channel")
+      await deleteRoom(activeChatId)
+      // The room no longer exists — clear local state without a "leave" beacon.
       loadedFor.current = null
       setActiveChatId(null)
       setMessages([])
+      setDeleteOpen(false)
       router.replace("/app/rooms", { scroll: false })
-      mutate()
+      await mutate()
+      toast.success(`Deleted #${roomName}`)
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not leave")
+      toast.error(err instanceof Error ? err.message : "Could not delete room")
     } finally {
-      setLeaving(false)
+      setDeleting(false)
     }
   }
 
   return (
-    <div className="flex h-[calc(100svh-4rem)] overflow-hidden">
+    <div className="flex h-full overflow-hidden">
       {/* Left rail: channels + members */}
       <aside
         className={cn(
@@ -160,38 +203,40 @@ export function RoomsWorkspace({
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Channels</h2>
             <span className="text-xs text-muted-foreground">{rooms.length}</span>
           </div>
-          <div className="px-3">
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger render={<Button className="w-full gap-2" size="sm" />}>
-                <Plus className="size-4" aria-hidden />
-                Create channel
-              </DialogTrigger>
-              <DialogContent>
-                <form onSubmit={handleCreate}>
-                  <DialogHeader>
-                    <DialogTitle>Create a channel</DialogTitle>
-                    <DialogDescription>Give it a name. Anyone can find and join it.</DialogDescription>
-                  </DialogHeader>
-                  <div className="my-5 flex flex-col gap-2">
-                    <Label htmlFor="room-name">Channel name</Label>
-                    <Input
-                      id="room-name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. late night talks"
-                      maxLength={60}
-                      autoFocus
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={creating || !name.trim()}>
-                      {creating ? "Creating…" : "Create & enter"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+          {canCreate && (
+            <div className="px-3">
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger render={<Button className="w-full gap-2" size="sm" />}>
+                  <Plus className="size-4" aria-hidden />
+                  Create channel
+                </DialogTrigger>
+                <DialogContent>
+                  <form onSubmit={handleCreate}>
+                    <DialogHeader>
+                      <DialogTitle>Create a channel</DialogTitle>
+                      <DialogDescription>Give it a name. Anyone can find and join it.</DialogDescription>
+                    </DialogHeader>
+                    <div className="my-5 flex flex-col gap-2">
+                      <Label htmlFor="room-name">Channel name</Label>
+                      <Input
+                        id="room-name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. late night talks"
+                        maxLength={60}
+                        autoFocus
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" disabled={creating || !name.trim()}>
+                        {creating ? "Creating…" : "Create & enter"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
 
           <nav className="mt-2 min-h-0 flex-1 overflow-y-auto px-3 pb-3">
             {rooms.length === 0 ? (
@@ -252,13 +297,9 @@ export function RoomsWorkspace({
                   <li key={m.id}>
                     <button
                       type="button"
-                      onClick={() => !m.isMe && setPreviewUserId(m.id)}
-                      disabled={m.isMe}
-                      className={cn(
-                        "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors",
-                        !m.isMe && "hover:bg-secondary",
-                      )}
-                      aria-label={m.isMe ? undefined : `View ${m.name}'s profile`}
+                      onClick={() => setPreviewUserId(m.id)}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-secondary"
+                      aria-label={m.isMe ? "View your profile" : `View ${m.name}'s profile`}
                     >
                       <div className="relative shrink-0">
                         <Avatar className="size-7">
@@ -303,7 +344,13 @@ export function RoomsWorkspace({
                 variant="ghost"
                 size="icon"
                 className="shrink-0 md:hidden"
-                onClick={() => router.replace("/app/rooms", { scroll: false })}
+                onClick={() => {
+                  if (loadedFor.current) beaconLeave(loadedFor.current)
+                  loadedFor.current = null
+                  setActiveChatId(null)
+                  setMessages([])
+                  router.replace("/app/rooms", { scroll: false })
+                }}
                 aria-label="Back to channels"
               >
                 <ArrowLeft className="size-5" aria-hidden />
@@ -318,16 +365,39 @@ export function RoomsWorkspace({
                   {members.length > 0 ? `${members.length} online` : "Group channel"}
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0 gap-1.5 bg-transparent"
-                onClick={handleLeave}
-                disabled={leaving}
-              >
-                <LogOut className="size-4" aria-hidden />
-                <span className="hidden sm:inline">{leaving ? "Leaving…" : "Leave"}</span>
-              </Button>
+              {canDelete && (
+                <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                  <DialogTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                      />
+                    }
+                    aria-label="Delete channel"
+                  >
+                    <Trash2 className="size-5" aria-hidden />
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Delete #{activeRoom?.name ?? "channel"}?</DialogTitle>
+                      <DialogDescription>
+                        This permanently deletes the channel and all of its messages for everyone. This action cannot be
+                        undone.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button variant="secondary" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+                        Cancel
+                      </Button>
+                      <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                        {deleting ? "Deleting…" : "Delete channel"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
             </header>
 
             <div className="min-h-0 flex-1">

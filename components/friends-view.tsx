@@ -3,29 +3,47 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Clock, Loader2, Search, UserPlus, X } from "lucide-react"
+import { Clock, Loader2, MessageCircle, MoreVertical, Search, UserMinus, UserPlus, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { UserAvatar } from "@/components/user-avatar"
+import { InterestTags } from "@/components/interest-tags"
 import { toast } from "sonner"
 import { searchUsers } from "@/app/actions/profile"
-import { cancelFriendRequest, respondToRequest, sendFriendRequest } from "@/app/actions/invites"
-import type { InviteSummary } from "@/lib/types"
+import { cancelFriendRequest, removeFriend, respondToRequest, sendFriendRequest } from "@/app/actions/invites"
+import type { FriendSummary, InviteSummary, OutgoingInviteSummary } from "@/lib/types"
 
 type SearchResult = {
   id: string
   name: string
-  username: string | null
+  username: string
   image: string | null
   friendStatus: "none" | "friends" | "incoming" | "outgoing"
+  interests: string[]
 }
 
-export function FriendsView({ initialPending }: { initialPending: InviteSummary[] }) {
+export function FriendsView({
+  initialIncoming,
+  initialOutgoing,
+  initialFriends,
+}: {
+  initialIncoming: InviteSummary[]
+  initialOutgoing: OutgoingInviteSummary[]
+  initialFriends: FriendSummary[]
+}) {
   const router = useRouter()
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
-  const [pending, setPending] = useState(initialPending)
+  const [incoming, setIncoming] = useState(initialIncoming)
+  const [outgoing, setOutgoing] = useState(initialOutgoing)
+  const [friends, setFriends] = useState(initialFriends)
   const [busy, setBusy] = useState<string | null>(null)
 
   // Debounced username search.
@@ -53,8 +71,25 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
   async function addFriend(target: SearchResult) {
     setBusy(target.id)
     try {
-      await sendFriendRequest(target.id)
+      const res = await sendFriendRequest(target.id)
       setResults((rs) => rs.map((r) => (r.id === target.id ? { ...r, friendStatus: "outgoing" } : r)))
+      // Reflect the new request in the "Sent" list immediately.
+      const inviteId = res && "id" in res ? (res.id as string) : `pending-${target.id}`
+      setOutgoing((o) =>
+        o.some((x) => x.receiverId === target.id)
+          ? o
+          : [
+              {
+                id: inviteId,
+                receiverId: target.id,
+                receiverName: target.name,
+                receiverUsername: target.username,
+                receiverImage: target.image,
+                createdAt: new Date().toISOString(),
+              },
+              ...o,
+            ],
+      )
       toast.success(`Request sent to ${target.username ? "@" + target.username : target.name}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not send request")
@@ -63,11 +98,12 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
     }
   }
 
-  async function cancelRequest(target: SearchResult) {
-    setBusy(target.id)
+  async function cancelRequest(targetUserId: string) {
+    setBusy(targetUserId)
     try {
-      await cancelFriendRequest(target.id)
-      setResults((rs) => rs.map((r) => (r.id === target.id ? { ...r, friendStatus: "none" } : r)))
+      await cancelFriendRequest(targetUserId)
+      setResults((rs) => rs.map((r) => (r.id === targetUserId ? { ...r, friendStatus: "none" } : r)))
+      setOutgoing((o) => o.filter((x) => x.receiverId !== targetUserId))
       toast.success("Request canceled")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not cancel")
@@ -80,7 +116,7 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
     setBusy(inv.id)
     try {
       const res = await respondToRequest(inv.id, accept)
-      setPending((p) => p.filter((x) => x.id !== inv.id))
+      setIncoming((p) => p.filter((x) => x.id !== inv.id))
       if (accept && res?.chatId) {
         toast.success("You're now friends")
         router.push(`/app/messages?c=${res.chatId}`)
@@ -89,6 +125,21 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not respond")
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function unfriend(friend: FriendSummary) {
+    setBusy(friend.id)
+    try {
+      await removeFriend(friend.id)
+      setFriends((f) => f.filter((x) => x.id !== friend.id))
+      // Reflect in any current search results too.
+      setResults((rs) => rs.map((r) => (r.id === friend.id ? { ...r, friendStatus: "none" } : r)))
+      toast.success(`Removed ${friend.username ? "@" + friend.username : friend.name} and deleted your chat`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not remove friend")
     } finally {
       setBusy(null)
     }
@@ -103,47 +154,8 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
 
   return (
     <div className="space-y-8">
-      {/* Incoming requests */}
-      {pending.length > 0 ? (
-        <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Requests ({pending.length})
-          </h2>
-          <ul className="flex flex-col gap-2">
-            {pending.map((inv) => (
-              <li
-                key={inv.id}
-                className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
-              >
-                <Link href={inv.senderUsername ? `/app/u/${inv.senderUsername}` : "#"}>
-                  <UserAvatar name={inv.senderName} image={inv.senderImage} className="size-10" />
-                </Link>
-                <div className="min-w-0 flex-1 leading-tight">
-                  <p className="truncate font-medium">{inv.senderName}</p>
-                  {inv.senderUsername ? (
-                    <p className="truncate text-xs text-muted-foreground">@{inv.senderUsername}</p>
-                  ) : null}
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => respond(inv, true)} disabled={busy === inv.id}>
-                    Accept
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => respond(inv, false)}
-                    disabled={busy === inv.id}
-                  >
-                    Decline
-                  </Button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {/* Search */}
+      {/* Search — the primary action, kept at the top so pending requests
+          never push it down the page. */}
       <section>
         <div className="relative">
           <Search
@@ -153,7 +165,7 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by username or name"
+            placeholder="Search by name, @username, or #interest"
             className="pl-9"
             autoCapitalize="none"
             spellCheck={false}
@@ -172,13 +184,13 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
               <Link href={r.username ? `/app/u/${r.username}` : "#"}>
                 <UserAvatar name={r.name} image={r.image} className="size-10" />
               </Link>
-              <Link
-                href={r.username ? `/app/u/${r.username}` : "#"}
-                className="min-w-0 flex-1 leading-tight hover:underline"
-              >
-                <p className="truncate font-medium">{r.name}</p>
-                {r.username ? <p className="truncate text-xs text-muted-foreground">@{r.username}</p> : null}
-              </Link>
+              <div className="min-w-0 flex-1 leading-tight">
+                <Link href={r.username ? `/app/u/${r.username}` : "#"} className="hover:underline">
+                  <p className="truncate font-medium">{r.name}</p>
+                  {r.username ? <p className="truncate text-xs text-muted-foreground">@{r.username}</p> : null}
+                </Link>
+                <InterestTags interests={r.interests} className="mt-1" max={4} />
+              </div>
               {r.friendStatus === "incoming" ? (
                 <Link href="#requests">
                   <Button size="sm" variant="secondary">
@@ -191,7 +203,7 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
                   variant="secondary"
                   className="group/req gap-1.5"
                   disabled={busy === r.id}
-                  onClick={() => cancelRequest(r)}
+                  onClick={() => cancelRequest(r.id)}
                 >
                   {busy === r.id ? (
                     <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -229,6 +241,155 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
           ) : null}
         </ul>
       </section>
+
+      {/* Incoming requests */}
+      {incoming.length > 0 ? (
+        <section id="requests">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Incoming requests ({incoming.length})
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {incoming.map((inv) => (
+              <li
+                key={inv.id}
+                className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
+              >
+                <Link href={inv.senderUsername ? `/app/u/${inv.senderUsername}` : "#"}>
+                  <UserAvatar name={inv.senderName} image={inv.senderImage} className="size-10" />
+                </Link>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <p className="truncate font-medium">{inv.senderName}</p>
+                  {inv.senderUsername ? (
+                    <p className="truncate text-xs text-muted-foreground">@{inv.senderUsername}</p>
+                  ) : null}
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => respond(inv, true)} disabled={busy === inv.id}>
+                    Accept
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => respond(inv, false)}
+                    disabled={busy === inv.id}
+                  >
+                    Decline
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* Current friends */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Your friends ({friends.length})
+        </h2>
+        {friends.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground text-balance">
+            You have no friends yet. Search above to find people and send a request.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {friends.map((f) => (
+              <li key={f.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                <Link href={f.username ? `/app/u/${f.username}` : "#"}>
+                  <UserAvatar name={f.name} image={f.image} className="size-10" />
+                </Link>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <Link href={f.username ? `/app/u/${f.username}` : "#"} className="hover:underline">
+                    <p className="truncate font-medium">{f.name}</p>
+                    {f.username ? <p className="truncate text-xs text-muted-foreground">@{f.username}</p> : null}
+                  </Link>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  {f.chatId ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="gap-1.5"
+                      render={<Link href={`/app/messages?c=${f.chatId}`} />}
+                    >
+                      <MessageCircle className="size-4" aria-hidden />
+                      Message
+                    </Button>
+                  ) : null}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-8"
+                          disabled={busy === f.id}
+                          aria-label={`More actions for ${f.name}`}
+                        />
+                      }
+                    >
+                      {busy === f.id ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                      ) : (
+                        <MoreVertical className="size-4" aria-hidden />
+                      )}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem variant="destructive" onClick={() => unfriend(f)}>
+                        <UserMinus className="size-4" aria-hidden />
+                        Unfriend &amp; delete chat
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Outgoing (sent) requests — lets you pull back a request even if you
+          can no longer find that user in search. */}
+      {outgoing.length > 0 ? (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Sent requests ({outgoing.length})
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {outgoing.map((inv) => (
+              <li key={inv.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                <Link href={inv.receiverUsername ? `/app/u/${inv.receiverUsername}` : "#"}>
+                  <UserAvatar name={inv.receiverName} image={inv.receiverImage} className="size-10" />
+                </Link>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <p className="truncate font-medium">{inv.receiverName}</p>
+                  {inv.receiverUsername ? (
+                    <p className="truncate text-xs text-muted-foreground">@{inv.receiverUsername}</p>
+                  ) : null}
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="group/req gap-1.5"
+                  disabled={busy === inv.receiverId}
+                  onClick={() => cancelRequest(inv.receiverId)}
+                >
+                  {busy === inv.receiverId ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <>
+                      <Clock className="size-4 group-hover/req:hidden" aria-hidden />
+                      <X className="hidden size-4 group-hover/req:block" aria-hidden />
+                    </>
+                  )}
+                  <span className="group-hover/req:hidden">Pending</span>
+                  <span className="hidden group-hover/req:inline">Cancel</span>
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   )
 }

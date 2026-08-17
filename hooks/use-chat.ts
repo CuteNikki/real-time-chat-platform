@@ -15,7 +15,7 @@ export function useChat({
 }: {
   chatId: string
   initialMessages: ChatMessage[]
-  onEnded?: () => void
+  onEnded?: (payload?: { by?: string; disconnected?: boolean }) => void
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [memberCount, setMemberCount] = useState<number | null>(null)
@@ -38,9 +38,13 @@ export function useChat({
       })
     }
 
-    const handleEnded = () => {
+    const handleEnded = (payload?: { by?: string; disconnected?: boolean }) => {
       setEnded(true)
-      onEnded?.()
+      onEnded?.(payload)
+    }
+
+    const handleCleared = () => {
+      setMessages([])
     }
 
     const recount = () => {
@@ -51,6 +55,7 @@ export function useChat({
 
     channel.bind(EVENTS.NEW_MESSAGE, handleNew)
     channel.bind(EVENTS.CHAT_ENDED, handleEnded)
+    channel.bind(EVENTS.CHAT_CLEARED, handleCleared)
     channel.bind("pusher:subscription_succeeded", recount)
     channel.bind("pusher:member_added", recount)
     channel.bind("pusher:member_removed", recount)
@@ -58,6 +63,7 @@ export function useChat({
     return () => {
       channel.unbind(EVENTS.NEW_MESSAGE, handleNew)
       channel.unbind(EVENTS.CHAT_ENDED, handleEnded)
+      channel.unbind(EVENTS.CHAT_CLEARED, handleCleared)
       channel.unbind("pusher:subscription_succeeded", recount)
       channel.unbind("pusher:member_added", recount)
       channel.unbind("pusher:member_removed", recount)

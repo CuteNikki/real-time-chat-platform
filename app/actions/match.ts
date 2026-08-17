@@ -2,7 +2,7 @@
 
 import { and, eq, isNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { chat, chatParticipant, randomQueue } from "@/lib/db/schema"
+import { chat, chatParticipant, randomQueue, message } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/session"
 import { pusherServer } from "@/lib/pusher/server"
 import { userChannel, chatChannel, EVENTS } from "@/lib/pusher/channels"
@@ -17,11 +17,18 @@ export async function requestMatch(): Promise<MatchResult> {
   const me = await getCurrentUser()
 
   return db.transaction(async (tx) => {
-    // Grab the oldest waiting user that isn't me, locking the row.
+    // Prefer a waiting user who shares the most interest tags with me; break
+    // ties by who has waited longest. Falls back to plain FIFO when nobody
+    // shares an interest. SKIP LOCKED keeps concurrent matches from colliding.
     const waiting = await tx.execute(
-      sql`SELECT "id", "userId" FROM "random_queue"
-          WHERE "userId" <> ${me.id}
-          ORDER BY "joinedAt" ASC
+      sql`SELECT q."id", q."userId",
+                 (SELECT count(*) FROM "interest" oi
+                  WHERE oi."userId" = q."userId"
+                    AND oi."tag" IN (SELECT "tag" FROM "interest" WHERE "userId" = ${me.id})
+                 ) AS shared
+          FROM "random_queue" q
+          WHERE q."userId" <> ${me.id}
+          ORDER BY shared DESC, q."joinedAt" ASC
           LIMIT 1
           FOR UPDATE SKIP LOCKED`,
     )
@@ -85,13 +92,11 @@ export async function endRandomChat(chatId: string) {
     .limit(1)
   if (!membership) throw new Error("Not a member of this chat")
 
-  await db.update(chat).set({ endedAt: new Date() }).where(and(eq(chat.id, chatId), isNull(chat.endedAt)))
-  await db
-    .update(chatParticipant)
-    .set({ leftAt: new Date() })
-    .where(and(eq(chatParticipant.chatId, chatId), isNull(chatParticipant.leftAt)))
-
-  await pusherServer.trigger(chatChannel(chatId), EVENTS.CHAT_ENDED, { by: me.name })
+  // Notify the partner, then delete the ephemeral match entirely.
+  await pusherServer.trigger(chatChannel(chatId), EVENTS.CHAT_ENDED, { by: me.name, disconnected: true })
+  await db.delete(message).where(eq(message.chatId, chatId))
+  await db.delete(chatParticipant).where(eq(chatParticipant.chatId, chatId))
+  await db.delete(chat).where(eq(chat.id, chatId))
   return { ok: true }
 }
 

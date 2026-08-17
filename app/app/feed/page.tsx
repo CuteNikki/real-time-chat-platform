@@ -12,7 +12,7 @@ export default async function FeedPage() {
   const posts = await getFeed()
 
   return (
-    <div className="mx-auto w-full max-w-xl px-4 py-6">
+    <div className="mx-auto h-full w-full max-w-xl overflow-y-auto px-4 py-6">
       <h1 className="mb-4 text-2xl font-semibold tracking-tight">Feed</h1>
       <div className="mb-6">
         <PostComposer userName={me.name} userImage={me.image} />

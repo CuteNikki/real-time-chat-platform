@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { UserAvatar } from "@/components/user-avatar"
+import { NotificationBell } from "@/components/notification-bell"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Orbit, Home, Shuffle, Users, MessageCircle, UserPlus, User, Settings, LogOut } from "lucide-react"
+import { Orbit, Home, Shuffle, Users, MessageCircle, UserPlus, User, Settings, Shield, LogOut } from "lucide-react"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -32,7 +33,14 @@ const links = [
 export function AppNav({
   user,
 }: {
-  user: { name: string; email: string; image: string | null; username: string | null }
+  user: {
+    id: string
+    name: string
+    email: string
+    image: string | null
+    username: string | null
+    role: "ADMIN" | "MODERATOR" | "MEMBER"
+  }
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -85,6 +93,8 @@ export function AppNav({
           })}
         </nav>
 
+        <div className="flex items-center gap-1">
+        <NotificationBell userId={user.id} />
         <DropdownMenu>
           <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost" }), "h-10 gap-2 px-2")}>
             <UserAvatar name={user.name} image={user.image} className="size-8 text-xs" />
@@ -107,6 +117,12 @@ export function AppNav({
               <Settings className="size-4" aria-hidden />
               Edit profile
             </DropdownMenuItem>
+            {user.role === "ADMIN" && (
+              <DropdownMenuItem render={<Link href="/app/admin" />}>
+                <Shield className="size-4" aria-hidden />
+                Admin
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
               <LogOut className="size-4" aria-hidden />
@@ -114,6 +130,7 @@ export function AppNav({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
     </header>
   )

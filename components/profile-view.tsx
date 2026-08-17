@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { UserAvatar } from "@/components/user-avatar"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
+import { InterestTags } from "@/components/interest-tags"
 import { PostGrid } from "@/components/post-grid"
 import { sendFriendRequest, respondToRequest, removeFriend, cancelFriendRequest } from "@/app/actions/invites"
 import type { PostSummary, UserProfile } from "@/lib/types"
@@ -97,7 +100,7 @@ export function ProfileView({
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
+    <div className="mx-auto h-full w-full max-w-4xl overflow-y-auto px-4 py-8 sm:px-6">
       <header className="flex flex-col gap-6 sm:flex-row sm:items-center">
         <UserAvatar
           name={profile.name}
@@ -111,12 +114,23 @@ export function ProfileView({
               {profile.username ? (
                 <span className="text-sm text-muted-foreground">@{profile.username}</span>
               ) : null}
+              {profile.role !== "MEMBER" ? (
+                <Badge
+                  className={cn(
+                    "border-transparent",
+                    profile.role === "ADMIN" ? "bg-primary/15 text-primary" : "bg-chart-2/15 text-chart-2",
+                  )}
+                >
+                  {profile.role === "ADMIN" ? "Admin" : "Moderator"}
+                </Badge>
+              ) : null}
             </div>
             {profile.bio ? (
               <p className="max-w-prose text-sm leading-relaxed text-pretty text-muted-foreground">
                 {profile.bio}
               </p>
             ) : null}
+            <InterestTags interests={profile.interests} className="mt-1" />
           </div>
 
           <div className="flex items-center gap-6 text-sm">
@@ -132,11 +146,13 @@ export function ProfileView({
 
           <div className="flex flex-wrap items-center gap-2">
             {profile.isSelf ? (
-              <Button asChild variant="secondary" className="gap-2">
-                <Link href="/app/settings">
-                  <Pencil className="size-4" aria-hidden />
-                  Edit profile
-                </Link>
+              <Button
+                variant="secondary"
+                className="gap-2"
+                render={<Link href="/app/settings" />}
+              >
+                <Pencil className="size-4" aria-hidden />
+                Edit profile
               </Button>
             ) : status === "friends" ? (
               <>

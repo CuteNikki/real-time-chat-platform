@@ -21,7 +21,7 @@ export type InviteSummary = {
   id: string
   senderId: string
   senderName: string
-  senderUsername: string | null
+  senderUsername: string
   senderImage: string | null
   receiverId: string
   status: "PENDING" | "ACCEPTED" | "DECLINED"
@@ -29,12 +29,33 @@ export type InviteSummary = {
   createdAt: string
 }
 
+export type OutgoingInviteSummary = {
+  id: string
+  receiverId: string
+  receiverName: string
+  receiverUsername: string
+  receiverImage: string | null
+  createdAt: string
+}
+
+export type FriendSummary = {
+  id: string
+  name: string
+  username: string
+  image: string | null
+  // The private DM chat with this friend, if one exists.
+  chatId: string | null
+  interests: string[]
+}
+
 export type UserProfile = {
   id: string
   name: string
-  username: string | null
+  username: string
   image: string | null
   bio: string | null
+  interests: string[]
+  role: "ADMIN" | "MODERATOR" | "MEMBER"
   postCount: number
   friendCount: number
   createdAt: string
@@ -45,11 +66,29 @@ export type UserProfile = {
   dmChatId: string | null
 }
 
+export type NotificationType = "FRIEND_REQUEST" | "FRIEND_ACCEPT" | "MESSAGE"
+
+export type NotificationSummary = {
+  id: string
+  type: NotificationType
+  actorId: string | null
+  actorName: string | null
+  actorUsername: string | null // null only when the actor account is gone
+  actorImage: string | null
+  chatId: string | null
+  body: string | null
+  read: boolean
+  createdAt: string
+  // For FRIEND_REQUEST notifications: the still-pending invite id, so the
+  // request can be accepted/declined inline. Null once handled or gone.
+  inviteId: string | null
+}
+
 export type PostSummary = {
   id: string
   authorId: string
   authorName: string
-  authorUsername: string | null
+  authorUsername: string
   authorImage: string | null
   imageUrl: string
   caption: string | null
