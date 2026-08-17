@@ -12,9 +12,7 @@ import { NotificationBell } from "@/components/notification-bell"
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -24,7 +22,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 const links = [
   { href: "/app/feed", label: "Feed", icon: Home, exact: false },
-  { href: "/app", label: "Match", icon: Shuffle, exact: true },
+  { href: "/app/match", label: "Match", icon: Shuffle, exact: false },
   { href: "/app/rooms", label: "Rooms", icon: Users, exact: false },
   { href: "/app/messages", label: "Messages", icon: MessageCircle, exact: false },
   { href: "/app/friends", label: "Friends", icon: UserPlus, exact: false },
@@ -67,7 +65,7 @@ export function AppNav({
           <span className="hidden text-lg font-semibold tracking-tight sm:inline">Orbit</span>
         </Link>
 
-        <nav className="flex items-center gap-1">
+        <nav className="hidden items-center gap-1 md:flex">
           {links.map((link) => {
             const active = link.exact ? pathname === link.href : pathname.startsWith(link.href)
             const Icon = link.icon
@@ -99,15 +97,17 @@ export function AppNav({
           <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost" }), "h-10 gap-2 px-2")}>
             <UserAvatar name={user.name} image={user.image} className="size-8 text-xs" />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="flex flex-col">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs font-normal text-muted-foreground">
+          <DropdownMenuContent align="end" className="w-64">
+            {/* Profile header: avatar + name/handle aligned with the items below. */}
+            <div className="flex items-center gap-3 p-2">
+              <UserAvatar name={user.name} image={user.image} className="size-10 text-sm" />
+              <div className="flex min-w-0 flex-col">
+                <span className="truncate text-sm font-medium">{user.name}</span>
+                <span className="truncate text-xs text-muted-foreground">
                   {user.username ? `@${user.username}` : user.email}
                 </span>
-              </DropdownMenuLabel>
-            </DropdownMenuGroup>
+              </div>
+            </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem render={<Link href={profileHref} />}>
               <User className="size-4" aria-hidden />
@@ -115,9 +115,9 @@ export function AppNav({
             </DropdownMenuItem>
             <DropdownMenuItem render={<Link href="/app/settings" />}>
               <Settings className="size-4" aria-hidden />
-              Edit profile
+              Settings
             </DropdownMenuItem>
-            {user.role === "ADMIN" && (
+            {(user.role === "ADMIN" || user.role === "MODERATOR") && (
               <DropdownMenuItem render={<Link href="/app/admin" />}>
                 <Shield className="size-4" aria-hidden />
                 Admin
@@ -133,5 +133,52 @@ export function AppNav({
         </div>
       </div>
     </header>
+  )
+}
+
+// Primary navigation as a bottom tab bar on small screens, where the icons
+// don't fit in the top header. Hidden at md+ (the header nav takes over).
+export function MobileBottomNav() {
+  const pathname = usePathname()
+
+  const { data } = useSWR<{ count: number }>("/api/invites/pending-count", fetcher, {
+    refreshInterval: 15000,
+  })
+  const pendingInvites = data?.count ?? 0
+
+  return (
+    <nav
+      aria-label="Primary"
+      className="flex shrink-0 items-stretch justify-around border-t border-border bg-background/80 backdrop-blur md:hidden"
+    >
+      {links.map((link) => {
+        const active = link.exact ? pathname === link.href : pathname.startsWith(link.href)
+        const Icon = link.icon
+        const showBadge = link.href === "/app/friends" && pendingInvites > 0
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={cn(
+              "relative flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium transition-colors",
+              active ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            <span className="relative">
+              <Icon className="size-5" aria-hidden />
+              {showBadge && (
+                <Badge
+                  className="absolute -right-2 -top-1.5 h-4 min-w-4 justify-center px-1 text-[10px] tabular-nums"
+                  variant="default"
+                >
+                  {pendingInvites}
+                </Badge>
+              )}
+            </span>
+            {link.label}
+          </Link>
+        )
+      })}
+    </nav>
   )
 }

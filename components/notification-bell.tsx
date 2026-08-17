@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { Bell, UserPlus, UserCheck, MessageCircle, Check, X, Loader2, Trash2 } from "lucide-react"
+import { Bell, UserPlus, UserCheck, MessageCircle, Heart, Check, X, Loader2, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { buttonVariants, Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,7 +21,9 @@ import {
   clearNotifications,
 } from "@/app/actions/notifications"
 import { respondToRequest } from "@/app/actions/invites"
-import type { NotificationSummary } from "@/lib/types"
+import { useNotificationPrefs } from "@/components/notification-prefs-provider"
+import { playNotificationSound } from "@/lib/notification-sound"
+import type { NotificationCategory, NotificationSummary, NotificationType } from "@/lib/types"
 
 type Counts = { requests: number; messages: number; total: number }
 
@@ -42,7 +44,24 @@ function timeAgo(iso: string) {
 function iconFor(type: NotificationSummary["type"]) {
   if (type === "FRIEND_REQUEST") return UserPlus
   if (type === "FRIEND_ACCEPT") return UserCheck
+  if (type === "LIKE") return Heart
   return MessageCircle
+}
+
+// Map a notification type to its preference category. MESSAGE is ambiguous
+// (direct vs room), so the realtime payload carries an explicit category that
+// takes precedence; this fallback assumes a direct message.
+function categoryForType(type: NotificationType): NotificationCategory {
+  switch (type) {
+    case "FRIEND_REQUEST":
+      return "friendRequest"
+    case "FRIEND_ACCEPT":
+      return "friendAccept"
+    case "LIKE":
+      return "like"
+    default:
+      return "directMessage"
+  }
 }
 
 const isMessage = (n: NotificationSummary) => n.type === "MESSAGE"
@@ -60,6 +79,8 @@ export function NotificationBell({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [previewUserId, setPreviewUserId] = useState<string | null>(null)
+
+  const { prefs } = useNotificationPrefs()
 
   const requests = items.filter((n) => !isMessage(n))
   const messages = items.filter(isMessage)
@@ -85,16 +106,30 @@ export function NotificationBell({ userId }: { userId: string }) {
   useEffect(() => {
     const pusher = getPusherClient()
     const channel = pusher.subscribe(userChannel(userId))
-    const onNotification = (payload: { body?: string | null }) => {
+    const onNotification = (payload: {
+      body?: string | null
+      type?: NotificationType
+      category?: NotificationCategory | null
+    }) => {
       mutate()
       if (open) load()
-      if (payload?.body) toast(payload.body)
+
+      const category = payload?.category ?? categoryForType(payload?.type ?? "MESSAGE")
+      const catPref = prefs.categories[category]
+
+      // Popup (toast) — respect the per-category popup preference.
+      if (payload?.body && catPref.popup) toast(payload.body)
+
+      // Sound — respect the master switch, per-category sound flag, and volume.
+      if (prefs.soundEnabled && catPref.sound) {
+        playNotificationSound(category, prefs.volume)
+      }
     }
     channel.bind(EVENTS.NOTIFICATION, onNotification)
     return () => {
       channel.unbind(EVENTS.NOTIFICATION, onNotification)
     }
-  }, [userId, mutate, open, load])
+  }, [userId, mutate, open, load, prefs])
 
   // Mark the active tab's notifications read shortly after viewing.
   useEffect(() => {

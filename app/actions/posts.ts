@@ -4,7 +4,9 @@ import { db } from "@/lib/db"
 import { post, postLike, user, invite } from "@/lib/db/schema"
 import { newId } from "@/lib/id"
 import { getCurrentUser, getUserId } from "@/lib/session"
-import type { PostSummary } from "@/lib/types"
+import { createNotification } from "@/app/actions/notifications"
+import { getNotificationPreferencesFor } from "@/app/actions/preferences"
+import type { PostLiker, PostSummary } from "@/lib/types"
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
@@ -31,7 +33,7 @@ async function decoratePosts(
   rows: {
     id: string
     userId: string
-    imageUrl: string
+    imageUrl: string | null
     caption: string | null
     createdAt: Date
     authorName: string
@@ -67,17 +69,20 @@ async function decoratePosts(
     createdAt: r.createdAt.toISOString(),
     likeCount: countMap.get(r.id) ?? 0,
     likedByMe: likedSet.has(r.id),
+    canManage: r.userId === viewerId,
   }))
 }
 
-export async function createPost(input: { imageUrl: string; caption?: string }) {
+export async function createPost(input: { imageUrl?: string | null; caption?: string }) {
   const userId = await getUserId()
-  if (!input.imageUrl) throw new Error("An image is required")
+  const imageUrl = input.imageUrl?.trim() || null
   const caption = input.caption?.trim() || null
   if (caption && caption.length > 500) throw new Error("Caption too long")
+  // A post needs at least an image or some text.
+  if (!imageUrl && !caption) throw new Error("Add a photo or write something")
 
   const id = newId("post")
-  await db.insert(post).values({ id, userId, imageUrl: input.imageUrl, caption })
+  await db.insert(post).values({ id, userId, imageUrl, caption })
   revalidatePath("/app/feed")
   revalidatePath("/app/settings")
   return { id }
@@ -85,10 +90,41 @@ export async function createPost(input: { imageUrl: string; caption?: string }) 
 
 export async function deletePost(postId: string) {
   const userId = await getUserId()
+  // Scope the delete to the owner so no one can delete another user's post.
+  const [owned] = await db
+    .select({ id: post.id })
+    .from(post)
+    .where(and(eq(post.id, postId), eq(post.userId, userId)))
+    .limit(1)
+  if (!owned) throw new Error("You can only delete your own posts")
+
   await db.delete(post).where(and(eq(post.id, postId), eq(post.userId, userId)))
   await db.delete(postLike).where(eq(postLike.postId, postId))
   revalidatePath("/app/feed")
+  revalidatePath("/app/settings")
   return { ok: true }
+}
+
+// Edit a post's caption. Owner-only; returns the normalized caption.
+export async function updatePost(postId: string, caption: string) {
+  const userId = await getUserId()
+  const next = caption.trim()
+  if (next.length > 500) throw new Error("Caption too long")
+
+  const [owned] = await db
+    .select({ id: post.id })
+    .from(post)
+    .where(and(eq(post.id, postId), eq(post.userId, userId)))
+    .limit(1)
+  if (!owned) throw new Error("You can only edit your own posts")
+
+  await db
+    .update(post)
+    .set({ caption: next || null })
+    .where(and(eq(post.id, postId), eq(post.userId, userId)))
+  revalidatePath("/app/feed")
+  revalidatePath("/app/settings")
+  return { caption: next || null }
 }
 
 export async function getUserPosts(profileUserId: string): Promise<PostSummary[]> {
@@ -135,6 +171,31 @@ export async function getFeed(): Promise<PostSummary[]> {
   return decoratePosts(rows, viewer.id)
 }
 
+// The users who liked a given post, most recent first, for the "who liked"
+// list opened by tapping the like count.
+export async function getPostLikers(postId: string): Promise<PostLiker[]> {
+  await getUserId()
+  const rows = await db
+    .select({
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      image: user.image,
+      likedAt: postLike.createdAt,
+    })
+    .from(postLike)
+    .innerJoin(user, eq(user.id, postLike.userId))
+    .where(eq(postLike.postId, postId))
+    .orderBy(desc(postLike.createdAt))
+    .limit(200)
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    username: r.username,
+    image: r.image,
+  }))
+}
+
 export async function toggleLike(postId: string) {
   const userId = await getUserId()
   const [existing] = await db
@@ -150,5 +211,34 @@ export async function toggleLike(postId: string) {
     .insert(postLike)
     .values({ id: newId("like"), postId, userId })
     .onConflictDoNothing()
+
+  // Notify the post's author that someone liked their post, unless they liked
+  // their own post or have opted out of like popups.
+  try {
+    const [p] = await db
+      .select({ authorId: post.userId })
+      .from(post)
+      .where(eq(post.id, postId))
+      .limit(1)
+    if (p && p.authorId !== userId) {
+      const prefs = await getNotificationPreferencesFor(p.authorId)
+      if (prefs.categories.like.popup) {
+        const [liker] = await db
+          .select({ name: user.name })
+          .from(user)
+          .where(eq(user.id, userId))
+          .limit(1)
+        await createNotification({
+          userId: p.authorId,
+          type: "LIKE",
+          actorId: userId,
+          body: `${liker?.name ?? "Someone"} liked your post`,
+        })
+      }
+    }
+  } catch {
+    // Notification failures must never block the like itself.
+  }
+
   return { liked: true }
 }

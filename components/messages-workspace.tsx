@@ -251,7 +251,7 @@ export function MessagesWorkspace({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem variant="destructive" onClick={handleUnfriend}>
                     <UserMinus className="size-4" aria-hidden />
-                    Unfriend &amp; delete chat
+                    Unfriend
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

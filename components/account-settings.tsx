@@ -75,9 +75,9 @@ export function AccountSettings() {
   }
 
   return (
-    <div className="mt-10 space-y-10">
+    <div className="space-y-10">
       {/* Change password */}
-      <section className="space-y-4 border-t border-border pt-8">
+      <section className="space-y-4">
         <div className="flex items-center gap-2">
           <KeyRound className="size-4 text-muted-foreground" aria-hidden />
           <h2 className="text-lg font-semibold tracking-tight">Change password</h2>

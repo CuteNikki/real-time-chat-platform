@@ -127,9 +127,11 @@ export async function sendMessage(input: {
 
   await pusherServer.trigger(chatChannel(input.chatId), EVENTS.NEW_MESSAGE, payload)
 
-  // Notify the other participants of a private DM so it lands in their inbox.
-  // Group/random chats are excluded to avoid notification spam.
-  if (c.type === "PRIVATE") {
+  // Notify the other participants of private DMs and group rooms so it lands in
+  // their inbox. Direct and room messages map to separate preference categories.
+  // Random-match chats are excluded (you're actively in the session).
+  if (c.type === "PRIVATE" || c.type === "GROUP") {
+    const isRoom = c.type === "GROUP"
     const recipients = await db
       .select({ userId: chatParticipant.userId })
       .from(chatParticipant)
@@ -141,13 +143,18 @@ export async function sendMessage(input: {
         ),
       )
     const preview = content ? content.slice(0, 80) : imageUrl ? "Sent an image" : ""
+    // Room messages prefix the room name so the inbox shows where it came from.
+    const body = isRoom
+      ? `${c.name ?? "Room"} · ${currentUser.name}: ${preview}`
+      : `${currentUser.name}: ${preview}`
     for (const r of recipients) {
       await createNotification({
         userId: r.userId,
         type: "MESSAGE",
         actorId: userId,
         chatId: input.chatId,
-        body: `${currentUser.name}: ${preview}`,
+        body,
+        category: isRoom ? "roomMessage" : "directMessage",
       })
     }
   }

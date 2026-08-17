@@ -106,7 +106,7 @@ export function ChatView({
       endedRef.current = true
       await endRandomChat(chatId)
       toast.success("Chat ended")
-      router.push("/app")
+      router.push("/app/match")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong")
       setLeaving(false)
@@ -213,7 +213,7 @@ export function ChatView({
           {partnerLeft ? `${title} disconnected. ` : "This chat has ended. "}
           <button
             type="button"
-            onClick={() => router.push("/app")}
+            onClick={() => router.push("/app/match")}
             className="font-medium text-primary hover:underline"
           >
             Find a new match

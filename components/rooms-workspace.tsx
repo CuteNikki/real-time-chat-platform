@@ -41,6 +41,47 @@ function initials(name: string) {
   )
 }
 
+// Shared online-members list, used both in the desktop sidebar and the mobile
+// "who's online" dialog so the two never drift apart.
+function MembersList({
+  members,
+  onSelect,
+}: {
+  members: { id: string; name: string; isMe: boolean }[]
+  onSelect: (id: string) => void
+}) {
+  return (
+    <ul className="flex flex-col gap-0.5">
+      {members.map((m) => (
+        <li key={m.id}>
+          <button
+            type="button"
+            onClick={() => onSelect(m.id)}
+            className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-secondary"
+            aria-label={m.isMe ? "View your profile" : `View ${m.name}'s profile`}
+          >
+            <div className="relative shrink-0">
+              <Avatar className="size-7">
+                <AvatarFallback className="bg-secondary text-[11px] font-medium text-secondary-foreground">
+                  {initials(m.name)}
+                </AvatarFallback>
+              </Avatar>
+              <span
+                className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-card bg-primary"
+                aria-hidden
+              />
+            </div>
+            <span className="min-w-0 flex-1 truncate text-sm">
+              {m.name}
+              {m.isMe && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function RoomsWorkspace({
   initialRooms,
   me,
@@ -76,6 +117,10 @@ export function RoomsWorkspace({
   // Confirmation dialog state for deleting the active channel.
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+
+  // Mobile-only "who's online" dialog (the sidebar member list is hidden while
+  // a channel is open on small screens).
+  const [membersOpen, setMembersOpen] = useState(false)
 
   const members = useRoomMembers(activeChatId)
   const activeRoom = rooms.find((r) => r.id === activeChatId) ?? null
@@ -279,8 +324,10 @@ export function RoomsWorkspace({
           </nav>
         </div>
 
-        {/* Members of the active channel */}
-        <div className="flex min-h-0 flex-1 flex-col border-t border-border">
+        {/* Members of the active channel. Hidden on mobile: while browsing the
+            channel list there's no active channel, and inside a channel the
+            header's "who's online" button covers this. Desktop keeps it. */}
+        <div className="hidden min-h-0 flex-1 flex-col border-t border-border md:flex">
           <div className="px-4 pb-2 pt-3">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {activeChatId ? `${members.length} online in this chat` : "Online"}
@@ -292,34 +339,7 @@ export function RoomsWorkspace({
             ) : members.length === 0 ? (
               <p className="px-2 py-6 text-center text-sm text-muted-foreground">Connecting…</p>
             ) : (
-              <ul className="flex flex-col gap-0.5">
-                {members.map((m) => (
-                  <li key={m.id}>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewUserId(m.id)}
-                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-secondary"
-                      aria-label={m.isMe ? "View your profile" : `View ${m.name}'s profile`}
-                    >
-                      <div className="relative shrink-0">
-                        <Avatar className="size-7">
-                          <AvatarFallback className="bg-secondary text-[11px] font-medium text-secondary-foreground">
-                            {initials(m.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span
-                          className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full border-2 border-card bg-primary"
-                          aria-hidden
-                        />
-                      </div>
-                      <span className="min-w-0 flex-1 truncate text-sm">
-                        {m.name}
-                        {m.isMe && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <MembersList members={members} onSelect={setPreviewUserId} />
             )}
           </div>
         </div>
@@ -365,6 +385,16 @@ export function RoomsWorkspace({
                   {members.length > 0 ? `${members.length} online` : "Group channel"}
                 </p>
               </div>
+              {/* Mobile-only: open the online-members list without leaving the room. */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 md:hidden"
+                onClick={() => setMembersOpen(true)}
+                aria-label="Show who's online"
+              >
+                <Users className="size-5" aria-hidden />
+              </Button>
               {canDelete && (
                 <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
                   <DialogTrigger
@@ -426,6 +456,33 @@ export function RoomsWorkspace({
           </>
         )}
       </main>
+
+      {/* Mobile "who's online" list. Selecting a member opens their preview. */}
+      <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
+        <DialogContent className="max-h-[70vh] gap-0 overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>
+              {members.length > 0 ? `${members.length} online in this chat` : "Online"}
+            </DialogTitle>
+            <DialogDescription>
+              {activeRoom ? `Everyone currently in #${activeRoom.name}.` : "Members currently in this channel."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 min-h-0 flex-1 overflow-y-auto">
+            {members.length === 0 ? (
+              <p className="px-2 py-6 text-center text-sm text-muted-foreground">Connecting…</p>
+            ) : (
+              <MembersList
+                members={members}
+                onSelect={(id) => {
+                  setMembersOpen(false)
+                  setPreviewUserId(id)
+                }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <UserPreviewDialog userId={previewUserId} onClose={() => setPreviewUserId(null)} />
     </div>

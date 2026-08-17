@@ -66,7 +66,7 @@ export type UserProfile = {
   dmChatId: string | null
 }
 
-export type NotificationType = "FRIEND_REQUEST" | "FRIEND_ACCEPT" | "MESSAGE"
+export type NotificationType = "FRIEND_REQUEST" | "FRIEND_ACCEPT" | "MESSAGE" | "LIKE"
 
 export type NotificationSummary = {
   id: string
@@ -90,9 +90,48 @@ export type PostSummary = {
   authorName: string
   authorUsername: string
   authorImage: string | null
-  imageUrl: string
+  // Null for text-only posts.
+  imageUrl: string | null
   caption: string | null
   createdAt: string
   likeCount: number
   likedByMe: boolean
+  // Whether the viewer owns this post (can edit/delete it).
+  canManage: boolean
+}
+
+export type PostLiker = {
+  id: string
+  name: string
+  username: string
+  image: string | null
+}
+
+// The categories a user can independently tune for popups + sounds.
+export type NotificationCategory =
+  | "friendRequest"
+  | "friendAccept"
+  | "directMessage"
+  | "roomMessage"
+  | "like"
+
+export type NotificationPreferences = {
+  // Master switch for playing any sound.
+  soundEnabled: boolean
+  // 0..1 master volume applied to every sound.
+  volume: number
+  // Per-category: show an in-app popup/toast, and play a sound.
+  categories: Record<NotificationCategory, { popup: boolean; sound: boolean }>
+}
+
+export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
+  soundEnabled: true,
+  volume: 0.6,
+  categories: {
+    friendRequest: { popup: true, sound: true },
+    friendAccept: { popup: true, sound: true },
+    directMessage: { popup: true, sound: true },
+    roomMessage: { popup: true, sound: true },
+    like: { popup: true, sound: true },
+  },
 }

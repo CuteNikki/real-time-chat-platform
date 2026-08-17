@@ -48,13 +48,14 @@ export function PostComposer({ userName, userImage }: { userName: string; userIm
   }
 
   async function submit() {
-    if (!uploadedUrl) {
-      toast.error("Add an image first")
+    // A post needs an image or some text.
+    if (!uploadedUrl && !caption.trim()) {
+      toast.error("Add a photo or write something")
       return
     }
     setPosting(true)
     try {
-      await createPost({ imageUrl: uploadedUrl, caption: caption.trim() || undefined })
+      await createPost({ imageUrl: uploadedUrl ?? undefined, caption: caption.trim() || undefined })
       setCaption("")
       clearImage()
       toast.success("Posted!")
@@ -109,7 +110,12 @@ export function PostComposer({ userName, userImage }: { userName: string; userIm
               <ImagePlus className="size-4" aria-hidden />
               Photo
             </Button>
-            <Button type="button" onClick={submit} disabled={posting || uploading || !uploadedUrl} className="gap-2">
+            <Button
+              type="button"
+              onClick={submit}
+              disabled={posting || uploading || (!uploadedUrl && !caption.trim())}
+              className="gap-2"
+            >
               {posting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
               Share
             </Button>
