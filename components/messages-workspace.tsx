@@ -1,18 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  ArrowLeft,
-  Eraser,
-  MessageCircle,
-  MoreVertical,
-  Search,
-  UserMinus,
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
+import { clearChat, getMessages } from '@/app/actions/chat';
+import type { PrivateConversation } from '@/app/actions/invites';
+import { removeFriend } from '@/app/actions/invites';
+import { ChatRoom } from '@/components/chat-room';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -21,23 +12,34 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
 import { UserAvatar } from '@/components/user-avatar';
-import { ChatRoom } from '@/components/chat-room';
 import { UserPreviewDialog } from '@/components/user-preview';
-import { clearChat, getMessages } from '@/app/actions/chat';
-import { removeFriend } from '@/app/actions/invites';
-import { cn } from '@/lib/utils';
 import type { ChatMessage } from '@/lib/types';
-import type { PrivateConversation } from '@/app/actions/invites';
+import { cn } from '@/lib/utils';
+import {
+  ArrowLeft,
+  Eraser,
+  MessageCircle,
+  MoreVertical,
+  Search,
+  UserMinus,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
 export function MessagesWorkspace({
   currentUserId,
   currentUserName,
+  currentUserImage,
   conversations,
   initialChatId,
 }: {
   currentUserId: string;
   currentUserName: string;
+  currentUserImage: string | null;
   conversations: PrivateConversation[];
   initialChatId: string | null;
 }) {
@@ -305,9 +307,10 @@ export function MessagesWorkspace({
                   chatId={active.chatId}
                   currentUserId={currentUserId}
                   currentUserName={currentUserName}
+                  currentUserImage={currentUserImage}
                   initialMessages={messages}
                   allowImages
-                  onUserClick={setPreviewUserId}
+                  onUserClickAction={setPreviewUserId}
                   emptyState={
                     <p className='text-muted-foreground text-sm text-balance'>
                       This is the start of your conversation with{' '}

@@ -18,6 +18,7 @@ export default async function MessagesPage({
     <MessagesWorkspace
       currentUserId={me.id}
       currentUserName={me.name}
+      currentUserImage={me.image ?? null}
       conversations={conversations}
       initialChatId={c ?? null}
     />

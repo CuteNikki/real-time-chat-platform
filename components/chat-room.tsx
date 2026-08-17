@@ -2,27 +2,16 @@
 
 import type React from 'react';
 
+import { sendMessage } from '@/app/actions/chat';
+import { Button } from '@/components/ui/button';
+import { UserAvatar } from '@/components/user-avatar';
+import { useChat } from '@/hooks/use-chat';
+import { newId } from '@/lib/id';
+import type { ChatMessage } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import { ImagePlus, Loader2, SendHorizonal, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { useChat } from '@/hooks/use-chat';
-import { sendMessage } from '@/app/actions/chat';
-import { newId } from '@/lib/id';
-import { cn } from '@/lib/utils';
-import type { ChatMessage } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ImagePlus, SendHorizonal, X, Loader2 } from 'lucide-react';
-
-function initials(name: string) {
-  return (
-    name
-      .split(' ')
-      .map((p) => p[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || '?'
-  );
-}
 
 function timeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString([], {
@@ -35,28 +24,30 @@ export function ChatRoom({
   chatId,
   currentUserId,
   currentUserName,
+  currentUserImage,
   initialMessages,
   allowImages = false,
   showSenderNames = false,
-  onEnded,
+  onEndedAction,
   emptyState,
-  onUserClick,
+  onUserClickAction,
 }: {
   chatId: string;
   currentUserId: string;
   currentUserName: string;
+  currentUserImage: string | null;
   initialMessages: ChatMessage[];
   allowImages?: boolean;
   showSenderNames?: boolean;
-  onEnded?: (payload?: { by?: string; disconnected?: boolean }) => void;
+  onEndedAction?: (payload?: { by?: string; disconnected?: boolean }) => void;
   emptyState?: React.ReactNode;
   // When provided, tapping another user's avatar or name opens their preview.
-  onUserClick?: (userId: string) => void;
+  onUserClickAction?: (userId: string) => void;
 }) {
   const { messages, ended, appendLocal } = useChat({
     chatId,
     initialMessages,
-    onEnded,
+    onEnded: onEndedAction,
   });
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
@@ -110,6 +101,7 @@ export function ChatRoom({
       chatId,
       senderId: currentUserId,
       senderName: currentUserName,
+      senderImage: currentUserImage ?? null,
       content: content || null,
       imageUrl: pendingImage,
       createdAt: new Date().toISOString(),
@@ -159,25 +151,25 @@ export function ChatRoom({
                   className={cn('flex gap-3', mine && 'flex-row-reverse')}
                 >
                   {!mine &&
-                    (onUserClick ? (
+                    (onUserClickAction ? (
                       <button
                         type='button'
-                        onClick={() => onUserClick(m.senderId)}
+                        onClick={() => onUserClickAction(m.senderId)}
                         className='ring-ring mt-1 shrink-0 rounded-full transition-opacity outline-none hover:opacity-80 focus-visible:ring-2'
                         aria-label={`View ${m.senderName}'s profile`}
                       >
-                        <Avatar className='size-8'>
-                          <AvatarFallback className='bg-secondary text-secondary-foreground text-xs font-medium'>
-                            {initials(m.senderName)}
-                          </AvatarFallback>
-                        </Avatar>
+                        <UserAvatar
+                          name={m.senderName}
+                          image={m.senderImage}
+                          className='mt-1 size-8 shrink-0'
+                        />
                       </button>
                     ) : (
-                      <Avatar className='mt-1 size-8 shrink-0'>
-                        <AvatarFallback className='bg-secondary text-secondary-foreground text-xs font-medium'>
-                          {initials(m.senderName)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <UserAvatar
+                        name={m.senderName}
+                        image={m.senderImage}
+                        className='mt-1 size-8 shrink-0'
+                      />
                     ))}
                   <div
                     className={cn(
@@ -187,10 +179,10 @@ export function ChatRoom({
                   >
                     {showSenderNames &&
                       !mine &&
-                      (onUserClick ? (
+                      (onUserClickAction ? (
                         <button
                           type='button'
-                          onClick={() => onUserClick(m.senderId)}
+                          onClick={() => onUserClickAction(m.senderId)}
                           className='text-muted-foreground self-start px-1 text-left text-xs font-medium hover:underline'
                         >
                           {m.senderName}
@@ -217,7 +209,7 @@ export function ChatRoom({
                         />
                       )}
                       {m.content && (
-                        <p className='break-words whitespace-pre-wrap'>
+                        <p className='wrap-break-word whitespace-pre-wrap'>
                           {m.content}
                         </p>
                       )}

@@ -70,6 +70,7 @@ export default async function ChatPage({
       ended={!!c.endedAt}
       currentUserId={me.id}
       currentUserName={me.name}
+      currentUserImage={me.image ?? null}
       initialMessages={messages}
     />
   );
