@@ -25,6 +25,10 @@ export const user = pgTable(
     role: text("role").notNull().default("MEMBER"),
     // JSON-serialized NotificationPreferences. Null = use app defaults.
     notificationPrefs: text("notificationPrefs"),
+    // Denormalized current ban status for fast per-request gating. Full history
+    // lives in the `ban` table. `banExpiresAt` null while banned = permanent.
+    isBanned: boolean("isBanned").notNull().default(false),
+    banExpiresAt: timestamp("banExpiresAt"),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
     updatedAt: timestamp("updatedAt").notNull().defaultNow(),
   },
@@ -199,6 +203,55 @@ export const interest = pgTable(
   (t) => ({
     userTagUnique: uniqueIndex("interest_user_tag_unique").on(t.userId, t.tag),
     tagIdx: index("interest_tag_idx").on(t.tag),
+  }),
+)
+
+// A ban record — one row per ban action, kept forever for history. The active
+// ban (if any) is the row with liftedAt IS NULL for a user. Denormalized status
+// is mirrored onto user.isBanned / user.banExpiresAt for fast gating.
+export const ban = pgTable(
+  "ban",
+  {
+    id: text("id").primaryKey(),
+    userId: text("userId").notNull(),
+    // Who issued the ban (admin/moderator user id).
+    bannedById: text("bannedById").notNull(),
+    reason: text("reason").notNull(),
+    // null expiresAt = permanent ban.
+    expiresAt: timestamp("expiresAt"),
+    // IP captured/banned at ban time, if the moderator chose an IP ban.
+    ipAddress: text("ipAddress"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    // Set when the ban is lifted (manually or superseded). null = still active.
+    liftedAt: timestamp("liftedAt"),
+    liftedById: text("liftedById"),
+    // Free-form note on why it was lifted / superseded.
+    liftReason: text("liftReason"),
+  },
+  (t) => ({
+    userCreatedIdx: index("ban_user_created_idx").on(t.userId, t.createdAt),
+    userActiveIdx: index("ban_user_active_idx").on(t.userId, t.liftedAt),
+  }),
+)
+
+// A banned IP address. Any session/request whose IP matches is blocked.
+export const bannedIp = pgTable(
+  "banned_ip",
+  {
+    id: text("id").primaryKey(),
+    ipAddress: text("ipAddress").notNull(),
+    reason: text("reason").notNull(),
+    bannedById: text("bannedById").notNull(),
+    // The account this IP ban originated from, if any.
+    userId: text("userId"),
+    // null = permanent.
+    expiresAt: timestamp("expiresAt"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+    liftedAt: timestamp("liftedAt"),
+    liftedById: text("liftedById"),
+  },
+  (t) => ({
+    ipActiveIdx: index("banned_ip_active_idx").on(t.ipAddress, t.liftedAt),
   }),
 )
 
