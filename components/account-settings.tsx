@@ -2,27 +2,58 @@
 
 import type React from 'react';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { changePassword, deleteUser, signOut } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogClose,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  changePassword,
+  deleteUser,
+  sendVerificationEmail,
+  signOut,
+  useSession,
+} from '@/lib/auth-client';
+import {
+  KeyRound,
+  Loader2,
+  MailCheckIcon,
+  MailIcon,
+  Trash2,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, KeyRound, Trash2 } from 'lucide-react';
 
 export function AccountSettings() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const [sendingVerify, setSendingVerify] = useState(false);
+
+  async function handleResendVerification() {
+    if (!session?.user.email) return;
+    setSendingVerify(true);
+    try {
+      const { error } = await sendVerificationEmail({
+        email: session.user.email,
+        callbackURL: '/app/settings',
+      });
+      if (error) throw new Error(error.message || 'Could not send email');
+      toast.success('Verification email sent — check your inbox');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setSendingVerify(false);
+    }
+  }
 
   // Change password state.
   const [current, setCurrent] = useState('');
@@ -81,6 +112,42 @@ export function AccountSettings() {
   return (
     <div className='space-y-10'>
       {/* Change password */}
+      {session?.user ? (
+        <section className='border-border bg-card flex items-center justify-between gap-4 rounded-xl border p-5'>
+          <div className='flex items-start gap-3'>
+            {session.user.emailVerified ? (
+              <MailCheckIcon
+                className='text-primary mt-0.5 size-4 shrink-0'
+                aria-hidden
+              />
+            ) : (
+              <MailIcon
+                className='text-muted-foreground mt-0.5 size-4 shrink-0'
+                aria-hidden
+              />
+            )}
+            <div>
+              <p className='text-sm font-medium'>{session.user.email}</p>
+              <p className='text-muted-foreground text-sm'>
+                {session.user.emailVerified ? 'Verified' : 'Not verified yet'}
+              </p>
+            </div>
+          </div>
+          {!session.user.emailVerified && (
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={sendingVerify}
+              onClick={handleResendVerification}
+            >
+              {sendingVerify ? (
+                <Loader2 className='size-4 animate-spin' aria-hidden />
+              ) : null}
+              Resend verification
+            </Button>
+          )}
+        </section>
+      ) : null}
       <section className='space-y-4'>
         <div className='flex items-center gap-2'>
           <KeyRound className='text-muted-foreground size-4' aria-hidden />
