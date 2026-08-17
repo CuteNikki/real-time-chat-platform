@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { Heart } from "lucide-react"
 import { UserAvatar } from "@/components/user-avatar"
+import { PostLikersDialog } from "@/components/post-likers-dialog"
 import { toggleLike } from "@/app/actions/posts"
 import { cn } from "@/lib/utils"
 import type { PostSummary } from "@/lib/types"
@@ -77,19 +78,33 @@ export function PostCard({ post }: { post: PostSummary }) {
       </div>
 
       <div className="flex flex-col gap-2 p-3">
-        <button
-          type="button"
-          onClick={toggle}
-          className="flex w-fit items-center gap-1.5"
-          aria-pressed={liked}
-          aria-label={liked ? "Unlike" : "Like"}
-        >
-          <Heart
-            className={cn("size-6 transition-colors", liked ? "fill-primary text-primary" : "text-foreground")}
-            aria-hidden
-          />
-          <span className="text-sm font-medium">{count}</span>
-        </button>
+        <div className="flex w-fit items-center gap-1">
+          <button
+            type="button"
+            onClick={toggle}
+            className="flex items-center rounded-full p-0.5"
+            aria-pressed={liked}
+            aria-label={liked ? "Unlike" : "Like"}
+          >
+            <Heart
+              className={cn("size-6 transition-colors", liked ? "fill-primary text-primary" : "text-foreground")}
+              aria-hidden
+            />
+          </button>
+          {count > 0 ? (
+            <PostLikersDialog postId={post.id} count={count}>
+              <button
+                type="button"
+                className="rounded px-1 text-sm font-medium tabular-nums hover:underline"
+                aria-label={`See who liked this post (${count})`}
+              >
+                {count}
+              </button>
+            </PostLikersDialog>
+          ) : (
+            <span className="px-1 text-sm font-medium tabular-nums text-muted-foreground">{count}</span>
+          )}
+        </div>
         {post.caption ? (
           <p className="text-sm leading-relaxed">
             <Link href={profileHref} className="font-semibold hover:underline">

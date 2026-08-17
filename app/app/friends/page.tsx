@@ -14,13 +14,15 @@ export default async function FriendsPage() {
   ])
 
   return (
-    <div className="mx-auto h-full w-full max-w-2xl overflow-y-auto px-4 py-8">
-      <h1 className="mb-1 text-2xl font-semibold tracking-tight">Friends</h1>
-      <p className="mb-6 text-sm text-muted-foreground">
-        Find people by name, username, or shared interests, then send a request. Once accepted, you can DM each
-        other.
-      </p>
-      <FriendsView initialIncoming={pending} initialOutgoing={sent} initialFriends={friends} />
+    <div className="h-full w-full overflow-y-auto">
+      <div className="mx-auto w-full max-w-2xl px-4 py-8">
+        <h1 className="mb-1 text-2xl font-semibold tracking-tight">Friends</h1>
+        <p className="mb-6 text-sm text-muted-foreground">
+          Find people by name, username, or shared interests, then send a request. Once accepted, you can DM each
+          other.
+        </p>
+        <FriendsView initialIncoming={pending} initialOutgoing={sent} initialFriends={friends} />
+      </div>
     </div>
   )
 }

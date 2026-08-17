@@ -23,6 +23,8 @@ export const user = pgTable(
     bio: text("bio"),
     // Access role: "ADMIN" | "MODERATOR" | "MEMBER". Members are the default.
     role: text("role").notNull().default("MEMBER"),
+    // JSON-serialized NotificationPreferences. Null = use app defaults.
+    notificationPrefs: text("notificationPrefs"),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
     updatedAt: timestamp("updatedAt").notNull().defaultNow(),
   },

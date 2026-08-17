@@ -100,7 +100,8 @@ export function ProfileView({
   }
 
   return (
-    <div className="mx-auto h-full w-full max-w-4xl overflow-y-auto px-4 py-8 sm:px-6">
+    <div className="h-full w-full overflow-y-auto">
+      <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6">
       <header className="flex flex-col gap-6 sm:flex-row sm:items-center">
         <UserAvatar
           name={profile.name}
@@ -198,6 +199,7 @@ export function ProfileView({
 
       <div className="mt-8 border-t border-border pt-6">
         <PostGrid posts={initialPosts} emptyLabel={profile.isSelf ? "You haven't posted yet." : "No posts yet."} />
+      </div>
       </div>
     </div>
   )

@@ -12,28 +12,30 @@ export default async function FeedPage() {
   const posts = await getFeed()
 
   return (
-    <div className="mx-auto h-full w-full max-w-xl overflow-y-auto px-4 py-6">
-      <h1 className="mb-4 text-2xl font-semibold tracking-tight">Feed</h1>
-      <div className="mb-6">
-        <PostComposer userName={me.name} userImage={me.image} />
-      </div>
+    <div className="h-full w-full overflow-y-auto">
+      <div className="mx-auto w-full max-w-xl px-4 py-6">
+        <h1 className="mb-4 text-2xl font-semibold tracking-tight">Feed</h1>
+        <div className="mb-6">
+          <PostComposer userName={me.name} userImage={me.image} />
+        </div>
 
-      {posts.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
-          <p className="text-sm text-muted-foreground text-balance">
-            Your feed is quiet. Add friends to see their posts here, or share your first post above.
-          </p>
-          <Link href="/app/friends" className="mt-3 inline-block text-sm font-medium text-primary hover:underline">
-            Find friends
-          </Link>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6">
-          {posts.map((p) => (
-            <PostCard key={p.id} post={p} />
-          ))}
-        </div>
-      )}
+        {posts.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border px-6 py-16 text-center">
+            <p className="text-sm text-muted-foreground text-balance">
+              Your feed is quiet. Add friends to see their posts here, or share your first post above.
+            </p>
+            <Link href="/app/friends" className="mt-3 inline-block text-sm font-medium text-primary hover:underline">
+              Find friends
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-6">
+            {posts.map((p) => (
+              <PostCard key={p.id} post={p} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -132,7 +132,7 @@ export function ChatRoom({
             {emptyState ?? <p className="text-sm text-muted-foreground">No messages yet. Say hello!</p>}
           </div>
         ) : (
-          <ul className="mx-auto flex max-w-2xl flex-col gap-4">
+          <ul className="flex flex-col gap-4">
             {messages.map((m) => {
               const mine = m.senderId === currentUserId
               return (
@@ -204,7 +204,7 @@ export function ChatRoom({
 
       {/* Composer */}
       <div className="border-t border-border bg-background px-4 py-3 sm:px-6">
-        <div className="mx-auto max-w-2xl">
+        <div className="w-full">
           {pendingImage && (
             <div className="relative mb-2 inline-block">
               {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -4,7 +4,7 @@ import { db } from "@/lib/db"
 import { post, postLike, user, invite } from "@/lib/db/schema"
 import { newId } from "@/lib/id"
 import { getCurrentUser, getUserId } from "@/lib/session"
-import type { PostSummary } from "@/lib/types"
+import type { PostLiker, PostSummary } from "@/lib/types"
 import { and, desc, eq, inArray, or, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
@@ -133,6 +133,31 @@ export async function getFeed(): Promise<PostSummary[]> {
     .orderBy(desc(post.createdAt))
     .limit(100)
   return decoratePosts(rows, viewer.id)
+}
+
+// The users who liked a given post, most recent first, for the "who liked"
+// list opened by tapping the like count.
+export async function getPostLikers(postId: string): Promise<PostLiker[]> {
+  await getUserId()
+  const rows = await db
+    .select({
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      image: user.image,
+      likedAt: postLike.createdAt,
+    })
+    .from(postLike)
+    .innerJoin(user, eq(user.id, postLike.userId))
+    .where(eq(postLike.postId, postId))
+    .orderBy(desc(postLike.createdAt))
+    .limit(200)
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    username: r.username,
+    image: r.image,
+  }))
 }
 
 export async function toggleLike(postId: string) {
