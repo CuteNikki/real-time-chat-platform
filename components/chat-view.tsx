@@ -68,6 +68,7 @@ export function ChatView({
     if (!isRandom || endedRef.current) return;
     endedRef.current = true;
     const payload = JSON.stringify({ chatId });
+
     if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
       navigator.sendBeacon(
         '/api/match/end',
@@ -83,15 +84,18 @@ export function ChatView({
     }
   }, [chatId, isRandom]);
 
-  // Auto-end the random match when the user leaves the page or unmounts.
+  // Auto-end the random match when the user closes the tab or unmounts.
   useEffect(() => {
     if (!isRandom) return;
-    function handlePageHide() {
+
+    function handleBeforeUnload() {
       beaconEnd();
     }
-    window.addEventListener('pagehide', handlePageHide);
+
+    // Changed from 'pagehide' to 'beforeunload' so tabbing out doesn't kill the chat
+    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
-      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       beaconEnd();
     };
   }, [isRandom, beaconEnd]);
@@ -106,6 +110,8 @@ export function ChatView({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong');
       setLeaving(false);
+      // Reset the ref so the user can try leaving again if it failed
+      endedRef.current = false;
     }
   }
 
