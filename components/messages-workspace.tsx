@@ -1,27 +1,34 @@
-"use client"
+'use client';
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Eraser, MessageCircle, MoreVertical, Search, UserMinus } from "lucide-react"
-import { toast } from "sonner"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  ArrowLeft,
+  Eraser,
+  MessageCircle,
+  MoreVertical,
+  Search,
+  UserMinus,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { UserAvatar } from "@/components/user-avatar"
-import { ChatRoom } from "@/components/chat-room"
-import { UserPreviewDialog } from "@/components/user-preview"
-import { clearChat, getMessages } from "@/app/actions/chat"
-import { removeFriend } from "@/app/actions/invites"
-import { cn } from "@/lib/utils"
-import type { ChatMessage } from "@/lib/types"
-import type { PrivateConversation } from "@/app/actions/invites"
+} from '@/components/ui/dropdown-menu';
+import { UserAvatar } from '@/components/user-avatar';
+import { ChatRoom } from '@/components/chat-room';
+import { UserPreviewDialog } from '@/components/user-preview';
+import { clearChat, getMessages } from '@/app/actions/chat';
+import { removeFriend } from '@/app/actions/invites';
+import { cn } from '@/lib/utils';
+import type { ChatMessage } from '@/lib/types';
+import type { PrivateConversation } from '@/app/actions/invites';
 
 export function MessagesWorkspace({
   currentUserId,
@@ -29,143 +36,149 @@ export function MessagesWorkspace({
   conversations,
   initialChatId,
 }: {
-  currentUserId: string
-  currentUserName: string
-  conversations: PrivateConversation[]
-  initialChatId: string | null
+  currentUserId: string;
+  currentUserName: string;
+  conversations: PrivateConversation[];
+  initialChatId: string | null;
 }) {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Conversations kept in local state so we can drop one instantly on unfriend.
-  const [convos, setConvos] = useState(conversations)
+  const [convos, setConvos] = useState(conversations);
   useEffect(() => {
-    setConvos(conversations)
-  }, [conversations])
+    setConvos(conversations);
+  }, [conversations]);
 
   // Only open a conversation when one is explicitly requested (deep link via
   // ?c=). Otherwise the user must pick a conversation themselves.
   const [activeId, setActiveId] = useState<string | null>(
-    initialChatId && conversations.some((c) => c.chatId === initialChatId) ? initialChatId : null,
-  )
-  const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [loading, setLoading] = useState(false)
-  const [query, setQuery] = useState("")
-  const [previewUserId, setPreviewUserId] = useState<string | null>(null)
-  const [menuBusy, setMenuBusy] = useState(false)
+    initialChatId && conversations.some((c) => c.chatId === initialChatId)
+      ? initialChatId
+      : null,
+  );
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState('');
+  const [previewUserId, setPreviewUserId] = useState<string | null>(null);
+  const [menuBusy, setMenuBusy] = useState(false);
 
   // Keep the URL in sync so refresh/deep-link works.
   useEffect(() => {
-    const current = searchParams.get("c")
+    const current = searchParams.get('c');
     if (activeId && activeId !== current) {
-      router.replace(`/app/messages?c=${activeId}`, { scroll: false })
+      router.replace(`/app/messages?c=${activeId}`, { scroll: false });
     }
-  }, [activeId, router, searchParams])
+  }, [activeId, router, searchParams]);
 
   // Load messages when the active conversation changes.
   useEffect(() => {
     if (!activeId) {
-      setMessages([])
-      return
+      setMessages([]);
+      return;
     }
-    let cancelled = false
-    setLoading(true)
+    let cancelled = false;
+    setLoading(true);
     getMessages(activeId)
       .then((m) => {
-        if (!cancelled) setMessages(m)
+        if (!cancelled) setMessages(m);
       })
       .catch(() => {
-        if (!cancelled) setMessages([])
+        if (!cancelled) setMessages([]);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+        if (!cancelled) setLoading(false);
+      });
     return () => {
-      cancelled = true
-    }
-  }, [activeId])
+      cancelled = true;
+    };
+  }, [activeId]);
 
-  const active = convos.find((c) => c.chatId === activeId) ?? null
+  const active = convos.find((c) => c.chatId === activeId) ?? null;
 
   const filtered = convos.filter((c) => {
-    const q = query.trim().toLowerCase()
-    if (!q) return true
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
     return (
       c.partnerName.toLowerCase().includes(q) ||
-      (c.partnerUsername ?? "").toLowerCase().includes(q)
-    )
-  })
+      (c.partnerUsername ?? '').toLowerCase().includes(q)
+    );
+  });
 
   async function handleClearChat() {
-    if (!active) return
-    setMenuBusy(true)
+    if (!active) return;
+    setMenuBusy(true);
     try {
-      await clearChat(active.chatId)
-      setMessages([])
+      await clearChat(active.chatId);
+      setMessages([]);
       // Reflect the emptied preview in the conversation list.
       setConvos((cs) =>
         cs.map((c) =>
-          c.chatId === active.chatId ? { ...c, lastMessage: null, lastAt: null, lastFromMe: false } : c,
+          c.chatId === active.chatId
+            ? { ...c, lastMessage: null, lastAt: null, lastFromMe: false }
+            : c,
         ),
-      )
-      toast.success("Chat cleared")
+      );
+      toast.success('Chat cleared');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not clear chat")
+      toast.error(err instanceof Error ? err.message : 'Could not clear chat');
     } finally {
-      setMenuBusy(false)
+      setMenuBusy(false);
     }
   }
 
   async function handleUnfriend() {
-    if (!active || !active.partnerId) return
-    setMenuBusy(true)
+    if (!active || !active.partnerId) return;
+    setMenuBusy(true);
     try {
-      await removeFriend(active.partnerId)
-      const removedName = active.partnerName
-      setConvos((cs) => cs.filter((c) => c.chatId !== active.chatId))
-      setActiveId(null)
-      router.replace("/app/messages", { scroll: false })
-      toast.success(`Removed ${removedName} and deleted your chat`)
+      await removeFriend(active.partnerId);
+      const removedName = active.partnerName;
+      setConvos((cs) => cs.filter((c) => c.chatId !== active.chatId));
+      setActiveId(null);
+      router.replace('/app/messages', { scroll: false });
+      toast.success(`Removed ${removedName} and deleted your chat`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not remove friend")
+      toast.error(
+        err instanceof Error ? err.message : 'Could not remove friend',
+      );
     } finally {
-      setMenuBusy(false)
+      setMenuBusy(false);
     }
   }
 
   return (
-    <div className="flex h-full w-full">
+    <div className='flex h-full w-full'>
       {/* Conversation list */}
       <aside
         className={cn(
-          "flex w-full shrink-0 flex-col border-r border-border sm:w-80",
-          active && "hidden sm:flex",
+          'border-border flex w-full shrink-0 flex-col border-r sm:w-80',
+          active && 'hidden sm:flex',
         )}
       >
-        <div className="flex h-16 shrink-0 items-center border-b border-border px-3">
-          <div className="relative w-full">
+        <div className='border-border flex h-16 shrink-0 items-center border-b px-3'>
+          <div className='relative w-full'>
             <Search
-              className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2'
               aria-hidden
             />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search conversations"
-              className="pl-9"
+              placeholder='Search conversations'
+              className='pl-9'
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className='flex-1 overflow-y-auto'>
           {filtered.length === 0 ? (
-            <div className="p-6 text-center">
-              <p className="text-sm text-muted-foreground text-balance">
+            <div className='p-6 text-center'>
+              <p className='text-muted-foreground text-sm text-balance'>
                 No conversations yet. Add friends and start chatting.
               </p>
               <Link
-                href="/app/friends"
-                className="mt-2 inline-block text-sm font-medium text-primary hover:underline"
+                href='/app/friends'
+                className='text-primary mt-2 inline-block text-sm font-medium hover:underline'
               >
                 Find friends
               </Link>
@@ -173,29 +186,35 @@ export function MessagesWorkspace({
           ) : (
             <ul>
               {filtered.map((c) => {
-                const isActive = c.chatId === activeId
+                const isActive = c.chatId === activeId;
                 return (
                   <li key={c.chatId}>
                     <button
-                      type="button"
+                      type='button'
                       onClick={() => setActiveId(c.chatId)}
                       className={cn(
-                        "flex w-full items-center gap-3 px-3 py-3 text-left transition-colors",
-                        isActive ? "bg-secondary" : "hover:bg-muted",
+                        'flex w-full items-center gap-3 px-3 py-3 text-left transition-colors',
+                        isActive ? 'bg-secondary' : 'hover:bg-muted',
                       )}
                     >
-                      <UserAvatar name={c.partnerName} image={c.partnerImage} className="size-11 shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium leading-tight">{c.partnerName}</p>
-                        <p className="truncate text-xs text-muted-foreground">
+                      <UserAvatar
+                        name={c.partnerName}
+                        image={c.partnerImage}
+                        className='size-11 shrink-0'
+                      />
+                      <div className='min-w-0 flex-1'>
+                        <p className='truncate leading-tight font-medium'>
+                          {c.partnerName}
+                        </p>
+                        <p className='text-muted-foreground truncate text-xs'>
                           {c.lastMessage
-                            ? `${c.lastFromMe ? "You: " : ""}${c.lastMessage}`
-                            : "No messages yet"}
+                            ? `${c.lastFromMe ? 'You: ' : ''}${c.lastMessage}`
+                            : 'No messages yet'}
                         </p>
                       </div>
                     </button>
                   </li>
-                )
+                );
               })}
             </ul>
           )}
@@ -203,28 +222,41 @@ export function MessagesWorkspace({
       </aside>
 
       {/* Active conversation */}
-      <section className={cn("flex min-w-0 flex-1 flex-col", !active && "hidden sm:flex")}>
+      <section
+        className={cn(
+          'flex min-w-0 flex-1 flex-col',
+          !active && 'hidden sm:flex',
+        )}
+      >
         {active ? (
           <>
-            <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4">
+            <header className='border-border flex h-16 shrink-0 items-center gap-3 border-b px-4'>
               <button
-                type="button"
+                type='button'
                 onClick={() => setActiveId(null)}
-                className="-ml-1 shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground sm:hidden"
-                aria-label="Back to conversations"
+                className='text-muted-foreground hover:text-foreground -ml-1 shrink-0 rounded-md p-1 sm:hidden'
+                aria-label='Back to conversations'
               >
-                <ArrowLeft className="size-5" aria-hidden />
+                <ArrowLeft className='size-5' aria-hidden />
               </button>
               <button
-                type="button"
-                onClick={() => active.partnerId && setPreviewUserId(active.partnerId)}
-                className="flex items-center gap-3 text-left hover:opacity-80"
+                type='button'
+                onClick={() =>
+                  active.partnerId && setPreviewUserId(active.partnerId)
+                }
+                className='flex items-center gap-3 text-left hover:opacity-80'
               >
-                <UserAvatar name={active.partnerName} image={active.partnerImage} className="size-9" />
-                <div className="leading-tight">
-                  <p className="font-semibold">{active.partnerName}</p>
+                <UserAvatar
+                  name={active.partnerName}
+                  image={active.partnerImage}
+                  className='size-9'
+                />
+                <div className='leading-tight'>
+                  <p className='font-semibold'>{active.partnerName}</p>
                   {active.partnerUsername ? (
-                    <p className="text-xs text-muted-foreground">@{active.partnerUsername}</p>
+                    <p className='text-muted-foreground text-xs'>
+                      @{active.partnerUsername}
+                    </p>
                   ) : null}
                 </div>
               </button>
@@ -233,34 +265,39 @@ export function MessagesWorkspace({
                 <DropdownMenuTrigger
                   render={
                     <Button
-                      size="icon"
-                      variant="ghost"
-                      className="ml-auto shrink-0"
+                      size='icon'
+                      variant='ghost'
+                      className='ml-auto shrink-0'
                       disabled={menuBusy}
-                      aria-label="Conversation options"
+                      aria-label='Conversation options'
                     />
                   }
                 >
-                  <MoreVertical className="size-5" aria-hidden />
+                  <MoreVertical className='size-5' aria-hidden />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align='end'>
                   <DropdownMenuItem onClick={handleClearChat}>
-                    <Eraser className="size-4" aria-hidden />
+                    <Eraser className='size-4' aria-hidden />
                     Clear chat
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive" onClick={handleUnfriend}>
-                    <UserMinus className="size-4" aria-hidden />
+                  <DropdownMenuItem
+                    variant='destructive'
+                    onClick={handleUnfriend}
+                  >
+                    <UserMinus className='size-4' aria-hidden />
                     Unfriend
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </header>
 
-            <div className="min-h-0 flex-1">
+            <div className='min-h-0 flex-1'>
               {loading ? (
-                <div className="flex h-full items-center justify-center">
-                  <p className="text-sm text-muted-foreground">Loading messages…</p>
+                <div className='flex h-full items-center justify-center'>
+                  <p className='text-muted-foreground text-sm'>
+                    Loading messages…
+                  </p>
                 </div>
               ) : (
                 <ChatRoom
@@ -272,8 +309,9 @@ export function MessagesWorkspace({
                   allowImages
                   onUserClick={setPreviewUserId}
                   emptyState={
-                    <p className="text-sm text-muted-foreground text-balance">
-                      This is the start of your conversation with {active.partnerName}. Say hello!
+                    <p className='text-muted-foreground text-sm text-balance'>
+                      This is the start of your conversation with{' '}
+                      {active.partnerName}. Say hello!
                     </p>
                   }
                 />
@@ -281,18 +319,24 @@ export function MessagesWorkspace({
             </div>
           </>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-            <div className="flex size-14 items-center justify-center rounded-full bg-secondary">
-              <MessageCircle className="size-7 text-secondary-foreground" aria-hidden />
+          <div className='flex h-full flex-col items-center justify-center gap-3 text-center'>
+            <div className='bg-secondary flex size-14 items-center justify-center rounded-full'>
+              <MessageCircle
+                className='text-secondary-foreground size-7'
+                aria-hidden
+              />
             </div>
-            <p className="text-sm text-muted-foreground text-balance">
+            <p className='text-muted-foreground text-sm text-balance'>
               Select a conversation to start chatting.
             </p>
           </div>
         )}
       </section>
 
-      <UserPreviewDialog userId={previewUserId} onClose={() => setPreviewUserId(null)} />
+      <UserPreviewDialog
+        userId={previewUserId}
+        onClose={() => setPreviewUserId(null)}
+      />
     </div>
-  )
+  );
 }

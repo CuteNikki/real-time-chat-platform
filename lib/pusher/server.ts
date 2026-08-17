@@ -1,4 +1,4 @@
-import Pusher from "pusher"
+import Pusher from 'pusher';
 
 // Single server-side Pusher instance. Exported as both `pusher` (used by
 // server actions) and `pusherServer` (used by the pusher auth route).
@@ -8,6 +8,6 @@ export const pusher = new Pusher({
   secret: process.env.PUSHER_SECRET!,
   cluster: process.env.PUSHER_CLUSTER!,
   useTLS: true,
-})
+});
 
-export const pusherServer = pusher
+export const pusherServer = pusher;

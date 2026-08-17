@@ -1,14 +1,14 @@
-"use server"
+'use server';
 
-import { db } from "@/lib/db"
-import { post, postLike, user, invite } from "@/lib/db/schema"
-import { newId } from "@/lib/id"
-import { getCurrentUser, getUserId } from "@/lib/session"
-import { createNotification } from "@/app/actions/notifications"
-import { getNotificationPreferencesFor } from "@/app/actions/preferences"
-import type { PostLiker, PostSummary } from "@/lib/types"
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm"
-import { revalidatePath } from "next/cache"
+import { db } from '@/lib/db';
+import { post, postLike, user, invite } from '@/lib/db/schema';
+import { newId } from '@/lib/id';
+import { getCurrentUser, getUserId } from '@/lib/session';
+import { createNotification } from '@/app/actions/notifications';
+import { getNotificationPreferencesFor } from '@/app/actions/preferences';
+import type { PostLiker, PostSummary } from '@/lib/types';
+import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
 
 // Ids of a user's accepted friends.
 async function friendIds(userId: string): Promise<string[]> {
@@ -17,46 +17,46 @@ async function friendIds(userId: string): Promise<string[]> {
     .from(invite)
     .where(
       and(
-        eq(invite.status, "ACCEPTED"),
+        eq(invite.status, 'ACCEPTED'),
         or(eq(invite.senderId, userId), eq(invite.receiverId, userId)),
       ),
-    )
-  const ids = new Set<string>()
+    );
+  const ids = new Set<string>();
   for (const r of rows) {
-    ids.add(r.senderId === userId ? r.receiverId : r.senderId)
+    ids.add(r.senderId === userId ? r.receiverId : r.senderId);
   }
-  return [...ids]
+  return [...ids];
 }
 
 // Map post rows + like aggregates into PostSummary[].
 async function decoratePosts(
   rows: {
-    id: string
-    userId: string
-    imageUrl: string | null
-    caption: string | null
-    createdAt: Date
-    authorName: string
-    authorUsername: string
-    authorImage: string | null
+    id: string;
+    userId: string;
+    imageUrl: string | null;
+    caption: string | null;
+    createdAt: Date;
+    authorName: string;
+    authorUsername: string;
+    authorImage: string | null;
   }[],
   viewerId: string,
 ): Promise<PostSummary[]> {
-  if (rows.length === 0) return []
-  const ids = rows.map((r) => r.id)
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id);
 
   const likeCounts = await db
     .select({ postId: postLike.postId, c: sql<number>`count(*)::int` })
     .from(postLike)
     .where(inArray(postLike.postId, ids))
-    .groupBy(postLike.postId)
-  const countMap = new Map(likeCounts.map((l) => [l.postId, l.c]))
+    .groupBy(postLike.postId);
+  const countMap = new Map(likeCounts.map((l) => [l.postId, l.c]));
 
   const myLikes = await db
     .select({ postId: postLike.postId })
     .from(postLike)
-    .where(and(inArray(postLike.postId, ids), eq(postLike.userId, viewerId)))
-  const likedSet = new Set(myLikes.map((l) => l.postId))
+    .where(and(inArray(postLike.postId, ids), eq(postLike.userId, viewerId)));
+  const likedSet = new Set(myLikes.map((l) => l.postId));
 
   return rows.map((r) => ({
     id: r.id,
@@ -70,65 +70,72 @@ async function decoratePosts(
     likeCount: countMap.get(r.id) ?? 0,
     likedByMe: likedSet.has(r.id),
     canManage: r.userId === viewerId,
-  }))
+  }));
 }
 
-export async function createPost(input: { imageUrl?: string | null; caption?: string }) {
-  const userId = await getUserId()
-  const imageUrl = input.imageUrl?.trim() || null
-  const caption = input.caption?.trim() || null
-  if (caption && caption.length > 500) throw new Error("Caption too long")
+export async function createPost(input: {
+  imageUrl?: string | null;
+  caption?: string;
+}) {
+  const userId = await getUserId();
+  const imageUrl = input.imageUrl?.trim() || null;
+  const caption = input.caption?.trim() || null;
+  if (caption && caption.length > 500) throw new Error('Caption too long');
   // A post needs at least an image or some text.
-  if (!imageUrl && !caption) throw new Error("Add a photo or write something")
+  if (!imageUrl && !caption) throw new Error('Add a photo or write something');
 
-  const id = newId("post")
-  await db.insert(post).values({ id, userId, imageUrl, caption })
-  revalidatePath("/app/feed")
-  revalidatePath("/app/settings")
-  return { id }
+  const id = newId('post');
+  await db.insert(post).values({ id, userId, imageUrl, caption });
+  revalidatePath('/app/feed');
+  revalidatePath('/app/settings');
+  return { id };
 }
 
 export async function deletePost(postId: string) {
-  const userId = await getUserId()
+  const userId = await getUserId();
   // Scope the delete to the owner so no one can delete another user's post.
   const [owned] = await db
     .select({ id: post.id })
     .from(post)
     .where(and(eq(post.id, postId), eq(post.userId, userId)))
-    .limit(1)
-  if (!owned) throw new Error("You can only delete your own posts")
+    .limit(1);
+  if (!owned) throw new Error('You can only delete your own posts');
 
-  await db.delete(post).where(and(eq(post.id, postId), eq(post.userId, userId)))
-  await db.delete(postLike).where(eq(postLike.postId, postId))
-  revalidatePath("/app/feed")
-  revalidatePath("/app/settings")
-  return { ok: true }
+  await db
+    .delete(post)
+    .where(and(eq(post.id, postId), eq(post.userId, userId)));
+  await db.delete(postLike).where(eq(postLike.postId, postId));
+  revalidatePath('/app/feed');
+  revalidatePath('/app/settings');
+  return { ok: true };
 }
 
 // Edit a post's caption. Owner-only; returns the normalized caption.
 export async function updatePost(postId: string, caption: string) {
-  const userId = await getUserId()
-  const next = caption.trim()
-  if (next.length > 500) throw new Error("Caption too long")
+  const userId = await getUserId();
+  const next = caption.trim();
+  if (next.length > 500) throw new Error('Caption too long');
 
   const [owned] = await db
     .select({ id: post.id })
     .from(post)
     .where(and(eq(post.id, postId), eq(post.userId, userId)))
-    .limit(1)
-  if (!owned) throw new Error("You can only edit your own posts")
+    .limit(1);
+  if (!owned) throw new Error('You can only edit your own posts');
 
   await db
     .update(post)
     .set({ caption: next || null })
-    .where(and(eq(post.id, postId), eq(post.userId, userId)))
-  revalidatePath("/app/feed")
-  revalidatePath("/app/settings")
-  return { caption: next || null }
+    .where(and(eq(post.id, postId), eq(post.userId, userId)));
+  revalidatePath('/app/feed');
+  revalidatePath('/app/settings');
+  return { caption: next || null };
 }
 
-export async function getUserPosts(profileUserId: string): Promise<PostSummary[]> {
-  const viewer = await getCurrentUser()
+export async function getUserPosts(
+  profileUserId: string,
+): Promise<PostSummary[]> {
+  const viewer = await getCurrentUser();
   const rows = await db
     .select({
       id: post.id,
@@ -143,15 +150,15 @@ export async function getUserPosts(profileUserId: string): Promise<PostSummary[]
     .from(post)
     .innerJoin(user, eq(user.id, post.userId))
     .where(eq(post.userId, profileUserId))
-    .orderBy(desc(post.createdAt))
-  return decoratePosts(rows, viewer.id)
+    .orderBy(desc(post.createdAt));
+  return decoratePosts(rows, viewer.id);
 }
 
 export async function getFeed(): Promise<PostSummary[]> {
-  const viewer = await getCurrentUser()
-  const friends = await friendIds(viewer.id)
+  const viewer = await getCurrentUser();
+  const friends = await friendIds(viewer.id);
   // Feed = your own posts + your friends' posts.
-  const authorIds = [viewer.id, ...friends]
+  const authorIds = [viewer.id, ...friends];
   const rows = await db
     .select({
       id: post.id,
@@ -167,14 +174,14 @@ export async function getFeed(): Promise<PostSummary[]> {
     .innerJoin(user, eq(user.id, post.userId))
     .where(inArray(post.userId, authorIds))
     .orderBy(desc(post.createdAt))
-    .limit(100)
-  return decoratePosts(rows, viewer.id)
+    .limit(100);
+  return decoratePosts(rows, viewer.id);
 }
 
 // The users who liked a given post, most recent first, for the "who liked"
 // list opened by tapping the like count.
 export async function getPostLikers(postId: string): Promise<PostLiker[]> {
-  await getUserId()
+  await getUserId();
   const rows = await db
     .select({
       id: user.id,
@@ -187,30 +194,30 @@ export async function getPostLikers(postId: string): Promise<PostLiker[]> {
     .innerJoin(user, eq(user.id, postLike.userId))
     .where(eq(postLike.postId, postId))
     .orderBy(desc(postLike.createdAt))
-    .limit(200)
+    .limit(200);
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
     username: r.username,
     image: r.image,
-  }))
+  }));
 }
 
 export async function toggleLike(postId: string) {
-  const userId = await getUserId()
+  const userId = await getUserId();
   const [existing] = await db
     .select({ id: postLike.id })
     .from(postLike)
     .where(and(eq(postLike.postId, postId), eq(postLike.userId, userId)))
-    .limit(1)
+    .limit(1);
   if (existing) {
-    await db.delete(postLike).where(eq(postLike.id, existing.id))
-    return { liked: false }
+    await db.delete(postLike).where(eq(postLike.id, existing.id));
+    return { liked: false };
   }
   await db
     .insert(postLike)
-    .values({ id: newId("like"), postId, userId })
-    .onConflictDoNothing()
+    .values({ id: newId('like'), postId, userId })
+    .onConflictDoNothing();
 
   // Notify the post's author that someone liked their post, unless they liked
   // their own post or have opted out of like popups.
@@ -219,26 +226,26 @@ export async function toggleLike(postId: string) {
       .select({ authorId: post.userId })
       .from(post)
       .where(eq(post.id, postId))
-      .limit(1)
+      .limit(1);
     if (p && p.authorId !== userId) {
-      const prefs = await getNotificationPreferencesFor(p.authorId)
+      const prefs = await getNotificationPreferencesFor(p.authorId);
       if (prefs.categories.like.popup) {
         const [liker] = await db
           .select({ name: user.name })
           .from(user)
           .where(eq(user.id, userId))
-          .limit(1)
+          .limit(1);
         await createNotification({
           userId: p.authorId,
-          type: "LIKE",
+          type: 'LIKE',
           actorId: userId,
-          body: `${liker?.name ?? "Someone"} liked your post`,
-        })
+          body: `${liker?.name ?? 'Someone'} liked your post`,
+        });
       }
     }
   } catch {
     // Notification failures must never block the like itself.
   }
 
-  return { liked: true }
+  return { liked: true };
 }

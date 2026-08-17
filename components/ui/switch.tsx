@@ -1,27 +1,27 @@
-"use client"
+'use client';
 
-import { Switch as SwitchPrimitive } from "@base-ui/react/switch"
+import { Switch as SwitchPrimitive } from '@base-ui/react/switch';
 
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils';
 
 function Switch({ className, ...props }: SwitchPrimitive.Root.Props) {
   return (
     <SwitchPrimitive.Root
-      data-slot="switch"
+      data-slot='switch'
       className={cn(
-        "peer inline-flex h-5 w-9 shrink-0 items-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[checked]:bg-primary data-[unchecked]:bg-input",
+        'peer focus-visible:ring-ring data-[checked]:bg-primary data-[unchecked]:bg-input inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}
     >
       <SwitchPrimitive.Thumb
-        data-slot="switch-thumb"
+        data-slot='switch-thumb'
         className={cn(
-          "pointer-events-none block size-4 rounded-full bg-background shadow-sm ring-0 transition-transform data-[checked]:translate-x-4 data-[unchecked]:translate-x-0.5",
+          'bg-background pointer-events-none block size-4 rounded-full shadow-sm ring-0 transition-transform data-[checked]:translate-x-4 data-[unchecked]:translate-x-0.5',
         )}
       />
     </SwitchPrimitive.Root>
-  )
+  );
 }
 
-export { Switch }
+export { Switch };

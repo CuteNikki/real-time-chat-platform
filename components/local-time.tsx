@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 // Renders an ISO timestamp in the viewer's local timezone. Uses
 // suppressHydrationWarning because the server renders in its own timezone and
@@ -8,23 +8,27 @@ export function LocalTime({
   dateOnly = false,
   className,
 }: {
-  iso: string
-  dateOnly?: boolean
-  className?: string
+  iso: string;
+  dateOnly?: boolean;
+  className?: string;
 }) {
-  const d = new Date(iso)
+  const d = new Date(iso);
   const formatted = dateOnly
-    ? d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
-    : d.toLocaleString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
+    ? d.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
       })
+    : d.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
   return (
     <time dateTime={iso} className={className} suppressHydrationWarning>
       {formatted}
     </time>
-  )
+  );
 }
