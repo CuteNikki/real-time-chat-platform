@@ -255,7 +255,7 @@ export function NotificationBell({ userId }: { userId: string }) {
 
         <PopoverContent
           align='end'
-          className='w-[calc(100vw-1.5rem)] p-0 sm:w-[400px]'
+          className='w-[calc(100vw-1.5rem)] p-0 sm:w-100'
         >
           <div className='border-border flex items-center justify-between gap-2 border-b px-3 py-2.5'>
             <h2 className='text-sm font-semibold'>Notifications</h2>

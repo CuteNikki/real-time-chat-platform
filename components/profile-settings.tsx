@@ -264,7 +264,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder='Tell people a bit about yourself'
-          className='min-h-[90px] resize-none'
+          className='min-h-22.5 resize-none'
           maxLength={300}
         />
         <p className='text-muted-foreground text-right text-xs'>
@@ -301,7 +301,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
             placeholder={
               interests.length ? 'Add another…' : 'e.g. music, hiking, gaming'
             }
-            className='placeholder:text-muted-foreground min-w-[8rem] flex-1 bg-transparent px-1.5 py-0.5 text-sm outline-none'
+            className='placeholder:text-muted-foreground min-w-32 flex-1 bg-transparent px-1.5 py-0.5 text-sm outline-none'
             maxLength={30}
             autoCapitalize='none'
             spellCheck={false}

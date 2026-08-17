@@ -131,7 +131,7 @@ export function NotificationSettings() {
               onValueChange={(v) =>
                 setMaster({ volume: Array.isArray(v) ? v[0] : v })
               }
-              className='data-[disabled]:opacity-50'
+              className='data-disabled:opacity-50'
             />
             <Button
               type='button'
