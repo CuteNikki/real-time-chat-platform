@@ -3,7 +3,6 @@
 import { endRandomChat } from '@/app/actions/match';
 import { reportUser } from '@/app/actions/report';
 import { ChatRoom } from '@/components/chat-room';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,17 +19,6 @@ import { ArrowLeft, Flag, LogOut, MoreVertical, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
-function initials(name: string) {
-  return (
-    name
-      .split(' ')
-      .map((p) => p[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || '?'
-  );
-}
 
 export function ChatView({
   chatId,
@@ -165,18 +153,6 @@ export function ChatView({
           className='flex min-w-0 flex-1 items-center gap-3 text-left enabled:hover:opacity-80'
         >
           <UserAvatar name={title} image={partnerImage} className='shrink-0' />
-          <Avatar className='size-10 shrink-0'>
-            {!isGroup && partnerImage ? (
-              <AvatarImage src={partnerImage} alt={title} />
-            ) : null}
-            <AvatarFallback className='bg-secondary text-secondary-foreground text-sm font-medium'>
-              {isGroup ? (
-                <Users className='size-5' aria-hidden />
-              ) : (
-                initials(title)
-              )}
-            </AvatarFallback>
-          </Avatar>
           <div className='min-w-0 flex-1'>
             <h1 className='truncate leading-tight font-semibold'>{title}</h1>
             <div className='flex items-center gap-2'>
