@@ -270,13 +270,9 @@ export function RoomsWorkspace({
                   <li key={m.id}>
                     <button
                       type="button"
-                      onClick={() => !m.isMe && setPreviewUserId(m.id)}
-                      disabled={m.isMe}
-                      className={cn(
-                        "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors",
-                        !m.isMe && "hover:bg-secondary",
-                      )}
-                      aria-label={m.isMe ? undefined : `View ${m.name}'s profile`}
+                      onClick={() => setPreviewUserId(m.id)}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-secondary"
+                      aria-label={m.isMe ? "View your profile" : `View ${m.name}'s profile`}
                     >
                       <div className="relative shrink-0">
                         <Avatar className="size-7">

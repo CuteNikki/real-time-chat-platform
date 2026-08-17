@@ -165,7 +165,7 @@ export function ChatRoom({
                         <button
                           type="button"
                           onClick={() => onUserClick(m.senderId)}
-                          className="px-1 text-xs font-medium text-muted-foreground hover:underline"
+                          className="self-start px-1 text-left text-xs font-medium text-muted-foreground hover:underline"
                         >
                           {m.senderName}
                         </button>
