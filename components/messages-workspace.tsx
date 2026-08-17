@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { MessageCircle, Search } from "lucide-react"
+import { ArrowLeft, MessageCircle, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { UserAvatar } from "@/components/user-avatar"
 import { ChatRoom } from "@/components/chat-room"
@@ -156,10 +156,10 @@ export function MessagesWorkspace({
               <button
                 type="button"
                 onClick={() => setActiveId(null)}
-                className="text-sm text-muted-foreground sm:hidden"
+                className="-ml-1 shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground sm:hidden"
                 aria-label="Back to conversations"
               >
-                Back
+                <ArrowLeft className="size-5" aria-hidden />
               </button>
               <button
                 type="button"
