@@ -8,10 +8,12 @@ export default async function SettingsPage() {
   if (!profile) redirect("/sign-in")
 
   return (
-    <div className="mx-auto h-full w-full max-w-2xl overflow-y-auto px-4 py-8">
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">Account &amp; profile</h1>
-      <ProfileSettings profile={profile} />
-      <AccountSettings />
+    <div className="h-full w-full overflow-y-auto">
+      <div className="mx-auto w-full max-w-2xl px-4 py-8">
+        <h1 className="mb-6 text-2xl font-semibold tracking-tight">Account &amp; profile</h1>
+        <ProfileSettings profile={profile} />
+        <AccountSettings />
+      </div>
     </div>
   )
 }
