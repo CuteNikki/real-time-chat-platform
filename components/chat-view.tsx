@@ -3,7 +3,6 @@
 import { endRandomChat } from '@/app/actions/match';
 import { reportUser } from '@/app/actions/report';
 import { ChatRoom } from '@/components/chat-room';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { UserAvatar } from '@/components/user-avatar';
 import { UserPreviewDialog } from '@/components/user-preview';
 import { useChatHeader } from '@/hooks/use-chat-header';
 import type { ChatMessage, ChatType } from '@/lib/types';
@@ -19,17 +19,6 @@ import { ArrowLeft, Flag, LogOut, MoreVertical, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-
-function initials(name: string) {
-  return (
-    name
-      .split(' ')
-      .map((p) => p[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || '?'
-  );
-}
 
 export function ChatView({
   chatId,
@@ -79,6 +68,7 @@ export function ChatView({
     if (!isRandom || endedRef.current) return;
     endedRef.current = true;
     const payload = JSON.stringify({ chatId });
+
     if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
       navigator.sendBeacon(
         '/api/match/end',
@@ -94,15 +84,18 @@ export function ChatView({
     }
   }, [chatId, isRandom]);
 
-  // Auto-end the random match when the user leaves the page or unmounts.
+  // Auto-end the random match when the user closes the tab or unmounts.
   useEffect(() => {
     if (!isRandom) return;
-    function handlePageHide() {
+
+    function handleBeforeUnload() {
       beaconEnd();
     }
-    window.addEventListener('pagehide', handlePageHide);
+
+    // Changed from 'pagehide' to 'beforeunload' so tabbing out doesn't kill the chat
+    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
-      window.removeEventListener('pagehide', handlePageHide);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
       beaconEnd();
     };
   }, [isRandom, beaconEnd]);
@@ -117,6 +110,8 @@ export function ChatView({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Something went wrong');
       setLeaving(false);
+      // Reset the ref so the user can try leaving again if it failed
+      endedRef.current = false;
     }
   }
 
@@ -163,18 +158,7 @@ export function ChatView({
           disabled={!canPreview}
           className='flex min-w-0 flex-1 items-center gap-3 text-left enabled:hover:opacity-80'
         >
-          <Avatar className='size-10 shrink-0'>
-            {!isGroup && partnerImage ? (
-              <AvatarImage src={partnerImage} alt={title} />
-            ) : null}
-            <AvatarFallback className='bg-secondary text-secondary-foreground text-sm font-medium'>
-              {isGroup ? (
-                <Users className='size-5' aria-hidden />
-              ) : (
-                initials(title)
-              )}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar name={title} image={partnerImage} className='shrink-0' />
           <div className='min-w-0 flex-1'>
             <h1 className='truncate leading-tight font-semibold'>{title}</h1>
             <div className='flex items-center gap-2'>

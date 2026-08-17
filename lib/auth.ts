@@ -1,6 +1,9 @@
 import { db } from '@/lib/db';
 import { user as userTable } from '@/lib/db/schema';
-import { sendEmail } from '@/lib/email';
+import {
+  sendResetPasswordEmail,
+  sendVerificationEmailMessage,
+} from '@/lib/email';
 import { generateUsername } from '@/lib/id';
 import { betterAuth } from 'better-auth';
 import { nextCookies } from 'better-auth/next-js';
@@ -56,23 +59,13 @@ export const auth = betterAuth({
   trustedOrigins: getTrustedOrigins(),
   emailAndPassword: {
     enabled: true,
-    // No email provider is connected yet, so we log the reset link to the
-    // server console. Swap this for a real email send when one is added.
     sendResetPassword: async ({ user, url }) => {
-      await sendEmail({
-        to: user.email,
-        subject: 'Reset your Password',
-        html: `<p>Someone requested a password reset for your account.</p><p><a href="${url}">Reset your password</a></p><p>If you didn't request this, you can safely ignore this email.</p>`,
-      });
+      await sendResetPasswordEmail(user.email, url);
     },
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
-      await sendEmail({
-        to: user.email,
-        subject: 'Verify your E-Mail',
-        html: `<p>Confirm your email address to finish setting up your account.</p><p><a href="${url}">Verify email</a></p>`,
-      });
+      await sendVerificationEmailMessage(user.email, url);
     },
     sendOnSignUp: true,
   },
