@@ -337,7 +337,7 @@ export function FriendsView({
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem variant="destructive" onClick={() => unfriend(f)}>
                         <UserMinus className="size-4" aria-hidden />
-                        Unfriend &amp; delete chat
+                        Unfriend
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
