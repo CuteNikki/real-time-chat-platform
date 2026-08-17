@@ -1,24 +1,24 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { ChatRoom } from '@/components/chat-room';
-import { UserPreviewDialog } from '@/components/user-preview';
-import { useChatHeader } from '@/hooks/use-chat-header';
 import { endRandomChat } from '@/app/actions/match';
 import { reportUser } from '@/app/actions/report';
-import type { ChatMessage, ChatType } from '@/lib/types';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ChatRoom } from '@/components/chat-room';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ArrowLeft, MoreVertical, Flag, LogOut, Users } from 'lucide-react';
+import { UserPreviewDialog } from '@/components/user-preview';
+import { useChatHeader } from '@/hooks/use-chat-header';
+import type { ChatMessage, ChatType } from '@/lib/types';
+import { ArrowLeft, Flag, LogOut, MoreVertical, Users } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 function initials(name: string) {
   return (
@@ -37,9 +37,11 @@ export function ChatView({
   title,
   subtitle,
   partnerId,
+  partnerImage,
   ended: initialEnded,
   currentUserId,
   currentUserName,
+  currentUserImage,
   initialMessages,
 }: {
   chatId: string;
@@ -47,9 +49,11 @@ export function ChatView({
   title: string;
   subtitle: string;
   partnerId: string | null;
+  partnerImage: string | null;
   ended: boolean;
   currentUserId: string;
   currentUserName: string;
+  currentUserImage: string | null;
   initialMessages: ChatMessage[];
 }) {
   const router = useRouter();
@@ -160,6 +164,9 @@ export function ChatView({
           className='flex min-w-0 flex-1 items-center gap-3 text-left enabled:hover:opacity-80'
         >
           <Avatar className='size-10 shrink-0'>
+            {!isGroup && partnerImage ? (
+              <AvatarImage src={partnerImage} alt={title} />
+            ) : null}
             <AvatarFallback className='bg-secondary text-secondary-foreground text-sm font-medium'>
               {isGroup ? (
                 <Users className='size-5' aria-hidden />
@@ -255,11 +262,12 @@ export function ChatView({
           chatId={chatId}
           currentUserId={currentUserId}
           currentUserName={currentUserName}
+          currentUserImage={currentUserImage}
           initialMessages={initialMessages}
           allowImages={type === 'PRIVATE'}
           showSenderNames={isGroup}
-          onUserClick={isGroup ? setPreviewUserId : undefined}
-          onEnded={handleEnded}
+          onUserClickAction={isGroup ? setPreviewUserId : undefined}
+          onEndedAction={handleEnded}
         />
       </div>
 

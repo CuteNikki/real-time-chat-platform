@@ -1,7 +1,7 @@
-import { pusherServer } from '@/lib/pusher/server';
-import { getSession } from '@/lib/session';
 import { db } from '@/lib/db';
 import { chatParticipant } from '@/lib/db/schema';
+import { pusherServer } from '@/lib/pusher/server';
+import { getSession } from '@/lib/session';
 import { and, eq, isNull } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 
@@ -42,7 +42,10 @@ export async function POST(request: NextRequest) {
 
     const authResponse = pusherServer.authorizeChannel(socketId, channelName, {
       user_id: session.user.id,
-      user_info: { name: session.user.name },
+      user_info: {
+        name: session.user.name,
+        image: session.user.image ?? null,
+      },
     });
     return NextResponse.json(authResponse);
   }

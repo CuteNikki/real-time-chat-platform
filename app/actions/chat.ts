@@ -67,6 +67,7 @@ export async function getMessages(chatId: string): Promise<ChatMessage[]> {
       imageUrl: message.imageUrl,
       createdAt: message.createdAt,
       senderName: user.name,
+      senderImage: user.image,
     })
     .from(message)
     .leftJoin(user, eq(user.id, message.senderId))
@@ -78,6 +79,7 @@ export async function getMessages(chatId: string): Promise<ChatMessage[]> {
     chatId: r.chatId,
     senderId: r.senderId,
     senderName: r.senderName ?? 'Unknown',
+    senderImage: r.senderImage,
     content: r.content,
     imageUrl: r.imageUrl,
     createdAt: r.createdAt.toISOString(),
@@ -126,6 +128,7 @@ export async function sendMessage(input: {
     chatId: input.chatId,
     senderId: userId,
     senderName: currentUser.name,
+    senderImage: currentUser.image ?? null,
     content,
     imageUrl,
     createdAt: createdAt.toISOString(),

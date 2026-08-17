@@ -5,6 +5,7 @@ export type ChatMessage = {
   chatId: string;
   senderId: string;
   senderName: string;
+  senderImage: string | null;
   content: string | null;
   imageUrl: string | null;
   createdAt: string;

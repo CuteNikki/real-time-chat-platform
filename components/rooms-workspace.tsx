@@ -2,21 +2,10 @@
 
 import type React from 'react';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import useSWR from 'swr';
-import { toast } from 'sonner';
-import { createRoom, joinRoom, deleteRoom } from '@/app/actions/rooms';
 import { getMessages } from '@/app/actions/chat';
-import { useRoomMembers } from '@/hooks/use-room-members';
+import { createRoom, deleteRoom, joinRoom } from '@/app/actions/rooms';
 import { ChatRoom } from '@/components/chat-room';
-import { UserPreviewDialog } from '@/components/user-preview';
-import type { ChatMessage, RoomSummary } from '@/lib/types';
-import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Dialog,
   DialogContent,
@@ -26,28 +15,28 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { UserAvatar } from '@/components/user-avatar';
+import { UserPreviewDialog } from '@/components/user-preview';
+import { RoomMember, useRoomMembers } from '@/hooks/use-room-members';
+import type { ChatMessage, RoomSummary } from '@/lib/types';
+import { cn } from '@/lib/utils';
 import {
-  Plus,
-  Users,
-  Hash,
   ArrowLeft,
-  MessageSquare,
+  Hash,
   Loader2,
+  MessageSquare,
+  Plus,
   Trash2,
+  Users,
 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
-
-function initials(name: string) {
-  return (
-    name
-      .split(' ')
-      .map((p) => p[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || '?'
-  );
-}
 
 // Shared online-members list, used both in the desktop sidebar and the mobile
 // "who's online" dialog so the two never drift apart.
@@ -55,7 +44,7 @@ function MembersList({
   members,
   onSelect,
 }: {
-  members: { id: string; name: string; isMe: boolean }[];
+  members: RoomMember[];
   onSelect: (id: string) => void;
 }) {
   return (
@@ -71,21 +60,17 @@ function MembersList({
             }
           >
             <div className='relative shrink-0'>
-              <Avatar className='size-7'>
-                <AvatarFallback className='bg-secondary text-secondary-foreground text-[11px] font-medium'>
-                  {initials(m.name)}
-                </AvatarFallback>
-              </Avatar>
-              <span
-                className='border-card bg-primary absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2'
-                aria-hidden
+              <UserAvatar
+                name={m.name}
+                image={m.image ?? null}
+                className='size-7'
               />
             </div>
-            <span className='min-w-0 flex-1 truncate text-sm'>
+            <span className='min-w-0 flex-1 truncate text-base'>
               {m.name}
               {m.isMe && (
                 <span className='text-muted-foreground ml-1 text-xs'>
-                  (you)
+                  (YOU)
                 </span>
               )}
             </span>
@@ -103,7 +88,7 @@ export function RoomsWorkspace({
   canDelete = false,
 }: {
   initialRooms: RoomSummary[];
-  me: { id: string; name: string };
+  me: { id: string; name: string; image: string | null };
   canCreate?: boolean;
   canDelete?: boolean;
 }) {
@@ -512,9 +497,10 @@ export function RoomsWorkspace({
                   chatId={activeChatId}
                   currentUserId={me.id}
                   currentUserName={me.name}
+                  currentUserImage={me.image ?? null}
                   initialMessages={messages}
                   showSenderNames
-                  onUserClick={setPreviewUserId}
+                  onUserClickAction={setPreviewUserId}
                   emptyState={
                     <div className='text-center'>
                       <p className='text-sm font-medium'>

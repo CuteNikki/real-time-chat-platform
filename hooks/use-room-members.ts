@@ -1,10 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getPusherClient } from '@/lib/pusher/client';
 import { chatChannel } from '@/lib/pusher/channels';
+import { getPusherClient } from '@/lib/pusher/client';
+import { useEffect, useState } from 'react';
 
-export type RoomMember = { id: string; name: string; isMe: boolean };
+export type RoomMember = {
+  id: string;
+  name: string;
+  image: string | null;
+  isMe: boolean;
+};
 
 // Reads the live presence roster for a room's channel. Names come from the
 // `user_info` payload set in the Pusher auth route. This hook binds to the
@@ -27,13 +32,19 @@ export function useRoomMembers(chatId: string | null): RoomMember[] {
       if (!roster) return;
       const myId: string | undefined = roster.myID;
       const list: RoomMember[] = [];
-      roster.each((m: { id: string; info?: { name?: string } }) => {
-        list.push({
-          id: m.id,
-          name: m.info?.name ?? 'Anonymous',
-          isMe: m.id === myId,
-        });
-      });
+      roster.each(
+        (m: {
+          id: string;
+          info?: { name?: string; image?: string | null };
+        }) => {
+          list.push({
+            id: m.id,
+            name: m.info?.name ?? 'Anonymous',
+            image: m.info?.image ?? null,
+            isMe: m.id === myId,
+          });
+        },
+      );
       // Show me first, then everyone else alphabetically.
       list.sort((a, b) =>
         a.isMe ? -1 : b.isMe ? 1 : a.name.localeCompare(b.name),
