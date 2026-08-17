@@ -2,7 +2,7 @@
 
 import { and, count, desc, eq, isNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { chat, chatParticipant } from "@/lib/db/schema"
+import { chat, chatParticipant, message, notification, report } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/session"
 import { requireRole } from "@/lib/roles-server"
 import { newId } from "@/lib/id"
@@ -76,6 +76,31 @@ export async function joinRoom(chatId: string): Promise<{ chatId: string }> {
   }
 
   return { chatId }
+}
+
+// Permanently delete a group room and everything tied to it (messages,
+// participants, and any reports/notifications that referenced it). Restricted
+// to moderators and admins.
+export async function deleteRoom(chatId: string) {
+  await getCurrentUser()
+  await requireRole("MODERATOR")
+
+  const [c] = await db
+    .select({ id: chat.id, type: chat.type })
+    .from(chat)
+    .where(eq(chat.id, chatId))
+    .limit(1)
+  if (!c) throw new Error("Room not found")
+  if (c.type !== "GROUP") throw new Error("Only group rooms can be deleted")
+
+  // Remove dependent records first, then the chat itself.
+  await db.delete(report).where(eq(report.chatId, chatId))
+  await db.delete(notification).where(eq(notification.chatId, chatId))
+  await db.delete(message).where(eq(message.chatId, chatId))
+  await db.delete(chatParticipant).where(eq(chatParticipant.chatId, chatId))
+  await db.delete(chat).where(eq(chat.id, chatId))
+
+  return { ok: true }
 }
 
 export async function leaveRoom(chatId: string) {

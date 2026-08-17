@@ -17,6 +17,7 @@ export default async function RoomsPage() {
       initialRooms={rooms}
       me={{ id: session.user.id, name: session.user.name }}
       canCreate={canCreateGroups(role)}
+      canDelete={canCreateGroups(role)}
     />
   )
 }

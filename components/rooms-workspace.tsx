@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import useSWR from "swr"
 import { toast } from "sonner"
-import { createRoom, joinRoom } from "@/app/actions/rooms"
+import { createRoom, joinRoom, deleteRoom } from "@/app/actions/rooms"
 import { getMessages } from "@/app/actions/chat"
 import { useRoomMembers } from "@/hooks/use-room-members"
 import { ChatRoom } from "@/components/chat-room"
@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Plus, Users, Hash, ArrowLeft, MessageSquare, Loader2 } from "lucide-react"
+import { Plus, Users, Hash, ArrowLeft, MessageSquare, Loader2, Trash2 } from "lucide-react"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -45,10 +45,12 @@ export function RoomsWorkspace({
   initialRooms,
   me,
   canCreate = false,
+  canDelete = false,
 }: {
   initialRooms: RoomSummary[]
   me: { id: string; name: string }
   canCreate?: boolean
+  canDelete?: boolean
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -70,6 +72,10 @@ export function RoomsWorkspace({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [name, setName] = useState("")
   const [creating, setCreating] = useState(false)
+
+  // Confirmation dialog state for deleting the active channel.
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const members = useRoomMembers(activeChatId)
   const activeRoom = rooms.find((r) => r.id === activeChatId) ?? null
@@ -158,6 +164,27 @@ export function RoomsWorkspace({
       toast.error(err instanceof Error ? err.message : "Could not create room")
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!activeChatId || deleting) return
+    const roomName = activeRoom?.name ?? "channel"
+    setDeleting(true)
+    try {
+      await deleteRoom(activeChatId)
+      // The room no longer exists — clear local state without a "leave" beacon.
+      loadedFor.current = null
+      setActiveChatId(null)
+      setMessages([])
+      setDeleteOpen(false)
+      router.replace("/app/rooms", { scroll: false })
+      await mutate()
+      toast.success(`Deleted #${roomName}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not delete room")
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -338,6 +365,39 @@ export function RoomsWorkspace({
                   {members.length > 0 ? `${members.length} online` : "Group channel"}
                 </p>
               </div>
+              {canDelete && (
+                <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+                  <DialogTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                      />
+                    }
+                    aria-label="Delete channel"
+                  >
+                    <Trash2 className="size-5" aria-hidden />
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Delete #{activeRoom?.name ?? "channel"}?</DialogTitle>
+                      <DialogDescription>
+                        This permanently deletes the channel and all of its messages for everyone. This action cannot be
+                        undone.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button variant="secondary" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+                        Cancel
+                      </Button>
+                      <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                        {deleting ? "Deleting…" : "Delete channel"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
             </header>
 
             <div className="min-h-0 flex-1">
