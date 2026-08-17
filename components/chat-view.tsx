@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { UserAvatar } from '@/components/user-avatar';
 import { UserPreviewDialog } from '@/components/user-preview';
 import { useChatHeader } from '@/hooks/use-chat-header';
 import type { ChatMessage, ChatType } from '@/lib/types';
@@ -163,6 +164,7 @@ export function ChatView({
           disabled={!canPreview}
           className='flex min-w-0 flex-1 items-center gap-3 text-left enabled:hover:opacity-80'
         >
+          <UserAvatar name={title} image={partnerImage} className='shrink-0' />
           <Avatar className='size-10 shrink-0'>
             {!isGroup && partnerImage ? (
               <AvatarImage src={partnerImage} alt={title} />
