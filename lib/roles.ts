@@ -1,8 +1,6 @@
-import "server-only"
-import { db } from "@/lib/db"
-import { user } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
-import { getCurrentUser } from "@/lib/session"
+// Pure, client-safe role helpers. No server-only imports live here so this
+// module can be pulled into Client Components (e.g. the admin role picker).
+// Server-only guards that hit the DB/session live in `lib/roles-server.ts`.
 
 export type Role = "ADMIN" | "MODERATOR" | "MEMBER"
 
