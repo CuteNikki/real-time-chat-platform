@@ -8,7 +8,7 @@ import { pusherServer } from "@/lib/pusher/server"
 import { userChannel, EVENTS } from "@/lib/pusher/channels"
 import { newId } from "@/lib/id"
 import { createNotification } from "@/app/actions/notifications"
-import type { InviteSummary } from "@/lib/types"
+import type { InviteSummary, OutgoingInviteSummary } from "@/lib/types"
 
 // Send a friend request to a user by their id (resolved from a profile/search).
 export async function sendFriendRequest(targetUserId: string) {
@@ -203,6 +203,35 @@ export async function getPendingInvites(): Promise<InviteSummary[]> {
     receiverId: r.receiverId,
     status: r.status as InviteSummary["status"],
     chatId: r.chatId,
+    createdAt: r.createdAt.toISOString(),
+  }))
+}
+
+// Friend requests the current user has SENT that are still pending, so they
+// can review and pull back outgoing requests (e.g. to users they can no longer
+// find in search).
+export async function getSentInvites(): Promise<OutgoingInviteSummary[]> {
+  const me = await getCurrentUser()
+  const rows = await db
+    .select({
+      id: invite.id,
+      receiverId: invite.receiverId,
+      createdAt: invite.createdAt,
+      receiverName: user.name,
+      receiverUsername: user.username,
+      receiverImage: user.image,
+    })
+    .from(invite)
+    .innerJoin(user, eq(user.id, invite.receiverId))
+    .where(and(eq(invite.senderId, me.id), eq(invite.status, "PENDING")))
+    .orderBy(desc(invite.createdAt))
+
+  return rows.map((r) => ({
+    id: r.id,
+    receiverId: r.receiverId,
+    receiverName: r.receiverName,
+    receiverUsername: r.receiverUsername,
+    receiverImage: r.receiverImage,
     createdAt: r.createdAt.toISOString(),
   }))
 }

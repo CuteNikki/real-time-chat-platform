@@ -11,7 +11,7 @@ import { InterestTags } from "@/components/interest-tags"
 import { toast } from "sonner"
 import { searchUsers } from "@/app/actions/profile"
 import { cancelFriendRequest, respondToRequest, sendFriendRequest } from "@/app/actions/invites"
-import type { InviteSummary } from "@/lib/types"
+import type { InviteSummary, OutgoingInviteSummary } from "@/lib/types"
 
 type SearchResult = {
   id: string
@@ -22,12 +22,19 @@ type SearchResult = {
   interests: string[]
 }
 
-export function FriendsView({ initialPending }: { initialPending: InviteSummary[] }) {
+export function FriendsView({
+  initialIncoming,
+  initialOutgoing,
+}: {
+  initialIncoming: InviteSummary[]
+  initialOutgoing: OutgoingInviteSummary[]
+}) {
   const router = useRouter()
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
-  const [pending, setPending] = useState(initialPending)
+  const [incoming, setIncoming] = useState(initialIncoming)
+  const [outgoing, setOutgoing] = useState(initialOutgoing)
   const [busy, setBusy] = useState<string | null>(null)
 
   // Debounced username search.
@@ -55,8 +62,25 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
   async function addFriend(target: SearchResult) {
     setBusy(target.id)
     try {
-      await sendFriendRequest(target.id)
+      const res = await sendFriendRequest(target.id)
       setResults((rs) => rs.map((r) => (r.id === target.id ? { ...r, friendStatus: "outgoing" } : r)))
+      // Reflect the new request in the "Sent" list immediately.
+      const inviteId = res && "id" in res ? (res.id as string) : `pending-${target.id}`
+      setOutgoing((o) =>
+        o.some((x) => x.receiverId === target.id)
+          ? o
+          : [
+              {
+                id: inviteId,
+                receiverId: target.id,
+                receiverName: target.name,
+                receiverUsername: target.username,
+                receiverImage: target.image,
+                createdAt: new Date().toISOString(),
+              },
+              ...o,
+            ],
+      )
       toast.success(`Request sent to ${target.username ? "@" + target.username : target.name}`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not send request")
@@ -65,11 +89,12 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
     }
   }
 
-  async function cancelRequest(target: SearchResult) {
-    setBusy(target.id)
+  async function cancelRequest(targetUserId: string) {
+    setBusy(targetUserId)
     try {
-      await cancelFriendRequest(target.id)
-      setResults((rs) => rs.map((r) => (r.id === target.id ? { ...r, friendStatus: "none" } : r)))
+      await cancelFriendRequest(targetUserId)
+      setResults((rs) => rs.map((r) => (r.id === targetUserId ? { ...r, friendStatus: "none" } : r)))
+      setOutgoing((o) => o.filter((x) => x.receiverId !== targetUserId))
       toast.success("Request canceled")
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not cancel")
@@ -82,7 +107,7 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
     setBusy(inv.id)
     try {
       const res = await respondToRequest(inv.id, accept)
-      setPending((p) => p.filter((x) => x.id !== inv.id))
+      setIncoming((p) => p.filter((x) => x.id !== inv.id))
       if (accept && res?.chatId) {
         toast.success("You're now friends")
         router.push(`/app/messages?c=${res.chatId}`)
@@ -106,13 +131,13 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
   return (
     <div className="space-y-8">
       {/* Incoming requests */}
-      {pending.length > 0 ? (
-        <section>
+      {incoming.length > 0 ? (
+        <section id="requests">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Requests ({pending.length})
+            Incoming requests ({incoming.length})
           </h2>
           <ul className="flex flex-col gap-2">
-            {pending.map((inv) => (
+            {incoming.map((inv) => (
               <li
                 key={inv.id}
                 className="flex items-center gap-3 rounded-lg border border-border bg-card p-3"
@@ -139,6 +164,49 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
                     Decline
                   </Button>
                 </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {/* Outgoing (sent) requests — lets you pull back a request even if you
+          can no longer find that user in search. */}
+      {outgoing.length > 0 ? (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Sent requests ({outgoing.length})
+          </h2>
+          <ul className="flex flex-col gap-2">
+            {outgoing.map((inv) => (
+              <li key={inv.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                <Link href={inv.receiverUsername ? `/app/u/${inv.receiverUsername}` : "#"}>
+                  <UserAvatar name={inv.receiverName} image={inv.receiverImage} className="size-10" />
+                </Link>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <p className="truncate font-medium">{inv.receiverName}</p>
+                  {inv.receiverUsername ? (
+                    <p className="truncate text-xs text-muted-foreground">@{inv.receiverUsername}</p>
+                  ) : null}
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="group/req gap-1.5"
+                  disabled={busy === inv.receiverId}
+                  onClick={() => cancelRequest(inv.receiverId)}
+                >
+                  {busy === inv.receiverId ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <>
+                      <Clock className="size-4 group-hover/req:hidden" aria-hidden />
+                      <X className="hidden size-4 group-hover/req:block" aria-hidden />
+                    </>
+                  )}
+                  <span className="group-hover/req:hidden">Pending</span>
+                  <span className="hidden group-hover/req:inline">Cancel</span>
+                </Button>
               </li>
             ))}
           </ul>
@@ -193,7 +261,7 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
                   variant="secondary"
                   className="group/req gap-1.5"
                   disabled={busy === r.id}
-                  onClick={() => cancelRequest(r)}
+                  onClick={() => cancelRequest(r.id)}
                 >
                   {busy === r.id ? (
                     <Loader2 className="size-4 animate-spin" aria-hidden />

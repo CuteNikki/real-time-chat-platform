@@ -29,6 +29,15 @@ export type InviteSummary = {
   createdAt: string
 }
 
+export type OutgoingInviteSummary = {
+  id: string
+  receiverId: string
+  receiverName: string
+  receiverUsername: string | null
+  receiverImage: string | null
+  createdAt: string
+}
+
 export type UserProfile = {
   id: string
   name: string
