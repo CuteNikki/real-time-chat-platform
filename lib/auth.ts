@@ -82,17 +82,23 @@ export const auth = betterAuth({
       },
     },
   },
-  ...(process.env.NODE_ENV === "development"
-    ? {
-        advanced: {
+  advanced: {
+    // Capture the originating client IP into session.ipAddress so account bans
+    // can optionally extend to an IP ban. Behind Vercel/proxies the real client
+    // IP arrives in these headers.
+    ipAddress: {
+      ipAddressHeaders: ["x-forwarded-for", "x-real-ip"],
+    },
+    ...(process.env.NODE_ENV === "development"
+      ? {
           // Required by the cross-site v0 preview iframe. Without these
           // attributes, login succeeds but the next request appears signed out.
           defaultCookieAttributes: {
             sameSite: "none" as const,
             secure: true,
           },
-        },
-      }
-    : {}),
+        }
+      : {}),
+  },
   plugins: [nextCookies()],
 })
