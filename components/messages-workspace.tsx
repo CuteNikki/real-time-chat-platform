@@ -142,8 +142,8 @@ export function MessagesWorkspace({
           active && "hidden sm:flex",
         )}
       >
-        <div className="border-b border-border p-3">
-          <div className="relative">
+        <div className="flex h-16 shrink-0 items-center border-b border-border px-3">
+          <div className="relative w-full">
             <Search
               className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
