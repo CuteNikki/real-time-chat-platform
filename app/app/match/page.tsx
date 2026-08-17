@@ -1,11 +1,11 @@
-import { headers } from "next/headers"
-import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth"
-import { MatchFinder } from "@/components/match-finder"
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { auth } from '@/lib/auth';
+import { MatchFinder } from '@/components/match-finder';
 
 export default async function MatchPage() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session?.user) redirect("/sign-in")
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) redirect('/sign-in');
 
-  return <MatchFinder userId={session.user.id} />
+  return <MatchFinder userId={session.user.id} />;
 }

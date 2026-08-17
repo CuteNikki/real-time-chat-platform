@@ -1,42 +1,47 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { authClient } from "@/lib/auth-client"
-import { Button } from "@/components/ui/button"
-import { LogOut, Loader2 } from "lucide-react"
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { authClient } from '@/lib/auth-client';
+import { Button } from '@/components/ui/button';
+import { LogOut, Loader2 } from 'lucide-react';
 
 export function SignOutButton({
   className,
-  variant = "outline",
+  variant = 'outline',
   children,
 }: {
-  className?: string
-  variant?: "default" | "outline" | "ghost" | "secondary" | "destructive"
-  children?: React.ReactNode
+  className?: string;
+  variant?: 'default' | 'outline' | 'ghost' | 'secondary' | 'destructive';
+  children?: React.ReactNode;
 }) {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   async function signOut() {
-    setLoading(true)
+    setLoading(true);
     try {
-      await authClient.signOut()
-      router.push("/")
-      router.refresh()
+      await authClient.signOut();
+      router.push('/');
+      router.refresh();
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   return (
-    <Button variant={variant} className={className} onClick={signOut} disabled={loading}>
+    <Button
+      variant={variant}
+      className={className}
+      onClick={signOut}
+      disabled={loading}
+    >
       {loading ? (
-        <Loader2 className="size-4 animate-spin" aria-hidden />
+        <Loader2 className='size-4 animate-spin' aria-hidden />
       ) : (
-        <LogOut className="size-4" aria-hidden />
+        <LogOut className='size-4' aria-hidden />
       )}
-      {children ?? "Sign out"}
+      {children ?? 'Sign out'}
     </Button>
-  )
+  );
 }

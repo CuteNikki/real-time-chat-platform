@@ -1,43 +1,48 @@
-"use client"
+'use client';
 
-import * as React from "react"
-import { Popover as PopoverPrimitive } from "@base-ui/react/popover"
+import * as React from 'react';
+import { Popover as PopoverPrimitive } from '@base-ui/react/popover';
 
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils';
 
 function Popover({ ...props }: PopoverPrimitive.Root.Props) {
-  return <PopoverPrimitive.Root data-slot="popover" {...props} />
+  return <PopoverPrimitive.Root data-slot='popover' {...props} />;
 }
 
 function PopoverTrigger({ ...props }: PopoverPrimitive.Trigger.Props) {
-  return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
+  return <PopoverPrimitive.Trigger data-slot='popover-trigger' {...props} />;
 }
 
 function PopoverContent({
   className,
-  align = "center",
-  side = "bottom",
+  align = 'center',
+  side = 'bottom',
   sideOffset = 8,
   ...props
 }: PopoverPrimitive.Popup.Props & {
-  align?: PopoverPrimitive.Positioner.Props["align"]
-  side?: PopoverPrimitive.Positioner.Props["side"]
-  sideOffset?: PopoverPrimitive.Positioner.Props["sideOffset"]
+  align?: PopoverPrimitive.Positioner.Props['align'];
+  side?: PopoverPrimitive.Positioner.Props['side'];
+  sideOffset?: PopoverPrimitive.Positioner.Props['sideOffset'];
 }) {
   return (
     <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Positioner align={align} side={side} sideOffset={sideOffset} className="z-50">
+      <PopoverPrimitive.Positioner
+        align={align}
+        side={side}
+        sideOffset={sideOffset}
+        className='z-50'
+      >
         <PopoverPrimitive.Popup
-          data-slot="popover-content"
+          data-slot='popover-content'
           className={cn(
-            "z-50 origin-[var(--transform-origin)] rounded-xl bg-popover p-1 text-popover-foreground ring-1 ring-foreground/10 shadow-lg outline-none duration-100 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            'bg-popover text-popover-foreground ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95 z-50 origin-(--transform-origin) rounded-xl p-1 shadow-lg ring-1 duration-100 outline-none',
             className,
           )}
           {...props}
         />
       </PopoverPrimitive.Positioner>
     </PopoverPrimitive.Portal>
-  )
+  );
 }
 
-export { Popover, PopoverTrigger, PopoverContent }
+export { Popover, PopoverTrigger, PopoverContent };
