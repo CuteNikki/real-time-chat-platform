@@ -2,7 +2,7 @@
 
 import { and, eq, isNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { chat, chatParticipant, randomQueue } from "@/lib/db/schema"
+import { chat, chatParticipant, randomQueue, message } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/session"
 import { pusherServer } from "@/lib/pusher/server"
 import { userChannel, chatChannel, EVENTS } from "@/lib/pusher/channels"
@@ -92,13 +92,11 @@ export async function endRandomChat(chatId: string) {
     .limit(1)
   if (!membership) throw new Error("Not a member of this chat")
 
-  await db.update(chat).set({ endedAt: new Date() }).where(and(eq(chat.id, chatId), isNull(chat.endedAt)))
-  await db
-    .update(chatParticipant)
-    .set({ leftAt: new Date() })
-    .where(and(eq(chatParticipant.chatId, chatId), isNull(chatParticipant.leftAt)))
-
-  await pusherServer.trigger(chatChannel(chatId), EVENTS.CHAT_ENDED, { by: me.name })
+  // Notify the partner, then delete the ephemeral match entirely.
+  await pusherServer.trigger(chatChannel(chatId), EVENTS.CHAT_ENDED, { by: me.name, disconnected: true })
+  await db.delete(message).where(eq(message.chatId, chatId))
+  await db.delete(chatParticipant).where(eq(chatParticipant.chatId, chatId))
+  await db.delete(chat).where(eq(chat.id, chatId))
   return { ok: true }
 }
 

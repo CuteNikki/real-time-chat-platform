@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server"
-import { and, eq, isNull } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { chat, chatParticipant } from "@/lib/db/schema"
+import { chat, chatParticipant, message } from "@/lib/db/schema"
 import { pusherServer } from "@/lib/pusher/server"
 import { chatChannel, EVENTS } from "@/lib/pusher/channels"
 
@@ -34,16 +34,16 @@ export async function POST(req: Request) {
   const [c] = await db.select().from(chat).where(eq(chat.id, chatId)).limit(1)
   if (!c || c.type !== "RANDOM") return NextResponse.json({ ok: true })
 
-  await db.update(chat).set({ endedAt: new Date() }).where(and(eq(chat.id, chatId), isNull(chat.endedAt)))
-  await db
-    .update(chatParticipant)
-    .set({ leftAt: new Date() })
-    .where(and(eq(chatParticipant.chatId, chatId), isNull(chatParticipant.leftAt)))
-
+  // Notify the partner first (so their client shows the disconnect banner)…
   await pusherServer.trigger(chatChannel(chatId), EVENTS.CHAT_ENDED, {
     by: session.user.name,
     disconnected: true,
   })
+
+  // …then fully delete the ephemeral match: messages, participants, chat row.
+  await db.delete(message).where(eq(message.chatId, chatId))
+  await db.delete(chatParticipant).where(eq(chatParticipant.chatId, chatId))
+  await db.delete(chat).where(eq(chat.id, chatId))
 
   return NextResponse.json({ ok: true })
 }

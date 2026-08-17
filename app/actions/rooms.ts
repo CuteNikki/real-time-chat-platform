@@ -4,6 +4,7 @@ import { and, count, desc, eq, isNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { chat, chatParticipant } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/session"
+import { requireRole } from "@/lib/roles"
 import { newId } from "@/lib/id"
 import type { RoomSummary } from "@/lib/types"
 
@@ -34,6 +35,8 @@ export async function listRooms(): Promise<RoomSummary[]> {
 
 export async function createRoom(name: string): Promise<{ chatId: string }> {
   const me = await getCurrentUser()
+  // Only moderators and admins may create group chats.
+  await requireRole("MODERATOR")
   const trimmed = name.trim()
   if (!trimmed) throw new Error("Room name is required")
   if (trimmed.length > 60) throw new Error("Room name is too long")

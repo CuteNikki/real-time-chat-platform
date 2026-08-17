@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Orbit, Home, Shuffle, Users, MessageCircle, UserPlus, User, Settings, LogOut } from "lucide-react"
+import { Orbit, Home, Shuffle, Users, MessageCircle, UserPlus, User, Settings, Shield, LogOut } from "lucide-react"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -33,7 +33,14 @@ const links = [
 export function AppNav({
   user,
 }: {
-  user: { id: string; name: string; email: string; image: string | null; username: string | null }
+  user: {
+    id: string
+    name: string
+    email: string
+    image: string | null
+    username: string | null
+    role: "ADMIN" | "MODERATOR" | "MEMBER"
+  }
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -110,6 +117,12 @@ export function AppNav({
               <Settings className="size-4" aria-hidden />
               Edit profile
             </DropdownMenuItem>
+            {user.role === "ADMIN" && (
+              <DropdownMenuItem render={<Link href="/app/admin" />}>
+                <Shield className="size-4" aria-hidden />
+                Admin
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={signOut} className="text-destructive focus:text-destructive">
               <LogOut className="size-4" aria-hidden />

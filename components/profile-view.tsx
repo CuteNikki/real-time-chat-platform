@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { UserAvatar } from "@/components/user-avatar"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import { InterestTags } from "@/components/interest-tags"
 import { PostGrid } from "@/components/post-grid"
 import { sendFriendRequest, respondToRequest, removeFriend, cancelFriendRequest } from "@/app/actions/invites"
@@ -111,6 +113,16 @@ export function ProfileView({
               <h1 className="text-xl font-semibold tracking-tight text-balance">{profile.name}</h1>
               {profile.username ? (
                 <span className="text-sm text-muted-foreground">@{profile.username}</span>
+              ) : null}
+              {profile.role !== "MEMBER" ? (
+                <Badge
+                  className={cn(
+                    "border-transparent",
+                    profile.role === "ADMIN" ? "bg-primary/15 text-primary" : "bg-chart-2/15 text-chart-2",
+                  )}
+                >
+                  {profile.role === "ADMIN" ? "Admin" : "Moderator"}
+                </Badge>
               ) : null}
             </div>
             {profile.bio ? (

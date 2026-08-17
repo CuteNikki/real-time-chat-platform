@@ -44,9 +44,11 @@ function initials(name: string) {
 export function RoomsWorkspace({
   initialRooms,
   me,
+  canCreate = false,
 }: {
   initialRooms: RoomSummary[]
   me: { id: string; name: string }
+  canCreate?: boolean
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -174,38 +176,40 @@ export function RoomsWorkspace({
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Channels</h2>
             <span className="text-xs text-muted-foreground">{rooms.length}</span>
           </div>
-          <div className="px-3">
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger render={<Button className="w-full gap-2" size="sm" />}>
-                <Plus className="size-4" aria-hidden />
-                Create channel
-              </DialogTrigger>
-              <DialogContent>
-                <form onSubmit={handleCreate}>
-                  <DialogHeader>
-                    <DialogTitle>Create a channel</DialogTitle>
-                    <DialogDescription>Give it a name. Anyone can find and join it.</DialogDescription>
-                  </DialogHeader>
-                  <div className="my-5 flex flex-col gap-2">
-                    <Label htmlFor="room-name">Channel name</Label>
-                    <Input
-                      id="room-name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. late night talks"
-                      maxLength={60}
-                      autoFocus
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button type="submit" disabled={creating || !name.trim()}>
-                      {creating ? "Creating…" : "Create & enter"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+          {canCreate && (
+            <div className="px-3">
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger render={<Button className="w-full gap-2" size="sm" />}>
+                  <Plus className="size-4" aria-hidden />
+                  Create channel
+                </DialogTrigger>
+                <DialogContent>
+                  <form onSubmit={handleCreate}>
+                    <DialogHeader>
+                      <DialogTitle>Create a channel</DialogTitle>
+                      <DialogDescription>Give it a name. Anyone can find and join it.</DialogDescription>
+                    </DialogHeader>
+                    <div className="my-5 flex flex-col gap-2">
+                      <Label htmlFor="room-name">Channel name</Label>
+                      <Input
+                        id="room-name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. late night talks"
+                        maxLength={60}
+                        autoFocus
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit" disabled={creating || !name.trim()}>
+                        {creating ? "Creating…" : "Create & enter"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
 
           <nav className="mt-2 min-h-0 flex-1 overflow-y-auto px-3 pb-3">
             {rooms.length === 0 ? (

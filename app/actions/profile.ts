@@ -97,6 +97,7 @@ async function buildProfile(
     image: u.image,
     bio: u.bio,
     interests,
+    role: u.role === "ADMIN" || u.role === "MODERATOR" ? u.role : "MEMBER",
     postCount,
     friendCount: fc,
     createdAt: u.createdAt.toISOString(),
