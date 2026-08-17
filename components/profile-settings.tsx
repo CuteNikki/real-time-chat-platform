@@ -14,7 +14,7 @@ import { isUsernameAvailable, updateProfile, updateInterests } from "@/app/actio
 type Profile = {
   id: string
   name: string
-  username: string | null
+  username: string
   image: string | null
   bio: string | null
   interests: string[]
@@ -31,7 +31,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
   const fileRef = useRef<HTMLInputElement>(null)
 
   const [name, setName] = useState(profile.name)
-  const [username, setUsername] = useState(profile.username ?? "")
+  const [username, setUsername] = useState(profile.username)
   const [bio, setBio] = useState(profile.bio ?? "")
   const [image, setImage] = useState<string | null>(profile.image)
   const [interests, setInterests] = useState<string[]>(profile.interests ?? [])
@@ -70,13 +70,13 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
     }
   }
 
-  const usernameChanged = username.toLowerCase() !== (profile.username ?? "").toLowerCase()
+  const usernameChanged = username.toLowerCase() !== profile.username.toLowerCase()
 
   async function checkUsername(value: string) {
     setUsername(value)
     setAvailable(null)
     const clean = value.trim().toLowerCase()
-    if (!clean || clean === (profile.username ?? "").toLowerCase()) return
+    if (!clean || clean === profile.username.toLowerCase()) return
     if (!/^[a-z0-9_]{3,20}$/.test(clean)) {
       setAvailable(false)
       return
@@ -115,6 +115,11 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
   }
 
   async function save() {
+    // Username is required and always present — never let it be cleared.
+    if (!/^[a-z0-9_]{3,20}$/.test(username.trim().toLowerCase())) {
+      toast.error("Username must be 3–20 characters: letters, numbers, underscores")
+      return
+    }
     if (usernameChanged && available === false) {
       toast.error("That username isn't available")
       return

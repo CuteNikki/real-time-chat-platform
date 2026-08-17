@@ -19,7 +19,7 @@ export const user = pgTable(
     emailVerified: boolean("emailVerified").notNull().default(false),
     image: text("image"),
     // App profile fields.
-    username: text("username"),
+    username: text("username").notNull(),
     bio: text("bio"),
     // Access role: "ADMIN" | "MODERATOR" | "MEMBER". Members are the default.
     role: text("role").notNull().default("MEMBER"),

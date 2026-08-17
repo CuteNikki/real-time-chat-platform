@@ -16,7 +16,7 @@ import type { InviteSummary, OutgoingInviteSummary } from "@/lib/types"
 type SearchResult = {
   id: string
   name: string
-  username: string | null
+  username: string
   image: string | null
   friendStatus: "none" | "friends" | "incoming" | "outgoing"
   interests: string[]
