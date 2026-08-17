@@ -48,7 +48,9 @@ function iconFor(type: NotificationSummary["type"]) {
   return MessageCircle
 }
 
-// Map a notification type to its preference category.
+// Map a notification type to its preference category. MESSAGE is ambiguous
+// (direct vs room), so the realtime payload carries an explicit category that
+// takes precedence; this fallback assumes a direct message.
 function categoryForType(type: NotificationType): NotificationCategory {
   switch (type) {
     case "FRIEND_REQUEST":
@@ -58,7 +60,7 @@ function categoryForType(type: NotificationType): NotificationCategory {
     case "LIKE":
       return "like"
     default:
-      return "message"
+      return "directMessage"
   }
 }
 
@@ -104,11 +106,15 @@ export function NotificationBell({ userId }: { userId: string }) {
   useEffect(() => {
     const pusher = getPusherClient()
     const channel = pusher.subscribe(userChannel(userId))
-    const onNotification = (payload: { body?: string | null; type?: NotificationType }) => {
+    const onNotification = (payload: {
+      body?: string | null
+      type?: NotificationType
+      category?: NotificationCategory | null
+    }) => {
       mutate()
       if (open) load()
 
-      const category = categoryForType(payload?.type ?? "MESSAGE")
+      const category = payload?.category ?? categoryForType(payload?.type ?? "MESSAGE")
       const catPref = prefs.categories[category]
 
       // Popup (toast) — respect the per-category popup preference.

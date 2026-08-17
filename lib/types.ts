@@ -105,7 +105,12 @@ export type PostLiker = {
 }
 
 // The categories a user can independently tune for popups + sounds.
-export type NotificationCategory = "friendRequest" | "friendAccept" | "message" | "like"
+export type NotificationCategory =
+  | "friendRequest"
+  | "friendAccept"
+  | "directMessage"
+  | "roomMessage"
+  | "like"
 
 export type NotificationPreferences = {
   // Master switch for playing any sound.
@@ -122,7 +127,8 @@ export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
   categories: {
     friendRequest: { popup: true, sound: true },
     friendAccept: { popup: true, sound: true },
-    message: { popup: true, sound: true },
+    directMessage: { popup: true, sound: true },
+    roomMessage: { popup: true, sound: true },
     like: { popup: true, sound: true },
   },
 }

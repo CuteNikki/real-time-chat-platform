@@ -16,8 +16,13 @@ const TONES: Record<NotificationCategory, Note[]> = {
     { freq: 659.25, start: 0, dur: 0.12 },
     { freq: 987.77, start: 0.1, dur: 0.2 },
   ],
-  // Soft single blip for a new message.
-  message: [{ freq: 740, start: 0, dur: 0.14 }],
+  // Soft single blip for a new direct message.
+  directMessage: [{ freq: 740, start: 0, dur: 0.14 }],
+  // Lower double-blip for a room message, so it's distinct from a DM.
+  roomMessage: [
+    { freq: 523.25, start: 0, dur: 0.1 },
+    { freq: 622.25, start: 0.11, dur: 0.13 },
+  ],
   // Gentle high tick for a like.
   like: [{ freq: 1046.5, start: 0, dur: 0.1 }],
 }

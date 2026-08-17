@@ -6,7 +6,13 @@ import { user } from "@/lib/db/schema"
 import { DEFAULT_NOTIFICATION_PREFERENCES } from "@/lib/types"
 import type { NotificationCategory, NotificationPreferences } from "@/lib/types"
 
-const CATEGORIES: NotificationCategory[] = ["friendRequest", "friendAccept", "message", "like"]
+const CATEGORIES: NotificationCategory[] = [
+  "friendRequest",
+  "friendAccept",
+  "directMessage",
+  "roomMessage",
+  "like",
+]
 
 // Merge a stored (possibly partial / older) preferences blob with defaults so
 // new categories always have a value and bad data can't crash the UI.
@@ -14,9 +20,15 @@ export function normalizePreferences(raw: unknown): NotificationPreferences {
   const d = DEFAULT_NOTIFICATION_PREFERENCES
   if (!raw || typeof raw !== "object") return structuredClone(d)
   const p = raw as Partial<NotificationPreferences>
+  const storedCategories = (p.categories ?? {}) as Record<string, { popup?: boolean; sound?: boolean }>
+  // Back-compat: the old single "message" category split into directMessage +
+  // roomMessage. Fall back to the legacy value so existing users keep intent.
+  const legacyMessage = storedCategories.message
   const categories = {} as NotificationPreferences["categories"]
   for (const c of CATEGORIES) {
-    const stored = p.categories?.[c]
+    const stored =
+      storedCategories[c] ??
+      ((c === "directMessage" || c === "roomMessage") ? legacyMessage : undefined)
     categories[c] = {
       popup: typeof stored?.popup === "boolean" ? stored.popup : d.categories[c].popup,
       sound: typeof stored?.sound === "boolean" ? stored.sound : d.categories[c].sound,

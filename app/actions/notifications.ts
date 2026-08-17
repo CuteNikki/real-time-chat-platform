@@ -7,7 +7,7 @@ import { getCurrentUser, getUserId } from "@/lib/session"
 import { pusherServer } from "@/lib/pusher/server"
 import { userChannel, EVENTS } from "@/lib/pusher/channels"
 import { newId } from "@/lib/id"
-import type { NotificationSummary, NotificationType } from "@/lib/types"
+import type { NotificationCategory, NotificationSummary, NotificationType } from "@/lib/types"
 
 // Create a notification row and push it to the recipient in real time.
 // Safe to call from other server actions; never throws to the caller's flow.
@@ -17,6 +17,9 @@ export async function createNotification(input: {
   actorId?: string | null
   chatId?: string | null
   body?: string | null
+  // Optional preference category override. MESSAGE notifications use this to
+  // distinguish a direct message from a room message (both share the DB type).
+  category?: NotificationCategory
 }) {
   try {
     const id = newId("ntf")
@@ -31,6 +34,7 @@ export async function createNotification(input: {
     await pusherServer.trigger(userChannel(input.userId), EVENTS.NOTIFICATION, {
       id,
       type: input.type,
+      category: input.category ?? null,
       body: input.body ?? null,
     })
   } catch (err) {

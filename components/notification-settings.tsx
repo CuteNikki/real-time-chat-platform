@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, Volume2, VolumeX, Play, UserPlus, UserCheck, MessageCircle, Heart } from "lucide-react"
+import { Bell, Volume2, VolumeX, Play, UserPlus, UserCheck, MessageCircle, Users, Heart } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,8 @@ const CATEGORY_META: {
 }[] = [
   { key: "friendRequest", label: "Friend requests", description: "When someone sends you a request", icon: UserPlus },
   { key: "friendAccept", label: "Request accepted", description: "When someone accepts your request", icon: UserCheck },
-  { key: "message", label: "Messages", description: "New direct and room messages", icon: MessageCircle },
+  { key: "directMessage", label: "Direct messages", description: "New messages in a private chat", icon: MessageCircle },
+  { key: "roomMessage", label: "Room messages", description: "New messages in a group room", icon: Users },
   { key: "like", label: "Post likes", description: "When someone likes your post", icon: Heart },
 ]
 
@@ -84,7 +85,7 @@ export function NotificationSettings() {
               size="sm"
               className="shrink-0 gap-1.5 bg-transparent"
               disabled={!prefs.soundEnabled}
-              onClick={() => playNotificationSound("message", prefs.volume)}
+              onClick={() => playNotificationSound("directMessage", prefs.volume)}
             >
               <Play className="size-3.5" aria-hidden />
               Test
