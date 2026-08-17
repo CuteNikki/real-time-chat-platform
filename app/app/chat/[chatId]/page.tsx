@@ -31,15 +31,17 @@ export default async function ChatPage({ params }: { params: Promise<{ chatId: s
   // Build a title. For 1-on-1 (RANDOM/PRIVATE) show the other person's name.
   let title = c.name ?? "Chat"
   let subtitle = ""
+  let partnerId: string | null = null
   if (c.type === "RANDOM" || c.type === "PRIVATE") {
     const others = await db
-      .select({ name: user.name })
+      .select({ id: user.id, name: user.name })
       .from(chatParticipant)
       .innerJoin(user, eq(user.id, chatParticipant.userId))
       .where(and(eq(chatParticipant.chatId, chatId), ne(chatParticipant.userId, me.id)))
       .limit(1)
     title = others[0]?.name ?? (c.type === "RANDOM" ? "Anonymous" : "Private chat")
     subtitle = c.type === "RANDOM" ? "Random match" : "Private chat"
+    partnerId = others[0]?.id ?? null
   } else {
     subtitle = "Group room"
   }
@@ -50,6 +52,7 @@ export default async function ChatPage({ params }: { params: Promise<{ chatId: s
       type={c.type as "RANDOM" | "GROUP" | "PRIVATE"}
       title={title}
       subtitle={subtitle}
+      partnerId={partnerId}
       ended={!!c.endedAt}
       currentUserId={me.id}
       currentUserName={me.name}

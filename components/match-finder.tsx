@@ -92,7 +92,7 @@ export function MatchFinder({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100svh-4rem)] w-full max-w-lg flex-col items-center justify-center px-6 py-12 text-center">
+    <div className="mx-auto flex h-full w-full max-w-lg flex-col items-center justify-center overflow-y-auto px-6 py-12 text-center">
       <div className="relative mb-8 flex size-28 items-center justify-center rounded-full bg-accent">
         {status === "searching" ? (
           <>

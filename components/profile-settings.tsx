@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { UserAvatar } from "@/components/user-avatar"
 import { toast } from "sonner"
-import { isUsernameAvailable, updateProfile } from "@/app/actions/profile"
+import { isUsernameAvailable, updateProfile, updateInterests } from "@/app/actions/profile"
 
 type Profile = {
   id: string
@@ -17,6 +17,13 @@ type Profile = {
   username: string | null
   image: string | null
   bio: string | null
+  interests: string[]
+}
+
+const MAX_INTERESTS = 10
+
+function normalizeTag(raw: string) {
+  return raw.trim().replace(/^#+/, "").replace(/\s+/g, " ").toLowerCase().slice(0, 30)
 }
 
 export function ProfileSettings({ profile }: { profile: Profile }) {
@@ -27,10 +34,41 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
   const [username, setUsername] = useState(profile.username ?? "")
   const [bio, setBio] = useState(profile.bio ?? "")
   const [image, setImage] = useState<string | null>(profile.image)
+  const [interests, setInterests] = useState<string[]>(profile.interests ?? [])
+  const [tagDraft, setTagDraft] = useState("")
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [checking, setChecking] = useState(false)
   const [available, setAvailable] = useState<boolean | null>(null)
+
+  function addTag(raw: string) {
+    const t = normalizeTag(raw)
+    if (!t) return
+    if (interests.includes(t)) {
+      setTagDraft("")
+      return
+    }
+    if (interests.length >= MAX_INTERESTS) {
+      toast.error(`You can add up to ${MAX_INTERESTS} interests`)
+      return
+    }
+    setInterests((prev) => [...prev, t])
+    setTagDraft("")
+  }
+
+  function removeTag(tag: string) {
+    setInterests((prev) => prev.filter((t) => t !== tag))
+  }
+
+  function onTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.nativeEvent.isComposing || e.keyCode === 229) return
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault()
+      addTag(tagDraft)
+    } else if (e.key === "Backspace" && !tagDraft && interests.length) {
+      removeTag(interests[interests.length - 1])
+    }
+  }
 
   const usernameChanged = username.toLowerCase() !== (profile.username ?? "").toLowerCase()
 
@@ -83,12 +121,16 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
     }
     setSaving(true)
     try {
+      // Fold any half-typed tag into the set before saving.
+      const finalInterests = tagDraft.trim() ? [...interests, normalizeTag(tagDraft)] : interests
       await updateProfile({
         name: name.trim(),
         username: username.trim(),
         bio: bio.trim(),
         image,
       })
+      await updateInterests(finalInterests)
+      setTagDraft("")
       toast.success("Profile updated")
       router.refresh()
     } catch (err) {
@@ -168,6 +210,44 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
           maxLength={160}
         />
         <p className="text-right text-xs text-muted-foreground">{bio.length}/160</p>
+      </div>
+
+      {/* Interests */}
+      <div className="space-y-2">
+        <Label htmlFor="interests">Interests</Label>
+        <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-input bg-transparent p-2 focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50">
+          {interests.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center gap-1 rounded-full bg-secondary py-0.5 pl-2.5 pr-1 text-xs font-medium text-secondary-foreground"
+            >
+              {tag}
+              <button
+                type="button"
+                onClick={() => removeTag(tag)}
+                className="rounded-full p-0.5 text-muted-foreground hover:bg-background hover:text-foreground"
+                aria-label={`Remove ${tag}`}
+              >
+                <X className="size-3" aria-hidden />
+              </button>
+            </span>
+          ))}
+          <input
+            id="interests"
+            value={tagDraft}
+            onChange={(e) => setTagDraft(e.target.value)}
+            onKeyDown={onTagKeyDown}
+            onBlur={() => tagDraft.trim() && addTag(tagDraft)}
+            placeholder={interests.length ? "Add another…" : "e.g. music, hiking, gaming"}
+            className="min-w-[8rem] flex-1 bg-transparent px-1.5 py-0.5 text-sm outline-none placeholder:text-muted-foreground"
+            maxLength={30}
+            autoCapitalize="none"
+            spellCheck={false}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Press Enter or comma to add. Up to {MAX_INTERESTS}. Shared interests help us match you.
+        </p>
       </div>
 
       <div className="flex justify-end">

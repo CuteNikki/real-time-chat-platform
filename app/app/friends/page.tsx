@@ -10,7 +10,7 @@ export default async function FriendsPage() {
   const pending = await getPendingInvites()
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8">
+    <div className="mx-auto h-full w-full max-w-2xl overflow-y-auto px-4 py-8">
       <h1 className="mb-1 text-2xl font-semibold tracking-tight">Friends</h1>
       <p className="mb-6 text-sm text-muted-foreground">
         Find people by username, then send a request. Once accepted, you can DM each other.

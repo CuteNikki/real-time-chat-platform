@@ -18,6 +18,7 @@ type SearchResult = {
   username: string | null
   image: string | null
   friendStatus: "none" | "friends" | "incoming" | "outgoing"
+  interests: string[]
 }
 
 export function FriendsView({ initialPending }: { initialPending: InviteSummary[] }) {

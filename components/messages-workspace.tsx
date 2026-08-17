@@ -80,7 +80,7 @@ export function MessagesWorkspace({
   })
 
   return (
-    <div className="flex h-[calc(100svh-4rem)] w-full">
+    <div className="flex h-full w-full">
       {/* Conversation list */}
       <aside
         className={cn(

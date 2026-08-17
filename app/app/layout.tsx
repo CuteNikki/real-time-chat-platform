@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const u = session.user as typeof session.user & { username?: string | null }
 
   return (
-    <div className="flex min-h-svh flex-col bg-background">
+    <div className="flex h-svh flex-col overflow-hidden bg-background">
       <AppNav
         user={{
           name: session.user.name,
@@ -20,7 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           username: u.username ?? null,
         }}
       />
-      <div className="flex-1">{children}</div>
+      <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
     </div>
   )
 }

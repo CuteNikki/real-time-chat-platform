@@ -17,11 +17,18 @@ export async function requestMatch(): Promise<MatchResult> {
   const me = await getCurrentUser()
 
   return db.transaction(async (tx) => {
-    // Grab the oldest waiting user that isn't me, locking the row.
+    // Prefer a waiting user who shares the most interest tags with me; break
+    // ties by who has waited longest. Falls back to plain FIFO when nobody
+    // shares an interest. SKIP LOCKED keeps concurrent matches from colliding.
     const waiting = await tx.execute(
-      sql`SELECT "id", "userId" FROM "random_queue"
-          WHERE "userId" <> ${me.id}
-          ORDER BY "joinedAt" ASC
+      sql`SELECT q."id", q."userId",
+                 (SELECT count(*) FROM "interest" oi
+                  WHERE oi."userId" = q."userId"
+                    AND oi."tag" IN (SELECT "tag" FROM "interest" WHERE "userId" = ${me.id})
+                 ) AS shared
+          FROM "random_queue" q
+          WHERE q."userId" <> ${me.id}
+          ORDER BY shared DESC, q."joinedAt" ASC
           LIMIT 1
           FOR UPDATE SKIP LOCKED`,
     )

@@ -35,6 +35,7 @@ export type UserProfile = {
   username: string | null
   image: string | null
   bio: string | null
+  interests: string[]
   postCount: number
   friendCount: number
   createdAt: string
