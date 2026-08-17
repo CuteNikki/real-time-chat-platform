@@ -1,6 +1,26 @@
 import { betterAuth } from "better-auth"
 import { nextCookies } from "better-auth/next-js"
 import { Pool } from "pg"
+import { db } from "@/lib/db"
+import { user as userTable } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
+import { generateUsername } from "@/lib/id"
+
+// Generate a default username that isn't already taken. Retries a handful of
+// times on the (astronomically unlikely) chance of a collision.
+async function generateUniqueUsername(): Promise<string> {
+  for (let i = 0; i < 6; i++) {
+    const candidate = generateUsername()
+    const [existing] = await db
+      .select({ id: userTable.id })
+      .from(userTable)
+      .where(eq(userTable.username, candidate))
+      .limit(1)
+    if (!existing) return candidate
+  }
+  // Extremely unlikely fallback: append extra entropy.
+  return `${generateUsername()}${Date.now().toString(36).slice(-3)}`.slice(0, 20)
+}
 
 function getBaseURL() {
   if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL
@@ -45,6 +65,21 @@ export const auth = betterAuth({
     },
     deleteUser: {
       enabled: true,
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        // Every user gets a unique, generated username by default. They can
+        // change it later in settings, but it is always present.
+        before: async (data) => {
+          const record = data as Record<string, unknown>
+          if (!record.username) {
+            return { data: { ...record, username: await generateUniqueUsername() } }
+          }
+          return { data: record }
+        },
+      },
     },
   },
   ...(process.env.NODE_ENV === "development"
