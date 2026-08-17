@@ -3,7 +3,7 @@
 import { endRandomChat } from '@/app/actions/match';
 import { reportUser } from '@/app/actions/report';
 import { ChatRoom } from '@/components/chat-room';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,6 +37,7 @@ export function ChatView({
   title,
   subtitle,
   partnerId,
+  partnerImage,
   ended: initialEnded,
   currentUserId,
   currentUserName,
@@ -48,6 +49,7 @@ export function ChatView({
   title: string;
   subtitle: string;
   partnerId: string | null;
+  partnerImage: string | null;
   ended: boolean;
   currentUserId: string;
   currentUserName: string;
@@ -162,6 +164,9 @@ export function ChatView({
           className='flex min-w-0 flex-1 items-center gap-3 text-left enabled:hover:opacity-80'
         >
           <Avatar className='size-10 shrink-0'>
+            {!isGroup && partnerImage ? (
+              <AvatarImage src={partnerImage} alt={title} />
+            ) : null}
             <AvatarFallback className='bg-secondary text-secondary-foreground text-sm font-medium'>
               {isGroup ? (
                 <Users className='size-5' aria-hidden />

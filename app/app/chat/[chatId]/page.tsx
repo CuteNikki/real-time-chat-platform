@@ -1,11 +1,11 @@
-import { headers } from 'next/headers';
-import { redirect, notFound } from 'next/navigation';
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { getMessages } from '@/app/actions/chat';
+import { ChatView } from '@/components/chat-view';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { chat, chatParticipant, user } from '@/lib/db/schema';
-import { getMessages } from '@/app/actions/chat';
-import { ChatView } from '@/components/chat-view';
+import { and, eq, isNull, ne } from 'drizzle-orm';
+import { headers } from 'next/headers';
+import { notFound, redirect } from 'next/navigation';
 
 export default async function ChatPage({
   params,
@@ -40,9 +40,10 @@ export default async function ChatPage({
   let title = c.name ?? 'Chat';
   let subtitle = '';
   let partnerId: string | null = null;
+  let partnerImage: string | null = null;
   if (c.type === 'RANDOM' || c.type === 'PRIVATE') {
     const others = await db
-      .select({ id: user.id, name: user.name })
+      .select({ id: user.id, name: user.name, image: user.image })
       .from(chatParticipant)
       .innerJoin(user, eq(user.id, chatParticipant.userId))
       .where(
@@ -56,6 +57,7 @@ export default async function ChatPage({
       others[0]?.name ?? (c.type === 'RANDOM' ? 'Anonymous' : 'Private chat');
     subtitle = c.type === 'RANDOM' ? 'Random match' : 'Private chat';
     partnerId = others[0]?.id ?? null;
+    partnerImage = others[0]?.image ?? null;
   } else {
     subtitle = 'Group room';
   }
@@ -67,6 +69,7 @@ export default async function ChatPage({
       title={title}
       subtitle={subtitle}
       partnerId={partnerId}
+      partnerImage={partnerImage}
       ended={!!c.endedAt}
       currentUserId={me.id}
       currentUserName={me.name}
