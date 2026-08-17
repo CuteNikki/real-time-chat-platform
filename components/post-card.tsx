@@ -181,6 +181,12 @@ export function PostCard({
       ) : null}
 
       <div className="flex flex-col gap-2 p-3">
+        {/* Text-only posts: caption sits above the like row and drops the name
+            prefix (the author is already shown in the header). */}
+        {!editing && !post.imageUrl && caption ? (
+          <p className="text-pretty text-sm leading-relaxed">{caption}</p>
+        ) : null}
+
         <div className="flex w-fit items-center gap-1">
           <button
             type="button"
@@ -240,7 +246,8 @@ export function PostCard({
               </Button>
             </div>
           </div>
-        ) : caption ? (
+        ) : post.imageUrl && caption ? (
+          // Image posts keep the classic "name caption" line below the like row.
           <p className="text-sm leading-relaxed">
             <Link href={profileHref} className="font-semibold hover:underline">
               {displayName}
