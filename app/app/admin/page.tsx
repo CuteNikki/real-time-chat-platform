@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { getMyRole } from "@/lib/roles"
+import { getMyRole } from "@/lib/roles-server"
 import { listUsersForAdmin } from "@/app/actions/admin"
 import { AdminView } from "@/components/admin-view"
 

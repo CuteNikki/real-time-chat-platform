@@ -2,7 +2,7 @@ import type React from "react"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
-import { getMyRole } from "@/lib/roles"
+import { getMyRole } from "@/lib/roles-server"
 import { AppNav } from "@/components/app-nav"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

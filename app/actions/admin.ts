@@ -4,7 +4,8 @@ import { and, desc, eq, ne, or, sql, count } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { user } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/session"
-import { requireRole, normalizeRole, type Role } from "@/lib/roles"
+import { normalizeRole, type Role } from "@/lib/roles"
+import { requireRole } from "@/lib/roles-server"
 import { revalidatePath } from "next/cache"
 
 export type AdminUserRow = {

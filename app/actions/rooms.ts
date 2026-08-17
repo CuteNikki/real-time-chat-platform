@@ -4,7 +4,7 @@ import { and, count, desc, eq, isNull, sql } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { chat, chatParticipant } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/session"
-import { requireRole } from "@/lib/roles"
+import { requireRole } from "@/lib/roles-server"
 import { newId } from "@/lib/id"
 import type { RoomSummary } from "@/lib/types"
 
