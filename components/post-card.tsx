@@ -169,14 +169,16 @@ export function PostCard({
         ) : null}
       </header>
 
-      <div className="relative aspect-square w-full bg-muted">
-        {/* Blob image; unoptimized to avoid remote-loader config. */}
-        <img
-          src={post.imageUrl || "/placeholder.svg"}
-          alt={caption ? `Post: ${caption}` : "Post image"}
-          className="h-full w-full object-cover"
-        />
-      </div>
+      {post.imageUrl ? (
+        <div className="relative aspect-square w-full bg-muted">
+          {/* Blob image; unoptimized to avoid remote-loader config. */}
+          <img
+            src={post.imageUrl || "/placeholder.svg"}
+            alt={caption ? `Post: ${caption}` : "Post image"}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-2 p-3">
         <div className="flex w-fit items-center gap-1">

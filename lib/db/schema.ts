@@ -165,7 +165,8 @@ export const post = pgTable(
   {
     id: text("id").primaryKey(),
     userId: text("userId").notNull(),
-    imageUrl: text("imageUrl").notNull(),
+    // Nullable: posts can be text-only (no image).
+    imageUrl: text("imageUrl"),
     caption: text("caption"),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
   },

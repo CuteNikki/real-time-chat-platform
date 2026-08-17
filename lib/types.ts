@@ -90,7 +90,8 @@ export type PostSummary = {
   authorName: string
   authorUsername: string
   authorImage: string | null
-  imageUrl: string
+  // Null for text-only posts.
+  imageUrl: string | null
   caption: string | null
   createdAt: string
   likeCount: number

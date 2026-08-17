@@ -46,13 +46,22 @@ export function PostGrid({
             onClick={() => setActiveId(p.id)}
             className="group relative aspect-square overflow-hidden rounded-md bg-muted"
           >
-            <Image
-              src={p.imageUrl || "/placeholder.svg"}
-              alt={p.caption ?? "Post"}
-              fill
-              sizes="(max-width: 640px) 33vw, 300px"
-              className="object-cover transition-transform group-hover:scale-105"
-            />
+            {p.imageUrl ? (
+              <Image
+                src={p.imageUrl || "/placeholder.svg"}
+                alt={p.caption ?? "Post"}
+                fill
+                sizes="(max-width: 640px) 33vw, 300px"
+                className="object-cover transition-transform group-hover:scale-105"
+              />
+            ) : (
+              // Text-only post: show the caption on a solid tile.
+              <div className="flex h-full w-full items-center justify-center bg-secondary p-3">
+                <p className="line-clamp-5 text-center text-xs leading-snug text-secondary-foreground">
+                  {p.caption ?? ""}
+                </p>
+              </div>
+            )}
           </button>
         ))}
       </div>

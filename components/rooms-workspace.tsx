@@ -324,8 +324,10 @@ export function RoomsWorkspace({
           </nav>
         </div>
 
-        {/* Members of the active channel */}
-        <div className="flex min-h-0 flex-1 flex-col border-t border-border">
+        {/* Members of the active channel. Hidden on mobile: while browsing the
+            channel list there's no active channel, and inside a channel the
+            header's "who's online" button covers this. Desktop keeps it. */}
+        <div className="hidden min-h-0 flex-1 flex-col border-t border-border md:flex">
           <div className="px-4 pb-2 pt-3">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {activeChatId ? `${members.length} online in this chat` : "Online"}

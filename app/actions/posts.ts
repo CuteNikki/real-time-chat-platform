@@ -33,7 +33,7 @@ async function decoratePosts(
   rows: {
     id: string
     userId: string
-    imageUrl: string
+    imageUrl: string | null
     caption: string | null
     createdAt: Date
     authorName: string
@@ -73,14 +73,16 @@ async function decoratePosts(
   }))
 }
 
-export async function createPost(input: { imageUrl: string; caption?: string }) {
+export async function createPost(input: { imageUrl?: string | null; caption?: string }) {
   const userId = await getUserId()
-  if (!input.imageUrl) throw new Error("An image is required")
+  const imageUrl = input.imageUrl?.trim() || null
   const caption = input.caption?.trim() || null
   if (caption && caption.length > 500) throw new Error("Caption too long")
+  // A post needs at least an image or some text.
+  if (!imageUrl && !caption) throw new Error("Add a photo or write something")
 
   const id = newId("post")
-  await db.insert(post).values({ id, userId, imageUrl: input.imageUrl, caption })
+  await db.insert(post).values({ id, userId, imageUrl, caption })
   revalidatePath("/app/feed")
   revalidatePath("/app/settings")
   return { id }

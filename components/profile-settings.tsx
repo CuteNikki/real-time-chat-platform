@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Camera, Check, Loader2, X } from "lucide-react"
+import { Camera, Check, Loader2, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -157,12 +157,26 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
             </div>
           ) : null}
         </div>
-        <div>
+        <div className="flex flex-wrap items-center gap-2">
           <input ref={fileRef} type="file" accept="image/*" onChange={onFile} className="sr-only" id="avatar" />
           <Button type="button" variant="secondary" className="gap-2" onClick={() => fileRef.current?.click()}>
             <Camera className="size-4" aria-hidden />
-            Change photo
+            {image ? "Change photo" : "Upload photo"}
           </Button>
+          {image ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className="gap-2 text-muted-foreground"
+              onClick={() => {
+                setImage(null)
+                if (fileRef.current) fileRef.current.value = ""
+              }}
+            >
+              <Trash2 className="size-4" aria-hidden />
+              Remove
+            </Button>
+          ) : null}
         </div>
       </div>
 
