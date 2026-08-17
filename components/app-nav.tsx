@@ -24,7 +24,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 const links = [
   { href: "/app/feed", label: "Feed", icon: Home, exact: false },
-  { href: "/app", label: "Match", icon: Shuffle, exact: true },
+  { href: "/app/match", label: "Match", icon: Shuffle, exact: false },
   { href: "/app/rooms", label: "Rooms", icon: Users, exact: false },
   { href: "/app/messages", label: "Messages", icon: MessageCircle, exact: false },
   { href: "/app/friends", label: "Friends", icon: UserPlus, exact: false },
