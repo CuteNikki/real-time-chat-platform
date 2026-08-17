@@ -17,7 +17,7 @@ type SettingsProfile = {
 export function SettingsTabs({ profile }: { profile: SettingsProfile }) {
   return (
     <Tabs defaultValue="profile" className="w-full">
-      <TabsList className="mb-6 w-full justify-start overflow-x-auto">
+      <TabsList className="mb-6 w-full justify-start">
         <TabsTrigger value="profile">Profile</TabsTrigger>
         <TabsTrigger value="account">Account</TabsTrigger>
         <TabsTrigger value="notifications">Notifications</TabsTrigger>

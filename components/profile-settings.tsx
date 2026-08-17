@@ -212,9 +212,9 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
           onChange={(e) => setBio(e.target.value)}
           placeholder="Tell people a bit about yourself"
           className="min-h-[90px] resize-none"
-          maxLength={160}
+          maxLength={300}
         />
-        <p className="text-right text-xs text-muted-foreground">{bio.length}/160</p>
+        <p className="text-right text-xs text-muted-foreground">{bio.length}/300</p>
       </div>
 
       {/* Interests */}
