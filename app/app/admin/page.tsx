@@ -12,7 +12,7 @@ export default async function AdminPage() {
   const users = await listUsersForAdmin()
 
   return (
-    <div className="h-full w-full overflow-y-auto">
+    <div className="h-full w-full overflow-y-auto [scrollbar-gutter:stable]">
       <div className="mx-auto w-full max-w-3xl px-4 py-8">
         <header className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
