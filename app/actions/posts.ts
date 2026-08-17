@@ -69,6 +69,7 @@ async function decoratePosts(
     createdAt: r.createdAt.toISOString(),
     likeCount: countMap.get(r.id) ?? 0,
     likedByMe: likedSet.has(r.id),
+    canManage: r.userId === viewerId,
   }))
 }
 
@@ -87,10 +88,41 @@ export async function createPost(input: { imageUrl: string; caption?: string }) 
 
 export async function deletePost(postId: string) {
   const userId = await getUserId()
+  // Scope the delete to the owner so no one can delete another user's post.
+  const [owned] = await db
+    .select({ id: post.id })
+    .from(post)
+    .where(and(eq(post.id, postId), eq(post.userId, userId)))
+    .limit(1)
+  if (!owned) throw new Error("You can only delete your own posts")
+
   await db.delete(post).where(and(eq(post.id, postId), eq(post.userId, userId)))
   await db.delete(postLike).where(eq(postLike.postId, postId))
   revalidatePath("/app/feed")
+  revalidatePath("/app/settings")
   return { ok: true }
+}
+
+// Edit a post's caption. Owner-only; returns the normalized caption.
+export async function updatePost(postId: string, caption: string) {
+  const userId = await getUserId()
+  const next = caption.trim()
+  if (next.length > 500) throw new Error("Caption too long")
+
+  const [owned] = await db
+    .select({ id: post.id })
+    .from(post)
+    .where(and(eq(post.id, postId), eq(post.userId, userId)))
+    .limit(1)
+  if (!owned) throw new Error("You can only edit your own posts")
+
+  await db
+    .update(post)
+    .set({ caption: next || null })
+    .where(and(eq(post.id, postId), eq(post.userId, userId)))
+  revalidatePath("/app/feed")
+  revalidatePath("/app/settings")
+  return { caption: next || null }
 }
 
 export async function getUserPosts(profileUserId: string): Promise<PostSummary[]> {

@@ -95,6 +95,8 @@ export type PostSummary = {
   createdAt: string
   likeCount: number
   likedByMe: boolean
+  // Whether the viewer owns this post (can edit/delete it).
+  canManage: boolean
 }
 
 export type PostLiker = {
