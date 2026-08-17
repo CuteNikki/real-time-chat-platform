@@ -303,7 +303,6 @@ export function FriendsView({
                     <p className="truncate font-medium">{f.name}</p>
                     {f.username ? <p className="truncate text-xs text-muted-foreground">@{f.username}</p> : null}
                   </Link>
-                  <InterestTags interests={f.interests} className="mt-1" max={4} />
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   {f.chatId ? (
