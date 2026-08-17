@@ -14,6 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex h-svh flex-col overflow-hidden bg-background">
       <AppNav
         user={{
+          id: session.user.id,
           name: session.user.name,
           email: session.user.email,
           image: session.user.image ?? null,

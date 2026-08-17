@@ -31,11 +31,19 @@ export const auth = betterAuth({
   trustedOrigins: getTrustedOrigins(),
   emailAndPassword: {
     enabled: true,
+    // No email provider is connected yet, so we log the reset link to the
+    // server console. Swap this for a real email send when one is added.
+    sendResetPassword: async ({ user, url }) => {
+      console.log(`[v0] Password reset link for ${user.email}: ${url}`)
+    },
   },
   user: {
     additionalFields: {
       username: { type: "string", required: false, input: false },
       bio: { type: "string", required: false, input: false },
+    },
+    deleteUser: {
+      enabled: true,
     },
   },
   ...(process.env.NODE_ENV === "development"

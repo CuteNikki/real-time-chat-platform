@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/session"
 import { pusherServer } from "@/lib/pusher/server"
 import { userChannel, EVENTS } from "@/lib/pusher/channels"
 import { newId } from "@/lib/id"
+import { createNotification } from "@/app/actions/notifications"
 import type { InviteSummary } from "@/lib/types"
 
 // Send a friend request to a user by their id (resolved from a profile/search).
@@ -54,6 +55,13 @@ export async function sendFriendRequest(targetUserId: string) {
     id,
     senderName: me.name,
     senderUsername: me.username ?? null,
+  })
+
+  await createNotification({
+    userId: receiver.id,
+    type: "FRIEND_REQUEST",
+    actorId: me.id,
+    body: `${me.name} sent you a friend request`,
   })
 
   return { ok: true, status: "sent" as const }
@@ -132,6 +140,14 @@ export async function respondToRequest(inviteId: string, accept: boolean) {
     accepted: true,
     chatId,
     partnerName: me.name,
+  })
+
+  await createNotification({
+    userId: inv.senderId,
+    type: "FRIEND_ACCEPT",
+    actorId: me.id,
+    chatId,
+    body: `${me.name} accepted your friend request`,
   })
 
   return { status: "accepted" as const, chatId }

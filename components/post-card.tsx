@@ -34,8 +34,12 @@ export function PostCard({ post }: { post: PostSummary }) {
     setPending(true)
     try {
       const res = await toggleLike(post.id)
-      setLiked(res.liked)
-      setCount(res.likeCount)
+      // Reconcile with the server's canonical liked state; if it disagrees with
+      // our optimistic guess, correct the count by one.
+      setLiked((prev) => {
+        if (prev !== res.liked) setCount((c) => c + (res.liked ? 1 : -1))
+        return res.liked
+      })
     } catch {
       // Revert on failure.
       setLiked(!next)

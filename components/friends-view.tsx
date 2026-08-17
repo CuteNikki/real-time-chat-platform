@@ -7,6 +7,7 @@ import { Clock, Loader2, Search, UserPlus, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { UserAvatar } from "@/components/user-avatar"
+import { InterestTags } from "@/components/interest-tags"
 import { toast } from "sonner"
 import { searchUsers } from "@/app/actions/profile"
 import { cancelFriendRequest, respondToRequest, sendFriendRequest } from "@/app/actions/invites"
@@ -154,7 +155,7 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by username or name"
+            placeholder="Search by name, @username, or #interest"
             className="pl-9"
             autoCapitalize="none"
             spellCheck={false}
@@ -173,13 +174,13 @@ export function FriendsView({ initialPending }: { initialPending: InviteSummary[
               <Link href={r.username ? `/app/u/${r.username}` : "#"}>
                 <UserAvatar name={r.name} image={r.image} className="size-10" />
               </Link>
-              <Link
-                href={r.username ? `/app/u/${r.username}` : "#"}
-                className="min-w-0 flex-1 leading-tight hover:underline"
-              >
-                <p className="truncate font-medium">{r.name}</p>
-                {r.username ? <p className="truncate text-xs text-muted-foreground">@{r.username}</p> : null}
-              </Link>
+              <div className="min-w-0 flex-1 leading-tight">
+                <Link href={r.username ? `/app/u/${r.username}` : "#"} className="hover:underline">
+                  <p className="truncate font-medium">{r.name}</p>
+                  {r.username ? <p className="truncate text-xs text-muted-foreground">@{r.username}</p> : null}
+                </Link>
+                <InterestTags interests={r.interests} className="mt-1" max={4} />
+              </div>
               {r.friendStatus === "incoming" ? (
                 <Link href="#requests">
                   <Button size="sm" variant="secondary">

@@ -1,12 +1,13 @@
 "use server"
 
-import { and, asc, eq, isNull } from "drizzle-orm"
+import { and, asc, eq, isNull, ne } from "drizzle-orm"
 import { db } from "@/lib/db"
 import { chat, chatParticipant, message, user } from "@/lib/db/schema"
 import { getCurrentUser, getUserId } from "@/lib/session"
 import { pusherServer } from "@/lib/pusher/server"
 import { chatChannel, EVENTS } from "@/lib/pusher/channels"
 import { newId } from "@/lib/id"
+import { createNotification } from "@/app/actions/notifications"
 import type { ChatMessage } from "@/lib/types"
 
 // Throws if the user is not an active participant of the chat.
@@ -114,6 +115,31 @@ export async function sendMessage(input: {
   }
 
   await pusherServer.trigger(chatChannel(input.chatId), EVENTS.NEW_MESSAGE, payload)
+
+  // Notify the other participants of a private DM so it lands in their inbox.
+  // Group/random chats are excluded to avoid notification spam.
+  if (c.type === "PRIVATE") {
+    const recipients = await db
+      .select({ userId: chatParticipant.userId })
+      .from(chatParticipant)
+      .where(
+        and(
+          eq(chatParticipant.chatId, input.chatId),
+          ne(chatParticipant.userId, userId),
+          isNull(chatParticipant.leftAt),
+        ),
+      )
+    const preview = content ? content.slice(0, 80) : imageUrl ? "Sent an image" : ""
+    for (const r of recipients) {
+      await createNotification({
+        userId: r.userId,
+        type: "MESSAGE",
+        actorId: userId,
+        chatId: input.chatId,
+        body: `${currentUser.name}: ${preview}`,
+      })
+    }
+  }
 
   return payload
 }

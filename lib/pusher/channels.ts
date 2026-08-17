@@ -14,4 +14,6 @@ export const EVENTS = {
   INVITE_RECEIVED: "invite-received",
   INVITE_RESPONDED: "invite-responded",
   INVITE_CANCELED: "invite-canceled",
+  // A new inbox notification (friend request/accept or new message).
+  NOTIFICATION: "notification",
 } as const

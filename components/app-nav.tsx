@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { UserAvatar } from "@/components/user-avatar"
+import { NotificationBell } from "@/components/notification-bell"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,7 +33,7 @@ const links = [
 export function AppNav({
   user,
 }: {
-  user: { name: string; email: string; image: string | null; username: string | null }
+  user: { id: string; name: string; email: string; image: string | null; username: string | null }
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -85,6 +86,8 @@ export function AppNav({
           })}
         </nav>
 
+        <div className="flex items-center gap-1">
+        <NotificationBell userId={user.id} />
         <DropdownMenu>
           <DropdownMenuTrigger className={cn(buttonVariants({ variant: "ghost" }), "h-10 gap-2 px-2")}>
             <UserAvatar name={user.name} image={user.image} className="size-8 text-xs" />
@@ -114,6 +117,7 @@ export function AppNav({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        </div>
       </div>
     </header>
   )

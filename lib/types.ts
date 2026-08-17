@@ -46,6 +46,21 @@ export type UserProfile = {
   dmChatId: string | null
 }
 
+export type NotificationType = "FRIEND_REQUEST" | "FRIEND_ACCEPT" | "MESSAGE"
+
+export type NotificationSummary = {
+  id: string
+  type: NotificationType
+  actorId: string | null
+  actorName: string | null
+  actorUsername: string | null
+  actorImage: string | null
+  chatId: string | null
+  body: string | null
+  read: boolean
+  createdAt: string
+}
+
 export type PostSummary = {
   id: string
   authorId: string
