@@ -297,7 +297,13 @@ export async function getPrivateConversations(): Promise<PrivateConversation[]> 
     })
   }
 
-  results.sort((a, b) => (b.lastAt ?? "").localeCompare(a.lastAt ?? ""))
+  // Most recent message first; conversations with no messages yet sink to the
+  // bottom.
+  results.sort((a, b) => {
+    const at = a.lastAt ? Date.parse(a.lastAt) : 0
+    const bt = b.lastAt ? Date.parse(b.lastAt) : 0
+    return bt - at
+  })
   return results
 }
 

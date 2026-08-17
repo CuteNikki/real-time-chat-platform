@@ -27,10 +27,10 @@ export function MessagesWorkspace({
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  // Only open a conversation when one is explicitly requested (deep link via
+  // ?c=). Otherwise the user must pick a conversation themselves.
   const [activeId, setActiveId] = useState<string | null>(
-    initialChatId && conversations.some((c) => c.chatId === initialChatId)
-      ? initialChatId
-      : (conversations[0]?.chatId ?? null),
+    initialChatId && conversations.some((c) => c.chatId === initialChatId) ? initialChatId : null,
   )
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(false)
