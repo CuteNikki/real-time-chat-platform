@@ -15,7 +15,7 @@ export function useChat({
 }: {
   chatId: string
   initialMessages: ChatMessage[]
-  onEnded?: () => void
+  onEnded?: (payload?: { by?: string; disconnected?: boolean }) => void
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [memberCount, setMemberCount] = useState<number | null>(null)
@@ -38,9 +38,9 @@ export function useChat({
       })
     }
 
-    const handleEnded = () => {
+    const handleEnded = (payload?: { by?: string; disconnected?: boolean }) => {
       setEnded(true)
-      onEnded?.()
+      onEnded?.(payload)
     }
 
     const recount = () => {

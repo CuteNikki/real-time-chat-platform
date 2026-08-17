@@ -21,6 +21,8 @@ export const user = pgTable(
     // App profile fields.
     username: text("username"),
     bio: text("bio"),
+    // Access role: "ADMIN" | "MODERATOR" | "MEMBER". Members are the default.
+    role: text("role").notNull().default("MEMBER"),
     createdAt: timestamp("createdAt").notNull().defaultNow(),
     updatedAt: timestamp("updatedAt").notNull().defaultNow(),
   },

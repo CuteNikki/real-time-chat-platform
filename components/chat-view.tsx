@@ -54,6 +54,7 @@ export function ChatView({
 }) {
   const router = useRouter()
   const [ended, setEnded] = useState(initialEnded)
+  const [partnerLeft, setPartnerLeft] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [previewUserId, setPreviewUserId] = useState<string | null>(null)
 
@@ -121,9 +122,16 @@ export function ChatView({
     }
   }
 
-  // When the partner disconnects, the CHAT_ENDED event flips `ended`.
-  function handleEnded() {
+  // When the partner disconnects, the CHAT_ENDED event flips `ended`. If we
+  // didn't end it ourselves, it means the partner left.
+  function handleEnded(payload?: { by?: string; disconnected?: boolean }) {
     setEnded(true)
+    // If we already ended it ourselves, endedRef was set first — so a payload
+    // arriving while endedRef was false means the *partner* triggered it.
+    if (isRandom && payload) {
+      setPartnerLeft(true)
+      toast(`${payload.by ?? title} disconnected`)
+    }
     endedRef.current = true
   }
 
@@ -202,7 +210,7 @@ export function ChatView({
       {/* Partner-disconnected banner for random chats */}
       {isRandom && ended && (
         <div className="border-b border-border bg-secondary/60 px-4 py-2 text-center text-sm text-secondary-foreground sm:px-6">
-          This chat has ended.{" "}
+          {partnerLeft ? `${title} disconnected. ` : "This chat has ended. "}
           <button
             type="button"
             onClick={() => router.push("/app")}
