@@ -1,25 +1,30 @@
 'use client';
 
-import {
-  Bell,
-  Volume2,
-  VolumeX,
-  Play,
-  UserPlus,
-  UserCheck,
-  MessageCircle,
-  Users,
-  Heart,
-} from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
-import { Button } from '@/components/ui/button';
 import { useNotificationPrefs } from '@/components/notification-prefs-provider';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { playNotificationSound } from '@/lib/notification-sound';
 import type {
   NotificationCategory,
   NotificationPreferences,
 } from '@/lib/types';
+import {
+  Bell,
+  Heart,
+  LaptopIcon,
+  MessageCircle,
+  MoonIcon,
+  Play,
+  SunIcon,
+  UserCheck,
+  UserPlus,
+  Users,
+  Volume2,
+  VolumeX,
+} from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
 
 const CATEGORY_META: {
   key: NotificationCategory;
@@ -59,8 +64,14 @@ const CATEGORY_META: {
   },
 ];
 
-export function NotificationSettings() {
+export function PreferenceSettings() {
   const { prefs, update } = useNotificationPrefs();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   function setMaster(
     patch: Partial<Pick<NotificationPreferences, 'soundEnabled' | 'volume'>>,
@@ -85,6 +96,56 @@ export function NotificationSettings() {
 
   return (
     <div className='space-y-8'>
+      {/* Theme Appearance controls */}
+      <section className='space-y-4'>
+        <div className='flex items-center gap-2'>
+          <SunIcon className='text-muted-foreground size-4' aria-hidden />
+          <h2 className='text-lg font-semibold tracking-tight'>Appearance</h2>
+        </div>
+
+        <div className='border-border bg-card flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between'>
+          <div className='min-w-0'>
+            <p className='text-sm font-medium'>Theme preference</p>
+            <p className='text-muted-foreground text-sm'>
+              Select how Orbit appears to you
+            </p>
+          </div>
+
+          <div className='bg-muted flex w-fit items-center gap-1 rounded-lg p-1'>
+            <Button
+              type='button'
+              variant={mounted && theme === 'light' ? 'default' : 'ghost'}
+              size='sm'
+              className='h-8 gap-1.5 px-3 text-xs font-medium'
+              onClick={() => setTheme('light')}
+            >
+              <SunIcon className='size-3.5' aria-hidden />
+              Light
+            </Button>
+            <Button
+              type='button'
+              variant={mounted && theme === 'dark' ? 'default' : 'ghost'}
+              size='sm'
+              className='h-8 gap-1.5 px-3 text-xs font-medium'
+              onClick={() => setTheme('dark')}
+            >
+              <MoonIcon className='size-3.5' aria-hidden />
+              Dark
+            </Button>
+            <Button
+              type='button'
+              variant={mounted && theme === 'system' ? 'default' : 'ghost'}
+              size='sm'
+              className='h-8 gap-1.5 px-3 text-xs font-medium'
+              onClick={() => setTheme('system')}
+            >
+              <LaptopIcon className='size-3.5' aria-hidden />
+              System
+            </Button>
+          </div>
+        </div>
+      </section>
+
       {/* Sound master controls */}
       <section className='space-y-4'>
         <div className='flex items-center gap-2'>
@@ -120,7 +181,7 @@ export function NotificationSettings() {
               {volumePct}%
             </span>
           </div>
-          <div className='flex items-center gap-3'>
+          <div className='flex items-center gap-6'>
             <Slider
               id='volume'
               value={prefs.volume}

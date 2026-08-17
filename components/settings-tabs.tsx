@@ -1,9 +1,9 @@
 'use client';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ProfileSettings } from '@/components/profile-settings';
 import { AccountSettings } from '@/components/account-settings';
-import { NotificationSettings } from '@/components/notification-settings';
+import { PreferenceSettings } from '@/components/preference-settings';
+import { ProfileSettings } from '@/components/profile-settings';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type SettingsProfile = {
   id: string;
@@ -20,7 +20,7 @@ export function SettingsTabs({ profile }: { profile: SettingsProfile }) {
       <TabsList className='mb-6 w-full justify-start'>
         <TabsTrigger value='profile'>Profile</TabsTrigger>
         <TabsTrigger value='account'>Account</TabsTrigger>
-        <TabsTrigger value='notifications'>Notifications</TabsTrigger>
+        <TabsTrigger value='preferences'>Preferences</TabsTrigger>
       </TabsList>
 
       <TabsContent value='profile'>
@@ -29,8 +29,8 @@ export function SettingsTabs({ profile }: { profile: SettingsProfile }) {
       <TabsContent value='account'>
         <AccountSettings />
       </TabsContent>
-      <TabsContent value='notifications'>
-        <NotificationSettings />
+      <TabsContent value='preferences'>
+        <PreferenceSettings />
       </TabsContent>
     </Tabs>
   );
