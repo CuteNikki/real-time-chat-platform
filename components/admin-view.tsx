@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useTransition } from "react"
+import { useState, useRef, useEffect, useTransition } from "react"
 import { UserAvatar } from "@/components/user-avatar"
 import { LocalTime } from "@/components/local-time"
 import { Input } from "@/components/ui/input"
@@ -13,7 +13,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -224,10 +223,10 @@ export function AdminView({
                       {canManageRoles && (
                         <>
                           {moderatable && <DropdownMenuSeparator />}
-                          <DropdownMenuLabel className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground">
                             <UserCog className="size-3.5" aria-hidden />
                             Change role
-                          </DropdownMenuLabel>
+                          </div>
                           {ROLES.map((r) => (
                             <DropdownMenuItem key={r} onClick={() => changeRole(u, r)} className="gap-2">
                               <Check className={cn("size-4", u.role === r ? "opacity-100" : "opacity-0")} aria-hidden />
@@ -293,14 +292,14 @@ function BanDialog({
 
   // Reset local state whenever a new target opens the dialog.
   const open = target !== null
-  const openedFor = useRef<string | null>(null)
-  if (open && openedFor.current !== target!.id) {
-    openedFor.current = target!.id
+  const targetId = target?.id ?? null
+  useEffect(() => {
+    if (!targetId) return
     setReason("")
     setDurationKey("7")
     setBanIp(false)
     setSubmitting(false)
-  }
+  }, [targetId])
 
   async function submit() {
     if (!target) return
@@ -449,19 +448,29 @@ function HistoryDialog({ target, onClose }: { target: AdminUserRow | null; onClo
   const [loading, setLoading] = useState(false)
   const [liftingId, setLiftingId] = useState<string | null>(null)
   const open = target !== null
-  const loadedFor = useRef<string | null>(null)
+  const targetId = target?.id ?? null
 
-  // Fetch history when a new target opens the dialog (on-demand, not on mount).
-  if (open && loadedFor.current !== target!.id) {
-    loadedFor.current = target!.id
+  // Fetch history when a target is set (on-demand, not on mount). Runs in an
+  // effect so we never call the action or setState during render.
+  useEffect(() => {
+    if (!targetId) return
+    let cancelled = false
     setLoading(true)
     setEntries([])
-    getBanHistory(target!.id)
-      .then(setEntries)
-      .catch((err) => toast.error(err instanceof Error ? err.message : "Could not load history"))
-      .finally(() => setLoading(false))
-  }
-  if (!open && loadedFor.current !== null) loadedFor.current = null
+    getBanHistory(targetId)
+      .then((rows) => {
+        if (!cancelled) setEntries(rows)
+      })
+      .catch((err) => {
+        if (!cancelled) toast.error(err instanceof Error ? err.message : "Could not load history")
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [targetId])
 
   async function lift(id: string) {
     setLiftingId(id)
