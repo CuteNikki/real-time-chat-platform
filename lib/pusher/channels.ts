@@ -10,6 +10,8 @@ export const userChannel = (userId: string) => `private-user-${userId}`
 export const EVENTS = {
   NEW_MESSAGE: "new-message",
   CHAT_ENDED: "chat-ended",
+  // All messages in a chat were cleared by a participant.
+  CHAT_CLEARED: "chat-cleared",
   MATCH_FOUND: "match-found",
   INVITE_RECEIVED: "invite-received",
   INVITE_RESPONDED: "invite-responded",

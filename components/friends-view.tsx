@@ -3,15 +3,21 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Clock, Loader2, Search, UserPlus, X } from "lucide-react"
+import { Clock, Loader2, MessageCircle, MoreVertical, Search, UserMinus, UserPlus, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { UserAvatar } from "@/components/user-avatar"
 import { InterestTags } from "@/components/interest-tags"
 import { toast } from "sonner"
 import { searchUsers } from "@/app/actions/profile"
-import { cancelFriendRequest, respondToRequest, sendFriendRequest } from "@/app/actions/invites"
-import type { InviteSummary, OutgoingInviteSummary } from "@/lib/types"
+import { cancelFriendRequest, removeFriend, respondToRequest, sendFriendRequest } from "@/app/actions/invites"
+import type { FriendSummary, InviteSummary, OutgoingInviteSummary } from "@/lib/types"
 
 type SearchResult = {
   id: string
@@ -25,9 +31,11 @@ type SearchResult = {
 export function FriendsView({
   initialIncoming,
   initialOutgoing,
+  initialFriends,
 }: {
   initialIncoming: InviteSummary[]
   initialOutgoing: OutgoingInviteSummary[]
+  initialFriends: FriendSummary[]
 }) {
   const router = useRouter()
   const [query, setQuery] = useState("")
@@ -35,6 +43,7 @@ export function FriendsView({
   const [searching, setSearching] = useState(false)
   const [incoming, setIncoming] = useState(initialIncoming)
   const [outgoing, setOutgoing] = useState(initialOutgoing)
+  const [friends, setFriends] = useState(initialFriends)
   const [busy, setBusy] = useState<string | null>(null)
 
   // Debounced username search.
@@ -116,6 +125,21 @@ export function FriendsView({
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not respond")
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  async function unfriend(friend: FriendSummary) {
+    setBusy(friend.id)
+    try {
+      await removeFriend(friend.id)
+      setFriends((f) => f.filter((x) => x.id !== friend.id))
+      // Reflect in any current search results too.
+      setResults((rs) => rs.map((r) => (r.id === friend.id ? { ...r, friendStatus: "none" } : r)))
+      toast.success(`Removed ${friend.username ? "@" + friend.username : friend.name} and deleted your chat`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not remove friend")
     } finally {
       setBusy(null)
     }
@@ -257,6 +281,73 @@ export function FriendsView({
           </ul>
         </section>
       ) : null}
+
+      {/* Current friends */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Your friends ({friends.length})
+        </h2>
+        {friends.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground text-balance">
+            You have no friends yet. Search above to find people and send a request.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {friends.map((f) => (
+              <li key={f.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
+                <Link href={f.username ? `/app/u/${f.username}` : "#"}>
+                  <UserAvatar name={f.name} image={f.image} className="size-10" />
+                </Link>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <Link href={f.username ? `/app/u/${f.username}` : "#"} className="hover:underline">
+                    <p className="truncate font-medium">{f.name}</p>
+                    {f.username ? <p className="truncate text-xs text-muted-foreground">@{f.username}</p> : null}
+                  </Link>
+                  <InterestTags interests={f.interests} className="mt-1" max={4} />
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  {f.chatId ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="gap-1.5"
+                      render={<Link href={`/app/messages?c=${f.chatId}`} />}
+                    >
+                      <MessageCircle className="size-4" aria-hidden />
+                      Message
+                    </Button>
+                  ) : null}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger
+                      render={
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-8"
+                          disabled={busy === f.id}
+                          aria-label={`More actions for ${f.name}`}
+                        />
+                      }
+                    >
+                      {busy === f.id ? (
+                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                      ) : (
+                        <MoreVertical className="size-4" aria-hidden />
+                      )}
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem variant="destructive" onClick={() => unfriend(f)}>
+                        <UserMinus className="size-4" aria-hidden />
+                        Unfriend &amp; delete chat
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* Outgoing (sent) requests — lets you pull back a request even if you
           can no longer find that user in search. */}

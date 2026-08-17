@@ -43,6 +43,10 @@ export function useChat({
       onEnded?.(payload)
     }
 
+    const handleCleared = () => {
+      setMessages([])
+    }
+
     const recount = () => {
       // @ts-expect-error members exists on presence channels
       const members = channel.members
@@ -51,6 +55,7 @@ export function useChat({
 
     channel.bind(EVENTS.NEW_MESSAGE, handleNew)
     channel.bind(EVENTS.CHAT_ENDED, handleEnded)
+    channel.bind(EVENTS.CHAT_CLEARED, handleCleared)
     channel.bind("pusher:subscription_succeeded", recount)
     channel.bind("pusher:member_added", recount)
     channel.bind("pusher:member_removed", recount)
@@ -58,6 +63,7 @@ export function useChat({
     return () => {
       channel.unbind(EVENTS.NEW_MESSAGE, handleNew)
       channel.unbind(EVENTS.CHAT_ENDED, handleEnded)
+      channel.unbind(EVENTS.CHAT_CLEARED, handleCleared)
       channel.unbind("pusher:subscription_succeeded", recount)
       channel.unbind("pusher:member_added", recount)
       channel.unbind("pusher:member_removed", recount)

@@ -1,13 +1,17 @@
 import { redirect } from "next/navigation"
 import { getMyProfile } from "@/app/actions/profile"
-import { getPendingInvites, getSentInvites } from "@/app/actions/invites"
+import { getFriends, getPendingInvites, getSentInvites } from "@/app/actions/invites"
 import { FriendsView } from "@/components/friends-view"
 
 export default async function FriendsPage() {
   const me = await getMyProfile()
   if (!me) redirect("/sign-in")
 
-  const [pending, sent] = await Promise.all([getPendingInvites(), getSentInvites()])
+  const [pending, sent, friends] = await Promise.all([
+    getPendingInvites(),
+    getSentInvites(),
+    getFriends(),
+  ])
 
   return (
     <div className="mx-auto h-full w-full max-w-2xl overflow-y-auto px-4 py-8">
@@ -16,7 +20,7 @@ export default async function FriendsPage() {
         Find people by name, username, or shared interests, then send a request. Once accepted, you can DM each
         other.
       </p>
-      <FriendsView initialIncoming={pending} initialOutgoing={sent} />
+      <FriendsView initialIncoming={pending} initialOutgoing={sent} initialFriends={friends} />
     </div>
   )
 }

@@ -1,14 +1,14 @@
 "use server"
 
-import { and, desc, eq, isNull, ne, or } from "drizzle-orm"
+import { and, desc, eq, inArray, isNull, ne, or } from "drizzle-orm"
 import { db } from "@/lib/db"
-import { chat, chatParticipant, invite, message, user } from "@/lib/db/schema"
+import { chat, chatParticipant, interest, invite, message, notification, user } from "@/lib/db/schema"
 import { getCurrentUser } from "@/lib/session"
 import { pusherServer } from "@/lib/pusher/server"
 import { userChannel, EVENTS } from "@/lib/pusher/channels"
 import { newId } from "@/lib/id"
 import { createNotification } from "@/app/actions/notifications"
-import type { InviteSummary, OutgoingInviteSummary } from "@/lib/types"
+import type { FriendSummary, InviteSummary, OutgoingInviteSummary } from "@/lib/types"
 
 // Send a friend request to a user by their id (resolved from a profile/search).
 export async function sendFriendRequest(targetUserId: string) {
@@ -153,7 +153,9 @@ export async function respondToRequest(inviteId: string, accept: boolean) {
   return { status: "accepted" as const, chatId }
 }
 
-// Remove a friend (delete the accepted relationship + close DM).
+// Remove a friend: delete the accepted relationship AND permanently delete the
+// private DM (messages, participants, and any notifications referencing it) so
+// the conversation disappears for both people.
 export async function removeFriend(otherUserId: string) {
   const me = await getCurrentUser()
   const rows = await db
@@ -168,10 +170,27 @@ export async function removeFriend(otherUserId: string) {
         ),
       ),
     )
+
+  // The DM chat ids tied to these friendships.
+  const chatIds = rows.map((r) => r.chatId).filter((id): id is string => Boolean(id))
+
   for (const r of rows) {
     await db.delete(invite).where(eq(invite.id, r.id))
   }
-  return { ok: true }
+
+  for (const chatId of chatIds) {
+    await db.delete(message).where(eq(message.chatId, chatId))
+    await db.delete(notification).where(eq(notification.chatId, chatId))
+    await db.delete(chatParticipant).where(eq(chatParticipant.chatId, chatId))
+    await db.delete(chat).where(eq(chat.id, chatId))
+  }
+
+  // Refresh the other user's clients (conversation list / incoming requests).
+  await pusherServer.trigger(userChannel(otherUserId), EVENTS.INVITE_CANCELED, {
+    senderId: me.id,
+  })
+
+  return { ok: true, chatIds }
 }
 
 // Friend requests the current user has received that are still pending.
@@ -305,6 +324,58 @@ export async function getPrivateConversations(): Promise<PrivateConversation[]> 
     return bt - at
   })
   return results
+}
+
+// The current user's accepted friends, with their DM chat id and interests,
+// for the Friends tab list.
+export async function getFriends(): Promise<FriendSummary[]> {
+  const me = await getCurrentUser()
+  const rows = await db
+    .select({ senderId: invite.senderId, receiverId: invite.receiverId, chatId: invite.chatId })
+    .from(invite)
+    .where(
+      and(
+        eq(invite.status, "ACCEPTED"),
+        or(eq(invite.senderId, me.id), eq(invite.receiverId, me.id)),
+      ),
+    )
+  if (rows.length === 0) return []
+
+  const chatByFriend = new Map<string, string | null>()
+  for (const r of rows) {
+    const fid = r.senderId === me.id ? r.receiverId : r.senderId
+    chatByFriend.set(fid, r.chatId)
+  }
+  const friendIds = [...chatByFriend.keys()]
+
+  const [users, interests] = await Promise.all([
+    db
+      .select({ id: user.id, name: user.name, username: user.username, image: user.image })
+      .from(user)
+      .where(inArray(user.id, friendIds)),
+    db
+      .select({ userId: interest.userId, tag: interest.tag })
+      .from(interest)
+      .where(inArray(interest.userId, friendIds)),
+  ])
+
+  const interestsByUser = new Map<string, string[]>()
+  for (const it of interests) {
+    const arr = interestsByUser.get(it.userId) ?? []
+    arr.push(it.tag)
+    interestsByUser.set(it.userId, arr)
+  }
+
+  return users
+    .map((u) => ({
+      id: u.id,
+      name: u.name,
+      username: u.username,
+      image: u.image,
+      chatId: chatByFriend.get(u.id) ?? null,
+      interests: interestsByUser.get(u.id) ?? [],
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
 
 // Ids of the current user's accepted friends (used to scope the home feed).

@@ -3,12 +3,22 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, MessageCircle, Search } from "lucide-react"
+import { ArrowLeft, Eraser, MessageCircle, MoreVertical, Search, UserMinus } from "lucide-react"
+import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { UserAvatar } from "@/components/user-avatar"
 import { ChatRoom } from "@/components/chat-room"
 import { UserPreviewDialog } from "@/components/user-preview"
-import { getMessages } from "@/app/actions/chat"
+import { clearChat, getMessages } from "@/app/actions/chat"
+import { removeFriend } from "@/app/actions/invites"
 import { cn } from "@/lib/utils"
 import type { ChatMessage } from "@/lib/types"
 import type { PrivateConversation } from "@/app/actions/invites"
@@ -27,6 +37,12 @@ export function MessagesWorkspace({
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  // Conversations kept in local state so we can drop one instantly on unfriend.
+  const [convos, setConvos] = useState(conversations)
+  useEffect(() => {
+    setConvos(conversations)
+  }, [conversations])
+
   // Only open a conversation when one is explicitly requested (deep link via
   // ?c=). Otherwise the user must pick a conversation themselves.
   const [activeId, setActiveId] = useState<string | null>(
@@ -36,6 +52,7 @@ export function MessagesWorkspace({
   const [loading, setLoading] = useState(false)
   const [query, setQuery] = useState("")
   const [previewUserId, setPreviewUserId] = useState<string | null>(null)
+  const [menuBusy, setMenuBusy] = useState(false)
 
   // Keep the URL in sync so refresh/deep-link works.
   useEffect(() => {
@@ -68,9 +85,9 @@ export function MessagesWorkspace({
     }
   }, [activeId])
 
-  const active = conversations.find((c) => c.chatId === activeId) ?? null
+  const active = convos.find((c) => c.chatId === activeId) ?? null
 
-  const filtered = conversations.filter((c) => {
+  const filtered = convos.filter((c) => {
     const q = query.trim().toLowerCase()
     if (!q) return true
     return (
@@ -78,6 +95,43 @@ export function MessagesWorkspace({
       (c.partnerUsername ?? "").toLowerCase().includes(q)
     )
   })
+
+  async function handleClearChat() {
+    if (!active) return
+    setMenuBusy(true)
+    try {
+      await clearChat(active.chatId)
+      setMessages([])
+      // Reflect the emptied preview in the conversation list.
+      setConvos((cs) =>
+        cs.map((c) =>
+          c.chatId === active.chatId ? { ...c, lastMessage: null, lastAt: null, lastFromMe: false } : c,
+        ),
+      )
+      toast.success("Chat cleared")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not clear chat")
+    } finally {
+      setMenuBusy(false)
+    }
+  }
+
+  async function handleUnfriend() {
+    if (!active || !active.partnerId) return
+    setMenuBusy(true)
+    try {
+      await removeFriend(active.partnerId)
+      const removedName = active.partnerName
+      setConvos((cs) => cs.filter((c) => c.chatId !== active.chatId))
+      setActiveId(null)
+      router.replace("/app/messages", { scroll: false })
+      toast.success(`Removed ${removedName} and deleted your chat`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not remove friend")
+    } finally {
+      setMenuBusy(false)
+    }
+  }
 
   return (
     <div className="flex h-full w-full">
@@ -174,6 +228,33 @@ export function MessagesWorkspace({
                   ) : null}
                 </div>
               </button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="ml-auto shrink-0"
+                      disabled={menuBusy}
+                      aria-label="Conversation options"
+                    />
+                  }
+                >
+                  <MoreVertical className="size-5" aria-hidden />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleClearChat}>
+                    <Eraser className="size-4" aria-hidden />
+                    Clear chat
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem variant="destructive" onClick={handleUnfriend}>
+                    <UserMinus className="size-4" aria-hidden />
+                    Unfriend &amp; delete chat
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </header>
 
             <div className="min-h-0 flex-1">

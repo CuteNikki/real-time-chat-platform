@@ -38,6 +38,16 @@ export type OutgoingInviteSummary = {
   createdAt: string
 }
 
+export type FriendSummary = {
+  id: string
+  name: string
+  username: string
+  image: string | null
+  // The private DM chat with this friend, if one exists.
+  chatId: string | null
+  interests: string[]
+}
+
 export type UserProfile = {
   id: string
   name: string

@@ -41,6 +41,17 @@ export async function getChatMeta(chatId: string) {
   }
 }
 
+// Permanently delete every message in a chat. Messages are shared rows, so
+// this clears the conversation for both participants. The chat + friendship
+// stay intact. Restricted to active members of the chat.
+export async function clearChat(chatId: string) {
+  const userId = await getUserId()
+  await assertActiveMembership(chatId, userId)
+  await db.delete(message).where(eq(message.chatId, chatId))
+  await pusherServer.trigger(chatChannel(chatId), EVENTS.CHAT_CLEARED, { by: userId })
+  return { ok: true }
+}
+
 export async function getMessages(chatId: string): Promise<ChatMessage[]> {
   const userId = await getUserId()
   await assertActiveMembership(chatId, userId)
