@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { getMyProfile } from '@/app/actions/profile';
-import { SETTINGS_TABS, SettingsTabs, type SettingsTab } from '@/components/settings-tabs';
+import { SettingsTabs } from '@/components/settings-tabs';
+import { SETTINGS_TABS, type SettingsTab } from '@/lib/settings-tabs';
 
 function isSettingsTab(value: string): value is SettingsTab {
   return (SETTINGS_TABS as readonly string[]).includes(value);

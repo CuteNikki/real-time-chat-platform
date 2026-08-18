@@ -6,14 +6,7 @@ import { PreferenceSettings } from '@/components/preference-settings';
 import { PrivacySettings } from '@/components/privacy-settings';
 import { ProfileSettings } from '@/components/profile-settings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-export const SETTINGS_TABS = [
-  'profile',
-  'account',
-  'privacy',
-  'preferences',
-] as const;
-export type SettingsTab = (typeof SETTINGS_TABS)[number];
+import type { SettingsTab } from '@/lib/settings-tabs';
 
 type SettingsProfile = {
   id: string;
