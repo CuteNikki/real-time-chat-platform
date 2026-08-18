@@ -238,14 +238,14 @@ export function RoomsWorkspace({
     const targetChatId = activeChatId;
 
     setDeleteOpen(false);
-    loadedFor.current = null;
-    setActiveChatId(null);
-    setMessages([]);
-    router.replace('/app/rooms', { scroll: false });
 
     toast.promise(deleteRoom(targetChatId), {
       loading: `Deleting #${roomName}...`,
       success: () => {
+        loadedFor.current = null;
+        setActiveChatId(null);
+        setMessages([]);
+        router.replace('/app/rooms', { scroll: false });
         mutate();
         return `Deleted #${roomName}`;
       },
@@ -267,7 +267,7 @@ export function RoomsWorkspace({
       >
         {/* Channels */}
         <div className='flex min-h-0 flex-1 flex-col'>
-          <div className='flex items-center justify-between px-4 pt-4 pb-2'>
+          <div className='flex items-center justify-between p-4 pb-2'>
             <h2 className='text-muted-foreground text-xs font-semibold tracking-wider uppercase'>
               Channels
             </h2>
@@ -275,52 +275,14 @@ export function RoomsWorkspace({
               {rooms.length}
             </span>
           </div>
-          {canCreate && (
-            <div className='px-3'>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant='outline' size='sm'>
-                    <Plus aria-hidden />
-                    Create channel
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <form onSubmit={handleCreate}>
-                    <DialogHeader>
-                      <DialogTitle>Create a channel</DialogTitle>
-                      <DialogDescription>
-                        Give it a name. Anyone can find and join it.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className='my-5 flex flex-col gap-2'>
-                      <Label htmlFor='room-name'>Channel name</Label>
-                      <Input
-                        id='room-name'
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder='e.g. late night talks'
-                        maxLength={60}
-                        autoFocus
-                      />
-                    </div>
-                    <DialogFooter>
-                      <Button type='submit' disabled={creating || !name.trim()}>
-                        {creating ? 'Creating…' : 'Create & enter'}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-          )}
 
-          <nav className='mt-2 min-h-0 flex-1 overflow-y-auto px-3 pb-3'>
+          <nav className='min-h-0 flex-1 overflow-y-auto p-2'>
             {rooms.length === 0 ? (
               <p className='text-muted-foreground px-2 py-6 text-center text-sm'>
                 No channels yet. Create the first one.
               </p>
             ) : (
-              <ul className='flex flex-col gap-1'>
+              <ul className='flex flex-col'>
                 {rooms.map((room) => {
                   const active = room.id === activeChatId;
                   return (
@@ -364,6 +326,45 @@ export function RoomsWorkspace({
               </ul>
             )}
           </nav>
+
+          {canCreate && (
+            <div className='p-2'>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant='ghost' size='sm' className='w-full'>
+                    <Plus aria-hidden />
+                    Create channel
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <form onSubmit={handleCreate}>
+                    <DialogHeader>
+                      <DialogTitle>Create a channel</DialogTitle>
+                      <DialogDescription>
+                        Give it a name. Anyone can find and join it.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className='my-5 flex flex-col gap-2'>
+                      <Label htmlFor='room-name'>Channel name</Label>
+                      <Input
+                        id='room-name'
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder='e.g. late night talks'
+                        maxLength={60}
+                        autoFocus
+                      />
+                    </div>
+                    <DialogFooter>
+                      <Button type='submit' disabled={creating || !name.trim()}>
+                        {creating ? 'Creating…' : 'Create & enter'}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          )}
         </div>
 
         {/* Members of the active channel. Hidden on mobile: while browsing the

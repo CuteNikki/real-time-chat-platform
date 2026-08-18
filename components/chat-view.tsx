@@ -51,6 +51,8 @@ export function ChatView({
   const [leaving, setLeaving] = useState(false);
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
 
+  const stillMountedRef = useRef(false);
+
   // Live presence count for group rooms.
   const { memberCount } = useChatHeader({ chatId, enabled: type === 'GROUP' });
 
@@ -96,16 +98,18 @@ export function ChatView({
   // Auto-end the random match when the user closes the tab or unmounts.
   useEffect(() => {
     if (!isRandom) return;
-
+    stillMountedRef.current = true;
     function handleBeforeUnload() {
       beaconEnd();
     }
 
-    // Changed from 'pagehide' to 'beforeunload' so tabbing out doesn't kill the chat
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      beaconEnd();
+      window.removeEventListener('pagehide', handleBeforeUnload);
+      stillMountedRef.current = false;
+      setTimeout(() => {
+        if (!stillMountedRef.current) beaconEnd();
+      }, 0);
     };
   }, [isRandom, beaconEnd]);
 
