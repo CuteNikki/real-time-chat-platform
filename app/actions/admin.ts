@@ -1,5 +1,18 @@
 'use server';
 
+import {
+  aliasedTable,
+  and,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  or,
+  sql,
+} from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+
 import { db } from '@/lib/db';
 import {
   ban,
@@ -20,18 +33,6 @@ import { newId } from '@/lib/id';
 import { normalizeRole, type Role } from '@/lib/roles';
 import { requireRole } from '@/lib/roles-server';
 import { getCurrentUser } from '@/lib/session';
-import {
-  aliasedTable,
-  and,
-  count,
-  desc,
-  eq,
-  inArray,
-  isNull,
-  or,
-  sql,
-} from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
 
 export type AdminUserRow = {
   id: string;
@@ -66,7 +67,7 @@ export type BanHistoryEntry = {
 
 // List users for the admin panel, optionally filtered by a search query.
 export async function listUsersForAdmin(query = ''): Promise<AdminUserRow[]> {
-  await requireRole('ADMIN');
+  await requireRole('MODERATOR');
   const me = await getCurrentUser();
 
   const q = query.trim().toLowerCase();
@@ -459,4 +460,20 @@ export async function getBanHistory(
   return [...account, ...ip].sort((a, b) =>
     a.createdAt < b.createdAt ? 1 : -1,
   );
+}
+
+export async function deleteBanHistoryEntry(
+  entryID: string,
+  scope: 'ACCOUNT' | 'IP',
+) {
+  await requireRole('ADMIN');
+
+  if (scope === 'IP') {
+    await db.delete(bannedIp).where(eq(bannedIp.id, entryID));
+  } else {
+    await db.delete(ban).where(eq(ban.id, entryID));
+  }
+
+  revalidatePath('/app/admin');
+  return { ok: true };
 }

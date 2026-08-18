@@ -1,7 +1,10 @@
 import { redirect } from 'next/navigation';
-import { getMyRole } from '@/lib/roles-server';
-import { atLeast } from '@/lib/roles';
+
 import { listUsersForAdmin } from '@/app/actions/admin';
+
+import { atLeast } from '@/lib/roles';
+import { getMyRole } from '@/lib/roles-server';
+
 import { AdminView } from '@/components/admin-view';
 
 export default async function AdminPage() {
@@ -12,7 +15,7 @@ export default async function AdminPage() {
   const users = await listUsersForAdmin();
 
   return (
-    <div className='h-full w-full [scrollbar-gutter:stable] overflow-y-auto'>
+    <div className='h-full w-full scrollbar-gutter-stable overflow-y-auto'>
       <div className='mx-auto w-full max-w-3xl px-4 py-8'>
         <header className='mb-6'>
           <h1 className='text-2xl font-semibold tracking-tight'>Admin</h1>

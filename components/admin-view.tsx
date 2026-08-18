@@ -1,7 +1,28 @@
 'use client';
 
+import { VariantProps } from 'class-variance-authority';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { toast } from 'sonner';
+
+import {
+  AlertCircleIcon,
+  BanIcon,
+  ClockIcon,
+  GlobeIcon,
+  HistoryIcon,
+  Loader2,
+  Loader2Icon,
+  MoreHorizontalIcon,
+  SearchIcon,
+  ShieldCheckIcon,
+  Trash2Icon,
+  UnlockIcon,
+  UserIcon,
+} from 'lucide-react';
+
 import {
   banUser,
+  deleteBanHistoryEntry,
   deleteUser,
   getBanHistory,
   liftIpBan,
@@ -11,6 +32,10 @@ import {
   type AdminUserRow,
   type BanHistoryEntry,
 } from '@/app/actions/admin';
+
+import { ROLES, ROLE_LABEL, type Role } from '@/lib/roles';
+import { cn } from '@/lib/utils';
+
 import { LocalTime } from '@/components/local-time';
 import { Badge, badgeVariants } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -45,26 +70,6 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/user-avatar';
-import { ROLES, ROLE_LABEL, type Role } from '@/lib/roles';
-import { cn } from '@/lib/utils';
-import { VariantProps } from 'class-variance-authority';
-import {
-  AlertCircleIcon,
-  BanIcon,
-  ClockIcon,
-  GlobeIcon,
-  HistoryIcon,
-  Loader2,
-  Loader2Icon,
-  MoreHorizontalIcon,
-  SearchIcon,
-  ShieldCheckIcon,
-  Trash2Icon,
-  UnlockIcon,
-  UserIcon,
-} from 'lucide-react';
-import { useEffect, useRef, useState, useTransition } from 'react';
-import { toast } from 'sonner';
 
 const ROLE_BADGE: Record<
   Role,
@@ -107,7 +112,8 @@ export function AdminView({
   function canModerate(u: AdminUserRow): boolean {
     if (u.isSelf) return false;
     if (u.role === 'ADMIN') return false;
-    if (viewerRole !== 'ADMIN' && u.role !== 'MEMBER') return false;
+    // If the viewer is a moderator, they can only moderate members
+    if (viewerRole === 'MODERATOR' && u.role !== 'MEMBER') return false;
     return true;
   }
 
@@ -227,7 +233,12 @@ export function AdminView({
             const showMenu = moderatable || canManageRoles;
             return (
               <li key={u.id} className='flex items-center gap-3 px-4 py-3'>
-                <UserAvatar name={u.name} image={u.image} className='size-10' />
+                <UserAvatar
+                  name={u.name}
+                  image={u.image}
+                  className='size-10 shrink-0'
+                />
+
                 <div className='min-w-0 flex-1 leading-tight'>
                   <p className='flex items-center gap-1.5 truncate font-medium'>
                     <span className='truncate'>{u.name}</span>
@@ -242,13 +253,18 @@ export function AdminView({
                   </p>
                 </div>
 
-                {u.isBanned && (
-                  <Badge variant='destructive'>
-                    <BanIcon aria-hidden />
-                    Banned
+                {/* Right-side metadata & actions container */}
+                <div className='xs:flex-row flex shrink-0 flex-col items-center gap-2'>
+                  {u.isBanned && (
+                    <Badge variant='destructive'>
+                      <BanIcon aria-hidden />
+                      Banned
+                    </Badge>
+                  )}
+                  <Badge variant={ROLE_BADGE[u.role]}>
+                    {ROLE_LABEL[u.role]}
                   </Badge>
-                )}
-                <Badge variant={ROLE_BADGE[u.role]}>{ROLE_LABEL[u.role]}</Badge>
+                </div>
 
                 {showMenu ? (
                   <DropdownMenu>
@@ -256,7 +272,10 @@ export function AdminView({
                       disabled={savingId === u.id}
                       aria-label={`Manage ${u.name}`}
                       className={cn(
-                        buttonVariants({ variant: 'outline', size: 'icon-sm' }),
+                        buttonVariants({
+                          variant: 'outline',
+                          size: 'icon-sm',
+                        }),
                         'shrink-0',
                       )}
                     >
@@ -350,6 +369,7 @@ export function AdminView({
       <HistoryDialog
         target={historyTarget}
         onClose={() => setHistoryTarget(null)}
+        viewerRole={viewerRole}
       />
     </div>
   );
@@ -559,13 +579,16 @@ function DeleteDialog({
 function HistoryDialog({
   target,
   onClose,
+  viewerRole,
 }: {
   target: AdminUserRow | null;
   onClose: () => void;
+  viewerRole: Role;
 }) {
   const [entries, setEntries] = useState<BanHistoryEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [liftingId, setLiftingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   // Search and sort state
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<
@@ -685,6 +708,32 @@ function HistoryDialog({
     );
   }
 
+  async function handleDeleteEntry(entry: BanHistoryEntry) {
+    setDeletingId(entry.id);
+    const previousEntries = [...entries];
+
+    // Optimistic update
+    setEntries((prev) => prev.filter((e) => e.id !== entry.id));
+
+    toast.promise(
+      (async () => {
+        try {
+          await deleteBanHistoryEntry(entry.id, entry.scope);
+        } catch (err) {
+          setEntries(previousEntries);
+          throw err;
+        }
+      })(),
+      {
+        loading: 'Deleting ban history entry...',
+        success: 'Ban history entry deleted',
+        error: (err) =>
+          err instanceof Error ? err.message : 'Could not delete entry',
+        finally: () => setDeletingId(null),
+      },
+    );
+  }
+
   const filteredEntries = entries.filter((e) => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
@@ -779,11 +828,7 @@ function HistoryDialog({
               <SelectTrigger>
                 <SelectValue placeholder='Sort by' />
               </SelectTrigger>
-              <SelectContent
-                position='popper'
-                align='center'
-                side='bottom'
-              >
+              <SelectContent position='popper' align='center' side='bottom'>
                 <SelectItem value='newest'>Newest first</SelectItem>
                 <SelectItem value='oldest'>Oldest first</SelectItem>
                 <SelectItem value='issuer'>Sort by Issuer</SelectItem>
@@ -814,8 +859,7 @@ function HistoryDialog({
               ) : (
                 sortedEntries.map((e) => (
                   <div key={e.id} className='min-w-0 space-y-3'>
-                    {/* Badges & Actions Header */}
-                    <div className='flex items-center justify-between gap-2 px-1'>
+                    <div className='flex flex-wrap items-center justify-between gap-2 px-1'>
                       <div className='flex items-center gap-2'>
                         <Badge variant='secondary'>
                           {e.scope === 'IP' ? 'IP' : 'Account'}
@@ -824,22 +868,45 @@ function HistoryDialog({
                           {e.active ? 'Active' : 'Lifted'}
                         </Badge>
                       </div>
-                      {e.active && (
-                        <Button
-                          size='xs'
-                          variant='outline'
-                          onClick={() => {
-                            setLiftTarget(e);
-                            setLiftReason('');
-                          }}
-                          disabled={liftingId === e.id}
-                        >
-                          {liftingId === e.id ? (
-                            <Loader2Icon className='animate-spin' aria-hidden />
-                          ) : null}
-                          Unban
-                        </Button>
-                      )}
+                      <div className='flex items-center gap-2'>
+                        {e.active && (
+                          <Button
+                            size='xs'
+                            variant='outline'
+                            onClick={() => {
+                              setLiftTarget(e);
+                              setLiftReason('');
+                            }}
+                            disabled={liftingId === e.id}
+                          >
+                            {liftingId === e.id ? (
+                              <Loader2Icon
+                                className='animate-spin'
+                                aria-hidden
+                              />
+                            ) : null}
+                            Unban
+                          </Button>
+                        )}
+                        {viewerRole === 'ADMIN' && !e.active && (
+                          <Button
+                            size='xs'
+                            variant='destructive'
+                            onClick={() => handleDeleteEntry(e)}
+                            disabled={deletingId === e.id}
+                          >
+                            {deletingId === e.id ? (
+                              <Loader2Icon
+                                className='animate-spin'
+                                aria-hidden
+                              />
+                            ) : (
+                              <Trash2Icon aria-hidden />
+                            )}
+                            Delete
+                          </Button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Segmented Data Box */}
