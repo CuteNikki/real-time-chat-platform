@@ -265,7 +265,7 @@ export default function HomePage() {
           </span>
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className='text-muted-foreground hover:text-foreground focus:text-foreground flex items-center gap-1 text-xs transition-colors'
+            className='text-muted-foreground hover:text-foreground focus:text-foreground flex items-center gap-1 text-xs uppercase transition-colors'
           >
             Back to top
             <ArrowUpIcon className='inline-block size-4' aria-hidden />
