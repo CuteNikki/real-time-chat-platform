@@ -64,11 +64,11 @@ export function SettingsTabs({
           </TabsList>
         </div>
         <div
-          className='pointer-events-none absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-background to-transparent sm:hidden'
+          className='pointer-events-none absolute inset-y-0 left-0 w-4 bg-linear-to-r from-background to-transparent sm:hidden'
           aria-hidden
         />
         <div
-          className='pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden'
+          className='pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-background to-transparent sm:hidden'
           aria-hidden
         />
       </div>

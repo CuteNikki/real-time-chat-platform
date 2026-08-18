@@ -28,8 +28,9 @@ import {
   Loader2,
   MessageSquare,
   Plus,
-  Trash2,
+  Trash2Icon,
   Users,
+  Users2Icon,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -205,40 +206,54 @@ export function RoomsWorkspace({
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || creating) return;
+    const trimmedName = name.trim();
+    if (!trimmedName || creating) return;
+
     setCreating(true);
-    try {
-      const { chatId } = await createRoom(name);
-      setDialogOpen(false);
-      setName('');
-      await mutate();
-      void openChannel(chatId);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not create room');
-    } finally {
-      setCreating(false);
-    }
+
+    toast.promise(
+      (async () => {
+        const { chatId } = await createRoom(trimmedName);
+        setDialogOpen(false);
+        setName('');
+        await mutate();
+        void openChannel(chatId);
+      })(),
+      {
+        loading: `Creating #${trimmedName}...`,
+        success: `Created #${trimmedName}`,
+        error: (err) =>
+          err instanceof Error ? err.message : 'Could not create room',
+      },
+    );
+
+    setCreating(false);
   }
 
   async function handleDelete() {
     if (!activeChatId || deleting) return;
     const roomName = activeRoom?.name ?? 'channel';
     setDeleting(true);
-    try {
-      await deleteRoom(activeChatId);
-      // The room no longer exists — clear local state without a "leave" beacon.
-      loadedFor.current = null;
-      setActiveChatId(null);
-      setMessages([]);
-      setDeleteOpen(false);
-      router.replace('/app/rooms', { scroll: false });
-      await mutate();
-      toast.success(`Deleted #${roomName}`);
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not delete room');
-    } finally {
-      setDeleting(false);
-    }
+
+    const targetChatId = activeChatId;
+
+    setDeleteOpen(false);
+    loadedFor.current = null;
+    setActiveChatId(null);
+    setMessages([]);
+    router.replace('/app/rooms', { scroll: false });
+
+    toast.promise(deleteRoom(targetChatId), {
+      loading: `Deleting #${roomName}...`,
+      success: () => {
+        mutate();
+        return `Deleted #${roomName}`;
+      },
+      error: (err) =>
+        err instanceof Error ? err.message : 'Could not delete room',
+    });
+
+    setDeleting(false);
   }
 
   return (
@@ -263,11 +278,11 @@ export function RoomsWorkspace({
           {canCreate && (
             <div className='px-3'>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger
-                  render={<Button className='w-full gap-2' size='sm' />}
-                >
-                  <Plus className='size-4' aria-hidden />
-                  Create channel
+                <DialogTrigger asChild>
+                  <Button variant='outline' size='sm'>
+                    <Plus aria-hidden />
+                    Create channel
+                  </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <form onSubmit={handleCreate}>
@@ -432,25 +447,18 @@ export function RoomsWorkspace({
               <Button
                 variant='ghost'
                 size='icon'
-                className='shrink-0 md:hidden'
+                className='md:hidden'
                 onClick={() => setMembersOpen(true)}
                 aria-label="Show who's online"
               >
-                <Users className='size-5' aria-hidden />
+                <Users2Icon aria-hidden />
               </Button>
               {canDelete && (
                 <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-                  <DialogTrigger
-                    render={
-                      <Button
-                        variant='ghost'
-                        size='icon'
-                        className='text-muted-foreground hover:text-destructive shrink-0'
-                      />
-                    }
-                    aria-label='Delete channel'
-                  >
-                    <Trash2 className='size-5' aria-hidden />
+                  <DialogTrigger asChild aria-label='Delete channel'>
+                    <Button variant='destructive' size='icon'>
+                      <Trash2Icon aria-hidden />
+                    </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>

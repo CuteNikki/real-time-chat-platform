@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { getPostLikers } from '@/app/actions/posts';
 import {
   Dialog,
   DialogContent,
@@ -11,8 +9,10 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { UserAvatar } from '@/components/user-avatar';
-import { getPostLikers } from '@/app/actions/posts';
 import type { PostLiker } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 
 export function PostLikersDialog({
   postId,
@@ -43,7 +43,7 @@ export function PostLikersDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger render={children as React.ReactElement} />
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className='sm:max-w-sm'>
         <DialogHeader>
           <DialogTitle>{count === 1 ? '1 like' : `${count} likes`}</DialogTitle>
@@ -69,7 +69,7 @@ export function PostLikersDialog({
                     <Link
                       href={href}
                       onClick={() => setOpen(false)}
-                      className='hover:bg-secondary flex items-center gap-3 rounded-lg px-1 py-2 transition-colors'
+                      className='hover:bg-secondary flex items-center gap-2 rounded-lg p-2 transition-colors'
                     >
                       <UserAvatar
                         name={u.name}

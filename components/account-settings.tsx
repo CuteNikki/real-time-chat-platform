@@ -42,18 +42,23 @@ export function AccountSettings() {
   async function handleResendVerification() {
     if (!session?.user.email) return;
     setSendingVerify(true);
-    try {
-      const { error } = await sendVerificationEmail({
-        email: session.user.email,
-        callbackURL: '/app/settings',
-      });
-      if (error) throw new Error(error.message || 'Could not send email');
-      toast.success('Verification email sent — check your inbox');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Something went wrong');
-    } finally {
-      setSendingVerify(false);
-    }
+
+    toast.promise(
+      (async () => {
+        const { error } = await sendVerificationEmail({
+          email: session.user.email,
+          callbackURL: '/app/settings',
+        });
+        if (error) throw new Error(error.message || 'Could not send email');
+      })(),
+      {
+        loading: 'Sending verification email...',
+        success: 'Verification email sent — check your inbox',
+        error: (err) =>
+          err instanceof Error ? err.message : 'Something went wrong',
+        finally: () => setSendingVerify(false),
+      },
+    );
   }
 
   // Change password state.
@@ -72,42 +77,56 @@ export function AccountSettings() {
       toast.error('New passwords do not match');
       return;
     }
+
     setSavingPw(true);
-    try {
-      const { error } = await changePassword({
-        currentPassword: current,
-        newPassword: next,
-        revokeOtherSessions: true,
-      });
-      if (error) throw new Error(error.message || 'Could not change password');
-      toast.success('Password updated');
-      setCurrent('');
-      setNext('');
-      setConfirm('');
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Could not change password',
-      );
-    } finally {
-      setSavingPw(false);
-    }
+
+    toast.promise(
+      (async () => {
+        const { error } = await changePassword({
+          currentPassword: current,
+          newPassword: next,
+          revokeOtherSessions: true,
+        });
+        if (error)
+          throw new Error(error.message || 'Could not change password');
+
+        setCurrent('');
+        setNext('');
+        setConfirm('');
+      })(),
+      {
+        loading: 'Updating password...',
+        success: 'Password updated',
+        error: (err) =>
+          err instanceof Error ? err.message : 'Could not change password',
+        finally: () => setSavingPw(false),
+      },
+    );
   }
 
   async function handleDelete() {
     setDeleting(true);
-    try {
-      const { error } = await deleteUser();
-      if (error) throw new Error(error.message || 'Could not delete account');
-      toast.success('Your account has been deleted');
-      await signOut();
-      router.push('/sign-up');
-      router.refresh();
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Could not delete account',
-      );
-      setDeleting(false);
-    }
+
+    toast.promise(
+      (async () => {
+        const { error } = await deleteUser();
+        if (error) throw new Error(error.message || 'Could not delete account');
+
+        await signOut();
+        router.push('/sign-up');
+        router.refresh();
+      })(),
+      {
+        loading: 'Deleting account...',
+        success: 'Your account has been deleted',
+        error: (err) => {
+          setDeleting(false); // Reset on error since redirect won't happen
+          return err instanceof Error
+            ? err.message
+            : 'Could not delete account';
+        },
+      },
+    );
   }
 
   return (
@@ -230,11 +249,11 @@ export function AccountSettings() {
           cannot be undone.
         </p>
         <Dialog>
-          <DialogTrigger
-            render={<Button variant='destructive' className='gap-2' />}
-          >
-            <Trash2 className='size-4' aria-hidden />
-            Delete my account
+          <DialogTrigger asChild>
+            <Button variant='destructive'>
+              <Trash2 className='size-4' aria-hidden />
+              Delete my account
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -254,8 +273,8 @@ export function AccountSettings() {
               aria-label='Type DELETE to confirm'
             />
             <DialogFooter>
-              <DialogClose render={<Button variant='outline' />}>
-                Cancel
+              <DialogClose asChild>
+                <Button variant='outline'>Cancel</Button>
               </DialogClose>
               <Button
                 variant='destructive'
