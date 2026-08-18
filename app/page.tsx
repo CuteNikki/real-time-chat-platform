@@ -25,7 +25,7 @@ export default function HomePage() {
   return (
     <div className='bg-background flex min-h-svh flex-col'>
       <header className='bg-background/90 sticky top-0 z-50 backdrop-blur-md'>
-        <div className='mx-auto flex w-full max-w-7xl items-center justify-between p-4 xs:p-6'>
+        <div className='xs:p-6 mx-auto flex w-full max-w-7xl items-center justify-between p-4'>
           <div className='flex items-center gap-2'>
             <OrbitIcon className='text-primary size-6' aria-hidden />
             <span className='text-lg font-semibold tracking-tight'>Orbit</span>
@@ -213,7 +213,7 @@ export default function HomePage() {
               </span>
             </Link>
             <span className='text-muted-foreground text-sm'>
-              A new chapter begins
+              Real-time chat, powered by presence.
             </span>
           </div>
           <div className='xs:flex-row flex flex-wrap gap-x-10 gap-y-4'>
