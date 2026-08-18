@@ -253,6 +253,7 @@ export const bannedIp = pgTable(
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     liftedAt: timestamp('liftedAt'),
     liftedById: text('liftedById'),
+    liftReason: text('liftReason'),
   },
   (t) => ({
     ipActiveIdx: index('banned_ip_active_idx').on(t.ipAddress, t.liftedAt),

@@ -1,9 +1,11 @@
 import 'server-only';
+
+import { eq } from 'drizzle-orm';
+
 import { db } from '@/lib/db';
 import { user } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { type Role, atLeast, normalizeRole } from '@/lib/roles';
 import { getCurrentUser } from '@/lib/session';
-import { type Role, normalizeRole, atLeast } from '@/lib/roles';
 
 // Fetch the current user's role fresh from the DB (source of truth, since the
 // session copy can be stale after a role change).

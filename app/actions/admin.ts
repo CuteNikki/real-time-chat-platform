@@ -1,5 +1,18 @@
 'use server';
 
+import {
+  aliasedTable,
+  and,
+  count,
+  desc,
+  eq,
+  inArray,
+  isNull,
+  or,
+  sql,
+} from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+
 import { db } from '@/lib/db';
 import {
   ban,
@@ -20,8 +33,6 @@ import { newId } from '@/lib/id';
 import { normalizeRole, type Role } from '@/lib/roles';
 import { requireRole } from '@/lib/roles-server';
 import { getCurrentUser } from '@/lib/session';
-import { and, count, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
 
 export type AdminUserRow = {
   id: string;
@@ -40,19 +51,23 @@ export type BanHistoryEntry = {
   scope: 'ACCOUNT' | 'IP';
   reason: string;
   ipAddress: string | null;
+  bannedById: string | null;
   bannedByName: string | null;
+  bannedByAvatar: string | null;
   createdAt: string;
   // null = permanent.
   expiresAt: string | null;
   liftedAt: string | null;
+  liftedById: string | null;
   liftedByName: string | null;
+  liftedByAvatar: string | null;
   liftReason: string | null;
   active: boolean;
 };
 
 // List users for the admin panel, optionally filtered by a search query.
 export async function listUsersForAdmin(query = ''): Promise<AdminUserRow[]> {
-  await requireRole('ADMIN');
+  await requireRole('MODERATOR');
   const me = await getCurrentUser();
 
   const q = query.trim().toLowerCase();
@@ -242,7 +257,7 @@ export async function banUser(
 // Lift all active bans (account + originating IP bans) for a user. Moderators+ only.
 export async function unbanUser(
   targetUserId: string,
-  reason = 'Ban lifted by moderator',
+  reason = 'no reason provided',
 ) {
   const actorRole = await requireRole('MODERATOR');
   const me = await getCurrentUser();
@@ -278,12 +293,15 @@ export async function unbanUser(
 }
 
 // Lift a single IP ban by id. Moderators+ only.
-export async function liftIpBan(ipBanId: string) {
+export async function liftIpBan(
+  ipBanId: string,
+  reason = 'no reason provided',
+) {
   await requireRole('MODERATOR');
   const me = await getCurrentUser();
   await db
     .update(bannedIp)
-    .set({ liftedAt: new Date(), liftedById: me.id })
+    .set({ liftedAt: new Date(), liftedById: me.id, liftReason: reason })
     .where(eq(bannedIp.id, ipBanId));
   revalidatePath('/app/admin');
   return { ok: true };
@@ -354,7 +372,10 @@ export async function getBanHistory(
 ): Promise<BanHistoryEntry[]> {
   await requireRole('MODERATOR');
 
-  const bannedByAlias = user;
+  // Create two distinct references to the user table
+  const bannerAlias = aliasedTable(user, 'banner');
+  const lifterAlias = aliasedTable(user, 'lifter');
+
   const accountRows = await db
     .select({
       id: ban.id,
@@ -364,10 +385,16 @@ export async function getBanHistory(
       expiresAt: ban.expiresAt,
       liftedAt: ban.liftedAt,
       liftReason: ban.liftReason,
-      bannedByName: bannedByAlias.name,
+      liftedById: ban.liftedById,
+      liftedByName: lifterAlias.name, // Now correctly references lifter
+      liftedByAvatar: lifterAlias.image,
+      bannedById: ban.bannedById,
+      bannedByName: bannerAlias.name, // Now correctly references banner
+      bannedByAvatar: bannerAlias.image,
     })
     .from(ban)
-    .leftJoin(bannedByAlias, eq(bannedByAlias.id, ban.bannedById))
+    .leftJoin(bannerAlias, eq(bannerAlias.id, ban.bannedById))
+    .leftJoin(lifterAlias, eq(lifterAlias.id, ban.liftedById)) // Add second join
     .where(eq(ban.userId, targetUserId))
     .orderBy(desc(ban.createdAt));
 
@@ -379,10 +406,17 @@ export async function getBanHistory(
       createdAt: bannedIp.createdAt,
       expiresAt: bannedIp.expiresAt,
       liftedAt: bannedIp.liftedAt,
-      bannedByName: user.name,
+      liftReason: bannedIp.liftReason,
+      liftedById: bannedIp.liftedById,
+      liftedByName: lifterAlias.name,
+      liftedByAvatar: lifterAlias.image,
+      bannedById: bannedIp.bannedById,
+      bannedByName: bannerAlias.name,
+      bannedByAvatar: bannerAlias.image,
     })
     .from(bannedIp)
-    .leftJoin(user, eq(user.id, bannedIp.bannedById))
+    .leftJoin(bannerAlias, eq(bannerAlias.id, bannedIp.bannedById))
+    .leftJoin(lifterAlias, eq(lifterAlias.id, bannedIp.liftedById))
     .where(eq(bannedIp.userId, targetUserId))
     .orderBy(desc(bannedIp.createdAt));
 
@@ -392,11 +426,15 @@ export async function getBanHistory(
     scope: 'ACCOUNT',
     reason: r.reason,
     ipAddress: r.ipAddress,
+    bannedById: r.bannedById ?? null,
     bannedByName: r.bannedByName ?? null,
+    bannedByAvatar: r.bannedByAvatar ?? null,
     createdAt: r.createdAt.toISOString(),
     expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
     liftedAt: r.liftedAt ? r.liftedAt.toISOString() : null,
-    liftedByName: null,
+    liftedById: r.liftedById ?? null,
+    liftedByName: r.liftedByName ?? null,
+    liftedByAvatar: r.liftedByAvatar ?? null,
     liftReason: r.liftReason ?? null,
     active: !r.liftedAt && (!r.expiresAt || r.expiresAt.getTime() > now),
   }));
@@ -406,16 +444,36 @@ export async function getBanHistory(
     scope: 'IP',
     reason: r.reason,
     ipAddress: r.ipAddress,
+    bannedById: r.bannedById ?? null,
     bannedByName: r.bannedByName ?? null,
+    bannedByAvatar: r.bannedByAvatar ?? null,
     createdAt: r.createdAt.toISOString(),
     expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
     liftedAt: r.liftedAt ? r.liftedAt.toISOString() : null,
-    liftedByName: null,
-    liftReason: null,
+    liftedById: r.liftedById ?? null,
+    liftedByName: r.liftedByName ?? null,
+    liftedByAvatar: r.liftedByAvatar ?? null,
+    liftReason: r.liftReason ?? null,
     active: !r.liftedAt && (!r.expiresAt || r.expiresAt.getTime() > now),
   }));
 
   return [...account, ...ip].sort((a, b) =>
     a.createdAt < b.createdAt ? 1 : -1,
   );
+}
+
+export async function deleteBanHistoryEntry(
+  entryID: string,
+  scope: 'ACCOUNT' | 'IP',
+) {
+  await requireRole('ADMIN');
+
+  if (scope === 'IP') {
+    await db.delete(bannedIp).where(eq(bannedIp.id, entryID));
+  } else {
+    await db.delete(ban).where(eq(ban.id, entryID));
+  }
+
+  revalidatePath('/app/admin');
+  return { ok: true };
 }
