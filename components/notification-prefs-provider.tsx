@@ -4,10 +4,12 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from 'react';
 import { updateNotificationPreferences } from '@/app/actions/preferences';
+import { unlockAudioContext } from '@/lib/notification-sound';
 import { DEFAULT_NOTIFICATION_PREFERENCES } from '@/lib/types';
 import type { NotificationPreferences } from '@/lib/types';
 
@@ -36,6 +38,23 @@ export function NotificationPrefsProvider({
     timer.current = setTimeout(() => {
       void updateNotificationPreferences(next).catch(() => {});
     }, 400);
+  }, []);
+
+  // Unlock the shared notification-sound AudioContext on the very first user
+  // gesture anywhere in the app, so it's already running (not "suspended")
+  // by the time a realtime notification tries to play a chime.
+  useEffect(() => {
+    const unlock = () => {
+      unlockAudioContext();
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
   }, []);
 
   return (
