@@ -41,8 +41,11 @@ export function SettingsTabs({
       {/* On narrow screens, four equal-width tabs get too cramped to tap
           comfortably. Let the bar scroll horizontally at its natural size
           instead of squeezing labels — bleed to the page edges so it scrolls
-          under the same padding the rest of the page uses. */}
-      <div className='-mx-4 mb-6 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0'>
+          under the same padding the rest of the page uses. overflow-y-hidden
+          is required alongside overflow-x-auto: CSS forces a "visible" y-axis
+          to compute as "auto" once x is anything but visible, which is what
+          was producing the stray vertical scrollbar. */}
+      <div className='-mx-4 mb-6 overflow-x-auto overflow-y-hidden px-4 sm:mx-0 sm:overflow-visible sm:px-0'>
         <TabsList className='w-max sm:w-fit'>
           <TabsTrigger value='profile' className='flex-none px-3'>
             Profile
