@@ -44,22 +44,33 @@ export function SettingsTabs({
           under the same padding the rest of the page uses. overflow-y-hidden
           is required alongside overflow-x-auto: CSS forces a "visible" y-axis
           to compute as "auto" once x is anything but visible, which is what
-          was producing the stray vertical scrollbar. */}
-      <div className='-mx-4 mb-6 overflow-x-auto overflow-y-hidden px-4 sm:mx-0 sm:overflow-visible sm:px-0'>
-        <TabsList className='w-max sm:w-fit'>
-          <TabsTrigger value='profile' className='flex-none px-3'>
-            Profile
-          </TabsTrigger>
-          <TabsTrigger value='account' className='flex-none px-3'>
-            Account
-          </TabsTrigger>
-          <TabsTrigger value='privacy' className='flex-none px-3'>
-            Privacy
-          </TabsTrigger>
-          <TabsTrigger value='preferences' className='flex-none px-3'>
-            Preferences
-          </TabsTrigger>
-        </TabsList>
+          was producing the stray vertical scrollbar. The edge fades signal
+          "more tabs this way" instead of hard-clipping the last label. */}
+      <div className='relative -mx-4 mb-6 sm:mx-0'>
+        <div className='overflow-x-auto overflow-y-hidden px-4 sm:overflow-visible sm:px-0'>
+          <TabsList className='w-max sm:w-fit'>
+            <TabsTrigger value='profile' className='flex-none px-3'>
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value='account' className='flex-none px-3'>
+              Account
+            </TabsTrigger>
+            <TabsTrigger value='privacy' className='flex-none px-3'>
+              Privacy
+            </TabsTrigger>
+            <TabsTrigger value='preferences' className='flex-none px-3'>
+              Preferences
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        <div
+          className='pointer-events-none absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-background to-transparent sm:hidden'
+          aria-hidden
+        />
+        <div
+          className='pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden'
+          aria-hidden
+        />
       </div>
 
       <TabsContent value='profile'>
