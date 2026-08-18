@@ -1,41 +1,42 @@
+'use client';
+
 import Link from 'next/link';
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
+
+import {
+  ArrowRightIcon,
+  ArrowUpIcon,
+  LockIcon,
+  OrbitIcon,
+  ShuffleIcon,
+  Users2Icon,
+} from 'lucide-react';
+
+import { AuthNav } from '@/components/auth-nav';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { buttonVariants } from '@/components/ui/button';
-import { Orbit, Shuffle, Users, Lock, ArrowRight } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
-export default async function HomePage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-
+export default function HomePage() {
   return (
     <div className='bg-background flex min-h-svh flex-col'>
-      <header className='mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5'>
-        <div className='flex items-center gap-2'>
-          <Orbit className='text-primary size-6' aria-hidden />
-          <span className='text-lg font-semibold tracking-tight'>Orbit</span>
+      <header className='bg-background/90 sticky top-0 z-50 backdrop-blur-md'>
+        <div className='mx-auto flex w-full max-w-7xl items-center justify-between p-4 xs:p-6'>
+          <div className='flex items-center gap-2'>
+            <OrbitIcon className='text-primary size-6' aria-hidden />
+            <span className='text-lg font-semibold tracking-tight'>Orbit</span>
+          </div>
+          <nav className='flex items-center gap-2'>
+            <AuthNav />
+          </nav>
         </div>
-        <nav className='flex items-center gap-2'>
-          {session?.user ? (
-            <Link href='/app' className={buttonVariants()}>
-              Open app
-            </Link>
-          ) : (
-            <>
-              <Link
-                href='/sign-in'
-                className={buttonVariants({ variant: 'ghost' })}
-              >
-                Sign in
-              </Link>
-              <Link href='/sign-up' className={buttonVariants()}>
-                Get started
-              </Link>
-            </>
-          )}
-        </nav>
       </header>
 
-      <main className='mx-auto flex w-full max-w-6xl flex-1 flex-col px-6'>
+      <main className='mx-auto flex w-full max-w-7xl flex-1 flex-col px-6'>
         {/* Hero */}
         <section className='flex flex-col items-center py-20 text-center lg:py-28'>
           <span className='border-border bg-card text-muted-foreground mb-6 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm'>
@@ -45,30 +46,30 @@ export default async function HomePage() {
             </span>
             Live conversations, right now
           </span>
-          <h1 className='max-w-3xl text-5xl leading-[1.05] font-semibold tracking-tight text-balance lg:text-7xl'>
+          <span className='max-w-3xl text-5xl leading-[1.05] font-semibold tracking-tight text-balance lg:text-7xl'>
             Talk to someone new in seconds
-          </h1>
+          </span>
           <p className='text-muted-foreground mt-6 max-w-xl text-lg leading-relaxed text-pretty'>
-            Orbit matches you with strangers, spins up group rooms, and lets you
-            invite friends to private chats — all in real time.
+            Orbit matches you with strangers, spins up group rooms and lets you
+            chat with friends in private chats - all in real time.
           </p>
           <div className='mt-9 flex flex-col gap-3 sm:flex-row'>
             <Link
-              href={session?.user ? '/app' : '/sign-up'}
+              href='/sign-up'
               className={buttonVariants({
                 size: 'lg',
-                className: 'h-12 gap-2 px-7 text-base',
+                className: 'p-4!',
               })}
             >
-              Start chatting
-              <ArrowRight className='size-4' aria-hidden />
+              Start Now
+              <ArrowRightIcon className='size-4' aria-hidden />
             </Link>
             <Link
               href='/sign-in'
               className={buttonVariants({
                 variant: 'outline',
                 size: 'lg',
-                className: 'h-12 px-7 text-base',
+                className: 'p-4!',
               })}
             >
               I have an account
@@ -79,25 +80,197 @@ export default async function HomePage() {
         {/* Feature grid */}
         <section className='grid gap-4 pb-24 md:grid-cols-3'>
           <FeatureCard
-            icon={<Shuffle className='size-5' aria-hidden />}
+            icon={<ShuffleIcon className='size-5' aria-hidden />}
             title='Random match'
             body="Hit a button and get paired one-on-one with another person who's looking to talk. Skip anytime for a new match."
           />
           <FeatureCard
-            icon={<Users className='size-5' aria-hidden />}
+            icon={<Users2Icon className='size-5' aria-hidden />}
             title='Group rooms'
-            body='Create or join open rooms and chat with everyone at once. See exactly how many people are live in each room.'
+            body='Join open rooms and chat with everyone at once. See exactly how many people are live in each room.'
           />
           <FeatureCard
-            icon={<Lock className='size-5' aria-hidden />}
+            icon={<LockIcon className='size-5' aria-hidden />}
             title='Private chats'
-            body='Invite a friend by email, share images, and keep the conversation just between the two of you.'
+            body='Share images and keep the conversation just between the two of you.'
           />
+        </section>
+
+        {/* FAQ Section */}
+        <section className='mx-auto flex w-full max-w-7xl flex-col items-center py-4 sm:py-12'>
+          <span className='text-center text-2xl font-semibold tracking-tight text-balance md:text-4xl'>
+            Frequently Asked Questions
+          </span>
+          <div className='mt-6 w-full max-w-5xl'>
+            <Accordion>
+              <AccordionItem>
+                <AccordionTrigger>
+                  How does random matching work?
+                </AccordionTrigger>
+                <AccordionContent className='text-foreground/80 max-w-4xl text-pretty'>
+                  Hit &quot;Find a match&quot; and we pair you one-on-one with
+                  someone else looking to chat right now, prioritizing people
+                  who share your interests.
+                  <br />
+                  You can end the chat and find a new match anytime! Nothing
+                  from a random chat is saved once it ends.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem>
+                <AccordionTrigger>Is Orbit free to use?</AccordionTrigger>
+                <AccordionContent className='text-foreground/80 max-w-4xl text-pretty'>
+                  Yes! Creating an account, matching with strangers, joining
+                  rooms and messaging friends are all completely free features.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem>
+                <AccordionTrigger>
+                  Can I control which notifications I get?
+                </AccordionTrigger>
+                <AccordionContent className='text-foreground/80 max-w-4xl text-pretty'>
+                  Yes. In &apos;Settings&apos; &gt; &apos;Preferences&apos; you
+                  can turn popups and sounds on or off individually for friend
+                  requests, accepted requests, direct messages, room messages,
+                  and post likes. Plus set a master volume.
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem>
+                <AccordionTrigger>
+                  What happens if someone reports me or I report someone?
+                </AccordionTrigger>
+                <AccordionContent className='text-foreground/80 max-w-4xl text-pretty'>
+                  Reports go to our moderation team for review. Accounts that
+                  violate our guidelines can be suspended for a set period or
+                  permanently.
+                  <br />
+                  If this happens to your account, you&apos;ll see the reason
+                  and duration.
+                  <br />
+                  If someone&apos;s made you uncomfortable, please use the
+                  report option!
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem>
+                <AccordionTrigger>
+                  Can I delete my account and data?
+                </AccordionTrigger>
+                <AccordionContent className='text-foreground/80 max-w-4xl text-pretty'>
+                  Yes, anytime! From &apos;Settings&apos; &gt;
+                  &apos;Account&apos;. Deleting your account permanently removes
+                  your profile, posts, messages and friend connections - beware
+                  this can&apos;t be undone!
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+        </section>
+
+        {/* Call to Action */}
+        <section className='py-12'>
+          <div className='bg-primary text-primary-foreground xs:py-12 relative flex flex-col items-center gap-4 overflow-hidden rounded-3xl p-6 text-center'>
+            <div
+              aria-hidden
+              className='bg-primary-foreground/10 pointer-events-none absolute -top-20 -right-20 size-72 rounded-full blur-2xl'
+            />
+            <div
+              aria-hidden
+              className='bg-primary-foreground/10 pointer-events-none absolute -bottom-24 -left-12 size-72 rounded-full blur-2xl'
+            />
+            <span className='relative text-2xl font-semibold tracking-tight text-balance md:text-4xl'>
+              Someone New is One Tap Away
+            </span>
+            <p className='text-primary-foreground/80 relative text-center text-pretty'>
+              No lengthy profile, no swiping.
+              <br />
+              Just real-time conversation whenever you want it.
+            </p>
+            <Link
+              href='/sign-up'
+              className={buttonVariants({
+                variant: 'secondary',
+                size: 'lg',
+              })}
+            >
+              Start Now
+              <ArrowRightIcon aria-hidden />
+            </Link>
+          </div>
         </section>
       </main>
 
-      <footer className='text-muted-foreground mx-auto w-full max-w-6xl px-6 py-8 text-sm'>
-        <p>Built for real-time conversation.</p>
+      {/* Footer */}
+      <footer className='xs:p-6 mx-auto w-full max-w-7xl p-4'>
+        <div className='flex flex-col gap-6 sm:flex-row sm:justify-between'>
+          <div className='flex flex-col gap-2'>
+            <Link href='/' className='flex items-center gap-2'>
+              <OrbitIcon className='text-primary size-6' aria-hidden />
+              <span className='text-lg font-semibold tracking-tight'>
+                Orbit
+              </span>
+            </Link>
+            <span className='text-muted-foreground text-sm'>
+              A new chapter begins
+            </span>
+          </div>
+          <div className='xs:flex-row flex flex-wrap gap-x-10 gap-y-4'>
+            <div className='flex flex-col gap-2'>
+              <span className='font-semibold tracking-tight'>Company</span>
+              <ul className='text-muted-foreground [&>li>a]:hover:text-foreground [&>li>a]:focus:text-foreground flex flex-col gap-1 text-sm [&>li>a]:transition-colors [&>li>a]:hover:underline'>
+                <li>
+                  <Link href='/about'>About</Link>
+                </li>
+                <li>
+                  <Link href='/careers'>Careers</Link>
+                </li>
+              </ul>
+            </div>
+            <div className='flex flex-col gap-2'>
+              <span className='font-semibold tracking-tight'>Socials</span>
+              <ul className='text-muted-foreground [&>li>a]:hover:text-foreground [&>li>a]:focus:text-foreground flex flex-col gap-1 text-sm [&>li>a]:transition-colors [&>li>a]:hover:underline'>
+                <li>
+                  <Link href='/discord'>Discord</Link>
+                </li>
+                <li>
+                  <Link href='/instagram'>Instagram</Link>
+                </li>
+                <li>
+                  <Link href='/twitter'>Twitter</Link>
+                </li>
+              </ul>
+            </div>
+            <div className='flex flex-col gap-2'>
+              <span className='font-semibold tracking-tight'>Legal</span>
+              <ul className='text-muted-foreground [&>li>a]:hover:text-foreground [&>li>a]:focus:text-foreground flex flex-col gap-1 text-sm [&>li>a]:transition-colors [&>li>a]:hover:underline'>
+                <li>
+                  <Link href='/privacy'>Privacy Policy</Link>
+                </li>
+                <li>
+                  <Link href='/terms'>Terms & Conditions</Link>
+                </li>
+                <li>
+                  <Link href='/imprint'>Imprint</Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <Separator className='my-6' />
+        <div className='flex justify-between gap-2'>
+          <span className='text-muted-foreground text-xs'>
+            © {new Date().getFullYear()} Orbit · All rights reserved.
+          </span>
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className='text-muted-foreground hover:text-foreground focus:text-foreground flex items-center gap-1 text-xs transition-colors'
+          >
+            Back to top
+            <ArrowUpIcon className='inline-block size-4' aria-hidden />
+          </button>
+        </div>
       </footer>
     </div>
   );
@@ -113,12 +286,14 @@ function FeatureCard({
   body: string;
 }) {
   return (
-    <div className='border-border bg-card rounded-xl border p-6'>
-      <div className='bg-accent text-accent-foreground flex size-11 items-center justify-center rounded-lg'>
-        {icon}
+    <div className='border-border bg-card flex flex-col gap-2 rounded-xl border p-6'>
+      <div className='flex items-center gap-2'>
+        <div className='bg-accent text-accent-foreground flex size-10 items-center justify-center rounded-lg'>
+          {icon}
+        </div>
+        <span className='text-lg font-semibold tracking-tight'>{title}</span>
       </div>
-      <h3 className='mt-4 text-lg font-semibold tracking-tight'>{title}</h3>
-      <p className='text-muted-foreground mt-2 text-sm leading-relaxed text-pretty'>
+      <p className='text-muted-foreground text-sm leading-relaxed text-pretty'>
         {body}
       </p>
     </div>
