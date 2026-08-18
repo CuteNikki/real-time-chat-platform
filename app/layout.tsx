@@ -57,7 +57,7 @@ export default function RootLayout({
       <body className='font-sans antialiased'>
         <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
           {children}
-          <Toaster position='top-center' />
+          <Toaster position='top-left' />
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </ThemeProvider>
       </body>
