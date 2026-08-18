@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   changePassword,
   deleteUser,
@@ -35,7 +36,7 @@ import { toast } from 'sonner';
 
 export function AccountSettings() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, isPending: sessionPending } = useSession();
   const [sendingVerify, setSendingVerify] = useState(false);
 
   async function handleResendVerification() {
@@ -111,43 +112,61 @@ export function AccountSettings() {
 
   return (
     <div className='space-y-10'>
-      {/* Change password */}
-      {session?.user ? (
-        <section className='border-border bg-card flex items-center justify-between gap-4 rounded-xl border p-5'>
-          <div className='flex items-start gap-3'>
+      {/* Email */}
+      <section className='space-y-4'>
+        <div className='flex items-center gap-2'>
+          <MailIcon className='text-muted-foreground size-4' aria-hidden />
+          <h2 className='text-lg font-semibold tracking-tight'>Email</h2>
+        </div>
+        {sessionPending ? (
+          <div className='border-border bg-card flex items-center gap-3 rounded-xl border p-4'>
+            <Skeleton className='size-4 shrink-0 rounded-full' />
+            <div className='space-y-1.5'>
+              <Skeleton className='h-4 w-40' />
+              <Skeleton className='h-3.5 w-20' />
+            </div>
+          </div>
+        ) : session?.user ? (
+          <div className='border-border bg-card flex items-center gap-3 rounded-xl border p-4'>
             {session.user.emailVerified ? (
               <MailCheckIcon
-                className='text-primary mt-0.5 size-4 shrink-0'
+                className='text-primary size-4 shrink-0'
                 aria-hidden
               />
             ) : (
               <MailIcon
-                className='text-muted-foreground mt-0.5 size-4 shrink-0'
+                className='text-muted-foreground size-4 shrink-0'
                 aria-hidden
               />
             )}
-            <div>
-              <p className='text-sm font-medium'>{session.user.email}</p>
+            {/* min-w-0 lets this shrink so a long email truncates instead of
+                pushing the Resend button off-screen on narrow viewports. */}
+            <div className='min-w-0 flex-1'>
+              <p className='truncate text-sm font-medium'>
+                {session.user.email}
+              </p>
               <p className='text-muted-foreground text-sm'>
                 {session.user.emailVerified ? 'Verified' : 'Not verified yet'}
               </p>
             </div>
+            {!session.user.emailVerified && (
+              <Button
+                variant='outline'
+                size='sm'
+                className='shrink-0'
+                disabled={sendingVerify}
+                onClick={handleResendVerification}
+              >
+                {sendingVerify ? (
+                  <Loader2 className='size-4 animate-spin' aria-hidden />
+                ) : null}
+                Resend
+              </Button>
+            )}
           </div>
-          {!session.user.emailVerified && (
-            <Button
-              variant='outline'
-              size='sm'
-              disabled={sendingVerify}
-              onClick={handleResendVerification}
-            >
-              {sendingVerify ? (
-                <Loader2 className='size-4 animate-spin' aria-hidden />
-              ) : null}
-              Resend verification
-            </Button>
-          )}
-        </section>
-      ) : null}
+        ) : null}
+      </section>
+
       <section className='space-y-4'>
         <div className='flex items-center gap-2'>
           <KeyRound className='text-muted-foreground size-4' aria-hidden />

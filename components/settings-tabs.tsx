@@ -38,12 +38,26 @@ export function SettingsTabs({
       }}
       className='w-full'
     >
-      <TabsList className='mb-6 w-full justify-start'>
-        <TabsTrigger value='profile'>Profile</TabsTrigger>
-        <TabsTrigger value='account'>Account</TabsTrigger>
-        <TabsTrigger value='privacy'>Privacy</TabsTrigger>
-        <TabsTrigger value='preferences'>Preferences</TabsTrigger>
-      </TabsList>
+      {/* On narrow screens, four equal-width tabs get too cramped to tap
+          comfortably. Let the bar scroll horizontally at its natural size
+          instead of squeezing labels — bleed to the page edges so it scrolls
+          under the same padding the rest of the page uses. */}
+      <div className='-mx-4 mb-6 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0'>
+        <TabsList className='w-max sm:w-fit'>
+          <TabsTrigger value='profile' className='flex-none px-3'>
+            Profile
+          </TabsTrigger>
+          <TabsTrigger value='account' className='flex-none px-3'>
+            Account
+          </TabsTrigger>
+          <TabsTrigger value='privacy' className='flex-none px-3'>
+            Privacy
+          </TabsTrigger>
+          <TabsTrigger value='preferences' className='flex-none px-3'>
+            Preferences
+          </TabsTrigger>
+        </TabsList>
+      </div>
 
       <TabsContent value='profile'>
         <ProfileSettings profile={profile} />
