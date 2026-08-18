@@ -1,5 +1,6 @@
-import type React from 'react';
-import { Orbit } from 'lucide-react';
+import Link from 'next/link';
+
+import { OrbitIcon } from 'lucide-react';
 
 export function AuthShell({
   title,
@@ -13,14 +14,14 @@ export function AuthShell({
   return (
     <main className='flex min-h-svh flex-col lg:flex-row'>
       {/* Brand panel */}
-      <section className='bg-primary text-primary-foreground relative flex flex-col justify-between overflow-hidden px-8 py-10 lg:w-[45%] lg:px-14 lg:py-14'>
-        <div className='flex items-center gap-2'>
-          <Orbit className='size-6' aria-hidden />
+      <section className='bg-primary text-primary-foreground xs:p-6 relative flex flex-col justify-between overflow-hidden p-4 lg:w-[40%]'>
+        <Link href='/' className='flex items-center gap-2'>
+          <OrbitIcon className='size-6' aria-hidden />
           <span className='text-lg font-semibold tracking-tight'>Orbit</span>
-        </div>
+        </Link>
 
-        <div className='relative z-10 hidden max-w-md lg:block'>
-          <h2 className='text-4xl leading-tight font-semibold tracking-tight text-balance'>
+        <div className='xs:px-4 relative z-10 hidden max-w-md lg:block'>
+          <h2 className='text-3xl leading-tight font-semibold tracking-tight text-balance'>
             Someone new is always one tap away.
           </h2>
           <p className='text-primary-foreground/80 mt-4 text-base leading-relaxed text-pretty'>
@@ -31,26 +32,30 @@ export function AuthShell({
 
         <div
           aria-hidden
-          className='bg-primary-foreground/10 pointer-events-none absolute -top-24 -right-24 size-[28rem] rounded-full blur-2xl'
+          className='bg-primary-foreground/10 pointer-events-none absolute -top-24 -right-24 size-112 rounded-full blur-2xl'
         />
         <div
           aria-hidden
-          className='bg-primary-foreground/10 pointer-events-none absolute -bottom-32 -left-16 size-[24rem] rounded-full blur-2xl'
+          className='bg-primary-foreground/10 pointer-events-none absolute -bottom-32 -left-16 size-96 rounded-full blur-2xl'
         />
 
-        <p className='text-primary-foreground/60 relative z-10 hidden text-sm lg:block'>
+        <p className='relative z-10 hidden text-sm lg:block'>
           Real-time chat, powered by presence.
         </p>
       </section>
 
       {/* Form panel */}
       <section className='flex flex-1 items-center justify-center px-6 py-12'>
-        <div className='w-full max-w-sm'>
-          <h1 className='text-foreground text-2xl font-semibold tracking-tight'>
-            {title}
-          </h1>
-          <p className='text-muted-foreground mt-2 text-sm'>{subtitle}</p>
-          <div className='mt-8'>{children}</div>
+        <div className='flex w-full max-w-md flex-col gap-6 text-center'>
+          <div className='flex flex-col gap-2'>
+            <span className='text-foreground text-2xl font-semibold tracking-tight'>
+              {title}
+            </span>
+            <p className='text-muted-foreground text-sm text-pretty'>
+              {subtitle}
+            </p>
+          </div>
+          <div>{children}</div>
         </div>
       </section>
     </main>

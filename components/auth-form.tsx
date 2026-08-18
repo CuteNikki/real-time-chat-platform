@@ -1,11 +1,13 @@
 'use client';
 
-import type React from 'react';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+import { Loader2Icon } from 'lucide-react';
+
 import { authClient } from '@/lib/auth-client';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +22,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
 
   const isSignUp = mode === 'sign-up';
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.SubmitEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
@@ -47,10 +49,10 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className='flex flex-col gap-5'>
+    <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
       {isSignUp && (
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='name'>Display name</Label>
+          <Label htmlFor='name'>Display Name</Label>
           <Input
             id='name'
             value={name}
@@ -79,7 +81,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
           {!isSignUp && (
             <Link
               href='/forgot-password'
-              className='text-muted-foreground hover:text-foreground text-xs font-medium underline underline-offset-4'
+              className='text-muted-foreground hover:text-foreground text-xs font-medium underline transition-colors'
             >
               Forgot password?
             </Link>
@@ -93,17 +95,19 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
           placeholder='At least 8 characters'
           required
           minLength={8}
+          maxLength={128}
           autoComplete={isSignUp ? 'new-password' : 'current-password'}
         />
       </div>
 
       {error && (
-        <p className='text-destructive text-sm' role='alert'>
+        <p className='text-destructive text-center text-sm' role='alert'>
           {error}
         </p>
       )}
 
-      <Button type='submit' disabled={loading} className='mt-1 h-11 text-base'>
+      <Button type='submit' disabled={loading} size='lg'>
+        {loading && <Loader2Icon className='animate-spin' aria-hidden />}
         {loading ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'}
       </Button>
 
@@ -111,7 +115,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
         {isSignUp ? 'Already have an account? ' : 'New here? '}
         <Link
           href={isSignUp ? '/sign-in' : '/sign-up'}
-          className='text-foreground font-medium underline underline-offset-4'
+          className='text-foreground font-medium underline'
         >
           {isSignUp ? 'Sign in' : 'Create an account'}
         </Link>

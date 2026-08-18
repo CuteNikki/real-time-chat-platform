@@ -1,16 +1,22 @@
+'use client';
+
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
-import { auth } from '@/lib/auth';
+
+import { useSession } from '@/lib/auth-client';
+
 import { AuthShell } from '@/components/auth-shell';
 import { ForgotPasswordForm } from '@/components/forgot-password-form';
 
-export default async function ForgotPasswordPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+export default function ForgotPasswordPage() {
+  const { data: session, isPending } = useSession();
+
+  if (isPending) return null;
+
   if (session?.user) redirect('/app');
 
   return (
     <AuthShell
-      title='Reset your password'
+      title='Reset Your Password'
       subtitle="Enter your email and we'll send you a link to set a new password."
     >
       <ForgotPasswordForm />

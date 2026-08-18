@@ -1,14 +1,15 @@
 'use client';
 
-import type React from 'react';
-
-import { useState } from 'react';
 import Link from 'next/link';
+import { useState } from 'react';
+
+import { CheckCircle2Icon, Loader2Icon } from 'lucide-react';
+
 import { requestPasswordReset } from '@/lib/auth-client';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2 } from 'lucide-react';
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState('');
@@ -25,7 +26,9 @@ export function ForgotPasswordForm() {
       await requestPasswordReset({ email, redirectTo: '/reset-password' });
       // Always report success so we never reveal whether an email is registered.
       setSent(true);
-    } catch {
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
       setSent(true);
     } finally {
       setLoading(false);
@@ -35,21 +38,21 @@ export function ForgotPasswordForm() {
   if (sent) {
     return (
       <div className='flex flex-col gap-5'>
-        <div className='border-border bg-card flex items-start gap-3 rounded-lg border p-4'>
-          <CheckCircle2
-            className='text-primary mt-0.5 size-5 shrink-0'
-            aria-hidden
-          />
-          <div className='text-sm leading-relaxed'>
-            <p className='text-foreground font-medium'>Check your email</p>
-            <p className='text-muted-foreground mt-1'>
-              If an account exists for that address, a reset link is on its way.
-            </p>
+        <div className='border-border bg-card flex flex-col items-center gap-2 rounded-lg border p-4'>
+          <div className='flex items-center gap-2'>
+            <CheckCircle2Icon
+              className='text-primary size-6 shrink-0'
+              aria-hidden
+            />
+            <p className='font-semibold'>Check your email</p>
           </div>
+          <p className='text-muted-foreground text-sm text-balance'>
+            If an account exists for that address, a reset link is on its way.
+          </p>
         </div>
         <Link
           href='/sign-in'
-          className='text-foreground text-center text-sm font-medium underline underline-offset-4'
+          className='text-foreground text-center text-sm font-medium underline'
         >
           Back to sign in
         </Link>
@@ -58,7 +61,7 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className='flex flex-col gap-5'>
+    <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
       <div className='flex flex-col gap-2'>
         <Label htmlFor='email'>Email</Label>
         <Input
@@ -73,21 +76,19 @@ export function ForgotPasswordForm() {
       </div>
 
       {error && (
-        <p className='text-destructive text-sm' role='alert'>
+        <p className='text-destructive text-center text-sm' role='alert'>
           {error}
         </p>
       )}
 
-      <Button type='submit' disabled={loading} className='mt-1 h-11 text-base'>
-        {loading ? 'Sending…' : 'Send reset link'}
+      <Button type='submit' disabled={loading} size='lg'>
+        {loading && <Loader2Icon className='animate-spin' aria-hidden />}
+        {loading ? 'Please wait…' : 'Reset Password'}
       </Button>
 
       <p className='text-muted-foreground text-center text-sm'>
         Remembered it?{' '}
-        <Link
-          href='/sign-in'
-          className='text-foreground font-medium underline underline-offset-4'
-        >
+        <Link href='/sign-in' className='text-foreground font-medium underline'>
           Sign in
         </Link>
       </p>
