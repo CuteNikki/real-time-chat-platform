@@ -57,6 +57,15 @@ export function ChatView({
   const isGroup = type === 'GROUP';
   const isRandom = type === 'RANDOM';
 
+  // Mirrors sendMessage's notification categories. Random matches never
+  // generate a MESSAGE notification server-side (you're always actively in
+  // the session), so there's nothing to chime for here either.
+  const notifyCategory = isGroup
+    ? 'roomMessage'
+    : isRandom
+      ? null
+      : 'directMessage';
+
   // Whether we've already ended this random chat (so unmount doesn't re-fire).
   const endedRef = useRef(initialEnded);
   useEffect(() => {
@@ -252,6 +261,7 @@ export function ChatView({
           showSenderNames={isGroup}
           onUserClickAction={isGroup ? setPreviewUserId : undefined}
           onEndedAction={handleEnded}
+          notifyCategory={notifyCategory}
         />
       </div>
 

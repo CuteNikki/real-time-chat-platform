@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { UserAvatar } from '@/components/user-avatar';
 import { useChat } from '@/hooks/use-chat';
 import { newId } from '@/lib/id';
-import type { ChatMessage } from '@/lib/types';
+import type { ChatMessage, NotificationCategory } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { ImagePlus, Loader2, SendHorizonal, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -31,6 +31,7 @@ export function ChatRoom({
   onEndedAction,
   emptyState,
   onUserClickAction,
+  notifyCategory = null,
 }: {
   chatId: string;
   currentUserId: string;
@@ -43,11 +44,19 @@ export function ChatRoom({
   emptyState?: React.ReactNode;
   // When provided, tapping another user's avatar or name opens their preview.
   onUserClickAction?: (userId: string) => void;
+  // Plays this category's chime for a message from someone else while this
+  // chat is open. The bell's popup and unread badge already stay quiet for
+  // an open chat (the sender skips notifying present recipients), so this is
+  // what lets you still hear that a message landed. Pass null (default) for
+  // chats that never notify at all, e.g. random matches.
+  notifyCategory?: NotificationCategory | null;
 }) {
   const { messages, ended, appendLocal } = useChat({
     chatId,
+    currentUserId,
     initialMessages,
     onEnded: onEndedAction,
+    notifyCategory,
   });
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);

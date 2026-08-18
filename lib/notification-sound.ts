@@ -57,6 +57,7 @@ export function playNotificationSound(
   category: NotificationCategory,
   volume: number,
 ) {
+  console.log('[v0] playNotificationSound', category, volume);
   const context = getContext();
   if (!context || volume <= 0) return;
   // Browsers may start the context suspended until a user gesture occurs.

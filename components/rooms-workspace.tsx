@@ -501,6 +501,7 @@ export function RoomsWorkspace({
                   initialMessages={messages}
                   showSenderNames
                   onUserClickAction={setPreviewUserId}
+                  notifyCategory='roomMessage'
                   emptyState={
                     <div className='text-center'>
                       <p className='text-sm font-medium'>

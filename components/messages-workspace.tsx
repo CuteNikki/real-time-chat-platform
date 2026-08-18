@@ -311,6 +311,7 @@ export function MessagesWorkspace({
                   initialMessages={messages}
                   allowImages
                   onUserClickAction={setPreviewUserId}
+                  notifyCategory='directMessage'
                   emptyState={
                     <p className='text-muted-foreground text-sm text-balance'>
                       This is the start of your conversation with{' '}
