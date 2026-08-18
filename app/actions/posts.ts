@@ -87,7 +87,7 @@ export async function createPost(input: {
   const id = newId('post');
   await db.insert(post).values({ id, userId, imageUrl, caption });
   revalidatePath('/app/feed');
-  revalidatePath('/app/settings');
+  revalidatePath('/app/settings/[tab]', 'page');
   return { id };
 }
 
@@ -106,7 +106,7 @@ export async function deletePost(postId: string) {
     .where(and(eq(post.id, postId), eq(post.userId, userId)));
   await db.delete(postLike).where(eq(postLike.postId, postId));
   revalidatePath('/app/feed');
-  revalidatePath('/app/settings');
+  revalidatePath('/app/settings/[tab]', 'page');
   return { ok: true };
 }
 
@@ -128,7 +128,7 @@ export async function updatePost(postId: string, caption: string) {
     .set({ caption: next || null })
     .where(and(eq(post.id, postId), eq(post.userId, userId)));
   revalidatePath('/app/feed');
-  revalidatePath('/app/settings');
+  revalidatePath('/app/settings/[tab]', 'page');
   return { caption: next || null };
 }
 
@@ -136,6 +136,22 @@ export async function getUserPosts(
   profileUserId: string,
 ): Promise<PostSummary[]> {
   const viewer = await getCurrentUser();
+
+  // Enforce the friends-only-posts privacy setting server-side too, so the
+  // data is never sent to a viewer who shouldn't see it, regardless of what
+  // the UI does with it.
+  if (viewer.id !== profileUserId) {
+    const [owner] = await db
+      .select({ friendsOnlyPosts: user.friendsOnlyPosts })
+      .from(user)
+      .where(eq(user.id, profileUserId))
+      .limit(1);
+    if (owner?.friendsOnlyPosts) {
+      const friends = await friendIds(profileUserId);
+      if (!friends.includes(viewer.id)) return [];
+    }
+  }
+
   const rows = await db
     .select({
       id: post.id,
@@ -239,6 +255,7 @@ export async function toggleLike(postId: string) {
           userId: p.authorId,
           type: 'LIKE',
           actorId: userId,
+          postId,
           body: `${liker?.name ?? 'Someone'} liked your post`,
         });
       }

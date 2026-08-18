@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { toast } from 'sonner';
@@ -90,7 +91,15 @@ function categoryForType(type: NotificationType): NotificationCategory {
 const isMessage = (n: NotificationSummary) => n.type === 'MESSAGE';
 const isLike = (n: NotificationSummary) => n.type === 'LIKE';
 
-export function NotificationBell({ userId }: { userId: string }) {
+export function NotificationBell({
+  userId,
+  username,
+}: {
+  userId: string;
+  // The current user's own username, used to deep-link LIKE notifications to
+  // the liked post on their own profile.
+  username: string | null;
+}) {
   const router = useRouter();
   const { data, mutate } = useSWR<Counts>(
     '/api/notifications/unread-count',
@@ -381,10 +390,12 @@ export function NotificationBell({ userId }: { userId: string }) {
                           <LikeRow
                             key={n.id}
                             n={n}
+                            username={username}
                             onView={() =>
                               n.actorId && setPreviewUserId(n.actorId)
                             }
                             onDelete={() => remove(n)}
+                            onNavigate={() => setOpen(false)}
                           />
                         ))}
                       </ul>
@@ -542,24 +553,39 @@ function RequestRow({
 
 function LikeRow({
   n,
+  username,
   onView,
   onDelete,
+  onNavigate,
 }: {
   n: NotificationSummary;
+  // The current user's own username, so we can deep-link to the liked post
+  // on their profile. Null if it hasn't loaded yet — falls back to plain text.
+  username: string | null;
   onView: () => void;
   onDelete: () => void;
+  onNavigate: () => void;
 }) {
+  const postHref =
+    n.postId && username ? `/app/u/${username}?post=${n.postId}` : null;
+
   return (
     <RowShell n={n} onDelete={onDelete}>
       <div className='flex items-start justify-between gap-2 pr-5'>
         <p className='text-sm leading-tight'>
           <span className='font-medium'>{n.actorName ?? 'Someone'}</span>
-          {n.body ? (
-            <span className='text-muted-foreground'>
-              {' '}
-              {stripName(n.body, n.actorName)}
-            </span>
-          ) : null}
+          <span className='text-muted-foreground'> liked your </span>
+          {postHref ? (
+            <Link
+              href={postHref}
+              onClick={onNavigate}
+              className='text-muted-foreground underline hover:text-foreground'
+            >
+              post
+            </Link>
+          ) : (
+            <span className='text-muted-foreground'>post</span>
+          )}
         </p>
         <span
           className='text-muted-foreground shrink-0 text-xs'

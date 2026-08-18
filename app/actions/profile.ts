@@ -89,6 +89,9 @@ async function buildProfile(
   const rel = await relationship(viewerId, u.id);
   const fc = await friendCount(u.id);
   const interests = await getInterests(u.id);
+  const isSelf = u.id === viewerId;
+  const postsVisible =
+    isSelf || !u.friendsOnlyPosts || rel.friendStatus === 'friends';
 
   return {
     id: u.id,
@@ -101,9 +104,11 @@ async function buildProfile(
     postCount,
     friendCount: fc,
     createdAt: u.createdAt.toISOString(),
-    isSelf: u.id === viewerId,
+    isSelf,
     friendStatus: rel.friendStatus,
     dmChatId: rel.dmChatId,
+    friendsOnlyPosts: u.friendsOnlyPosts,
+    postsVisible,
   };
 }
 
@@ -143,7 +148,20 @@ export async function getMyProfile() {
     image: u.image,
     bio: u.bio,
     interests,
+    friendsOnlyPosts: u.friendsOnlyPosts,
   };
+}
+
+// Toggle the "only friends can see your posts" privacy setting.
+export async function updatePostsVisibility(friendsOnly: boolean) {
+  const userId = await getUserId();
+  await db
+    .update(user)
+    .set({ friendsOnlyPosts: friendsOnly, updatedAt: new Date() })
+    .where(eq(user.id, userId));
+  revalidatePath('/app/settings/[tab]', 'page');
+  revalidatePath('/app');
+  return { friendsOnlyPosts: friendsOnly };
 }
 
 // Replace the current user's interest tags with a new set (deduped, capped).
@@ -173,7 +191,7 @@ export async function updateInterests(tags: string[]) {
       .onConflictDoNothing({ target: [interest.userId, interest.tag] });
   }
 
-  revalidatePath('/app/settings');
+  revalidatePath('/app/settings/[tab]', 'page');
   return { interests: cleaned };
 }
 
@@ -234,7 +252,7 @@ export async function updateProfile(input: {
   }
 
   await db.update(user).set(updates).where(eq(user.id, userId));
-  revalidatePath('/app/settings');
+  revalidatePath('/app/settings/[tab]', 'page');
   revalidatePath('/app');
   return { ok: true };
 }

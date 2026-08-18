@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import {
   Check,
   Clock,
+  Lock,
   MessageCircle,
   Pencil,
   UserMinus,
@@ -24,7 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { toast } from 'sonner';
 
 export function ProfileView({
@@ -238,13 +239,26 @@ export function ProfileView({
         </header>
 
         <div className='border-border mt-8 border-t pt-6'>
-          <PostGrid
-            posts={initialPosts}
-            emptyLabel={
-              profile.isSelf ? "You haven't posted yet." : 'No posts yet.'
-            }
-            isOwnProfile={profile.isSelf}
-          />
+          {profile.postsVisible ? (
+            <Suspense fallback={null}>
+              <PostGrid
+                posts={initialPosts}
+                emptyLabel={
+                  profile.isSelf ? "You haven't posted yet." : 'No posts yet.'
+                }
+                isOwnProfile={profile.isSelf}
+              />
+            </Suspense>
+          ) : (
+            <div className='flex flex-col items-center gap-3 py-16 text-center'>
+              <div className='bg-muted flex size-14 items-center justify-center rounded-full'>
+                <Lock className='text-muted-foreground size-6' aria-hidden />
+              </div>
+              <p className='text-muted-foreground text-sm'>
+                {profile.name}&apos;s posts are only visible to friends.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

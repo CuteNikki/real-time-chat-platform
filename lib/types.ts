@@ -65,6 +65,11 @@ export type UserProfile = {
   friendStatus: 'none' | 'friends' | 'incoming' | 'outgoing';
   // If a DM chat already exists between viewer and this user.
   dmChatId: string | null;
+  // Whether this profile's owner restricts posts to friends only.
+  friendsOnlyPosts: boolean;
+  // Whether the viewer is allowed to see this profile's posts, given
+  // friendsOnlyPosts + the viewer's relationship to the owner.
+  postsVisible: boolean;
 };
 
 export type NotificationType =
@@ -78,6 +83,9 @@ export type NotificationSummary = {
   actorUsername: string | null; // null only when the actor account is gone
   actorImage: string | null;
   chatId: string | null;
+  // Set for LIKE notifications: the liked post's id, so the row can deep-link
+  // to it. Null for other notification types.
+  postId: string | null;
   body: string | null;
   read: boolean;
   createdAt: string;

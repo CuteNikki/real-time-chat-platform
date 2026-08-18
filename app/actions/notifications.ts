@@ -20,6 +20,8 @@ export async function createNotification(input: {
   type: NotificationType;
   actorId?: string | null;
   chatId?: string | null;
+  // Set for LIKE notifications so the inbox can deep-link to the post.
+  postId?: string | null;
   body?: string | null;
   // Optional preference category override. MESSAGE notifications use this to
   // distinguish a direct message from a room message (both share the DB type).
@@ -33,12 +35,14 @@ export async function createNotification(input: {
       type: input.type,
       actorId: input.actorId ?? null,
       chatId: input.chatId ?? null,
+      postId: input.postId ?? null,
       body: input.body ?? null,
     });
     await pusherServer.trigger(userChannel(input.userId), EVENTS.NOTIFICATION, {
       id,
       type: input.type,
       category: input.category ?? null,
+      postId: input.postId ?? null,
       body: input.body ?? null,
     });
   } catch (err) {
@@ -66,6 +70,7 @@ export async function getNotifications(): Promise<NotificationSummary[]> {
       type: notification.type,
       actorId: notification.actorId,
       chatId: notification.chatId,
+      postId: notification.postId,
       body: notification.body,
       readAt: notification.readAt,
       createdAt: notification.createdAt,
@@ -108,6 +113,7 @@ export async function getNotifications(): Promise<NotificationSummary[]> {
     actorUsername: r.actorUsername,
     actorImage: r.actorImage,
     chatId: r.chatId,
+    postId: r.postId,
     body: r.body,
     read: r.readAt !== null,
     createdAt: r.createdAt.toISOString(),
