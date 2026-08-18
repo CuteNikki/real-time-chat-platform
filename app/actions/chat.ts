@@ -155,6 +155,25 @@ export async function sendMessage(input: {
           isNull(chatParticipant.leftAt),
         ),
       );
+
+    // Skip recipients who currently have this chat open — they're subscribed
+    // to its presence channel and already see the message land live, so a
+    // notification would be redundant. Fail open (notify everyone) if the
+    // presence lookup itself fails.
+    const presentUserIds = new Set<string>();
+    try {
+      const res = await pusherServer.get({
+        path: `/channels/${chatChannel(input.chatId)}/users`,
+      });
+      const data = (await res.json()) as { users?: { id: string }[] };
+      for (const u of data.users ?? []) presentUserIds.add(u.id);
+    } catch (err) {
+      console.log(
+        '[v0] presence lookup failed, notifying all recipients:',
+        err instanceof Error ? err.message : err,
+      );
+    }
+
     const preview = content
       ? content.slice(0, 80)
       : imageUrl
@@ -165,6 +184,7 @@ export async function sendMessage(input: {
       ? `${c.name ?? 'Room'} · ${currentUser.name}: ${preview}`
       : `${currentUser.name}: ${preview}`;
     for (const r of recipients) {
+      if (presentUserIds.has(r.userId)) continue;
       await createNotification({
         userId: r.userId,
         type: 'MESSAGE',

@@ -49,10 +49,13 @@ export async function createNotification(input: {
   }
 }
 
-// The "Messages" tab collapses per-chat message notifications; "Requests"
-// covers friend requests, accepts, and likes (general activity).
-function categoryOf(type: string): 'requests' | 'messages' {
-  return type === 'MESSAGE' ? 'messages' : 'requests';
+// The inbox splits into three tabs: "Messages" for per-chat message
+// notifications, "Likes" for post likes, and "Requests" for friend requests
+// and accepts.
+function categoryOf(type: string): 'requests' | 'messages' | 'likes' {
+  if (type === 'MESSAGE') return 'messages';
+  if (type === 'LIKE') return 'likes';
+  return 'requests';
 }
 
 export async function getNotifications(): Promise<NotificationSummary[]> {
@@ -126,7 +129,7 @@ export async function deleteNotification(id: string) {
 
 // Delete many notifications at once: a whole category, or everything.
 export async function clearNotifications(opts?: {
-  category?: 'requests' | 'messages';
+  category?: 'requests' | 'messages' | 'likes';
 }) {
   const userId = await getUserId();
   const base = eq(notification.userId, userId);
@@ -134,6 +137,10 @@ export async function clearNotifications(opts?: {
     await db
       .delete(notification)
       .where(and(base, eq(notification.type, 'MESSAGE')));
+  } else if (opts?.category === 'likes') {
+    await db
+      .delete(notification)
+      .where(and(base, eq(notification.type, 'LIKE')));
   } else if (opts?.category === 'requests') {
     await db
       .delete(notification)
@@ -149,7 +156,7 @@ export async function clearNotifications(opts?: {
   return { ok: true };
 }
 
-// Unread counts split into the two inbox tabs plus a total for the bell badge.
+// Unread counts split into the three inbox tabs plus a total for the bell badge.
 export async function getUnreadCounts() {
   const userId = await getUserId();
   const rows = await db
@@ -160,17 +167,20 @@ export async function getUnreadCounts() {
 
   let requests = 0;
   let messages = 0;
+  let likes = 0;
   for (const r of rows) {
-    if (categoryOf(r.type) === 'messages') messages += Number(r.count);
+    const cat = categoryOf(r.type);
+    if (cat === 'messages') messages += Number(r.count);
+    else if (cat === 'likes') likes += Number(r.count);
     else requests += Number(r.count);
   }
-  return { requests, messages, total: requests + messages };
+  return { requests, messages, likes, total: requests + messages + likes };
 }
 
 // Mark a set of notifications read, or a whole category, or everything.
 export async function markNotificationsRead(opts?: {
   ids?: string[];
-  category?: 'requests' | 'messages';
+  category?: 'requests' | 'messages' | 'likes';
 }) {
   const userId = await getUserId();
   const base = and(
@@ -188,6 +198,11 @@ export async function markNotificationsRead(opts?: {
       .update(notification)
       .set({ readAt: new Date() })
       .where(and(base, eq(notification.type, 'MESSAGE')));
+  } else if (opts?.category === 'likes') {
+    await db
+      .update(notification)
+      .set({ readAt: new Date() })
+      .where(and(base, eq(notification.type, 'LIKE')));
   } else if (opts?.category === 'requests') {
     await db
       .update(notification)
