@@ -120,36 +120,30 @@ export function AccountSettings() {
         </div>
         {sessionPending ? (
           <div className='border-border bg-card flex items-center gap-3 rounded-xl border p-4'>
-            <Skeleton className='size-4 shrink-0 rounded-full' />
-            <div className='space-y-1.5'>
-              <Skeleton className='h-4 w-40' />
-              <Skeleton className='h-3.5 w-20' />
+            <div className='space-y-1'>
+              <Skeleton className='h-5 w-40' />
+              <Skeleton className='h-4 w-20' />
             </div>
           </div>
         ) : session?.user ? (
           <div className='border-border bg-card flex items-center gap-3 rounded-xl border p-4'>
+            <div className='min-w-0 flex-1'>
+              <p className='truncate text-sm font-medium'>
+                {session.user.email}
+              </p>
+              <p className='text-muted-foreground text-sm'>
+                {session.user.emailVerified
+                  ? 'has been verified'
+                  : 'not verified yet'}
+              </p>
+            </div>
+
             {session.user.emailVerified ? (
               <MailCheckIcon
                 className='text-primary size-4 shrink-0'
                 aria-hidden
               />
             ) : (
-              <MailIcon
-                className='text-muted-foreground size-4 shrink-0'
-                aria-hidden
-              />
-            )}
-            {/* min-w-0 lets this shrink so a long email truncates instead of
-                pushing the Resend button off-screen on narrow viewports. */}
-            <div className='min-w-0 flex-1'>
-              <p className='truncate text-sm font-medium'>
-                {session.user.email}
-              </p>
-              <p className='text-muted-foreground text-sm'>
-                {session.user.emailVerified ? 'Verified' : 'Not verified yet'}
-              </p>
-            </div>
-            {!session.user.emailVerified && (
               <Button
                 variant='outline'
                 size='sm'
@@ -171,7 +165,7 @@ export function AccountSettings() {
         <div className='flex items-center gap-2'>
           <KeyRound className='text-muted-foreground size-4' aria-hidden />
           <h2 className='text-lg font-semibold tracking-tight'>
-            Change password
+            Change Password
           </h2>
         </div>
         <form onSubmit={handleChangePassword} className='space-y-4'>
@@ -224,11 +218,11 @@ export function AccountSettings() {
       </section>
 
       {/* Danger zone */}
-      <section className='border-destructive/40 bg-destructive/5 space-y-4 rounded-xl border p-5'>
+      <section className='border-destructive/40 bg-destructive/5 space-y-2 rounded-xl border p-5'>
         <div className='flex items-center gap-2'>
           <Trash2 className='text-destructive size-4' aria-hidden />
           <h2 className='text-destructive text-lg font-semibold tracking-tight'>
-            Delete account
+            Delete Account
           </h2>
         </div>
         <p className='text-muted-foreground text-sm leading-relaxed'>

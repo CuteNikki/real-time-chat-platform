@@ -1,19 +1,19 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Camera, Check, Loader2, Trash2, X } from 'lucide-react';
+import {
+  isUsernameAvailable,
+  updateInterests,
+  updateProfile,
+} from '@/app/actions/profile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/user-avatar';
+import { Camera, Check, Loader2, Trash2, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import {
-  isUsernameAvailable,
-  updateProfile,
-  updateInterests,
-} from '@/app/actions/profile';
 
 type Profile = {
   id: string;
@@ -186,17 +186,15 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
           <Button
             type='button'
             variant='secondary'
-            className='gap-2'
             onClick={() => fileRef.current?.click()}
           >
             <Camera className='size-4' aria-hidden />
-            {image ? 'Change photo' : 'Upload photo'}
+            {image ? 'Change' : 'Upload'}
           </Button>
           {image ? (
             <Button
               type='button'
-              variant='ghost'
-              className='text-muted-foreground gap-2'
+              variant='destructive'
               onClick={() => {
                 setImage(null);
                 if (fileRef.current) fileRef.current.value = '';
@@ -211,7 +209,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
 
       {/* Display name */}
       <div className='space-y-2'>
-        <Label htmlFor='name'>Display name</Label>
+        <Label htmlFor='name'>Display Name</Label>
         <Input
           id='name'
           value={name}
