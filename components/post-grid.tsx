@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import type { PostSummary } from '@/lib/types';
 import { ImageIcon, PlusIcon } from 'lucide-react';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export function PostGrid({
@@ -21,11 +21,28 @@ export function PostGrid({
   const [items, setItems] = useState<PostSummary[]>(posts);
   const [activeId, setActiveId] = useState<string | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   // Re-sync if the server sends a new list (e.g. after navigation/refresh).
   useEffect(() => {
     setItems(posts);
   }, [posts]);
+
+  // Deep-linking: a notification can point here via `?post=<id>` (e.g. "X
+  // liked your post"). Open that post's dialog once it's in the list, then
+  // drop the param so refreshing/closing doesn't reopen it.
+  useEffect(() => {
+    const postId = searchParams.get('post');
+    if (!postId) return;
+    if (items.some((p) => p.id === postId)) {
+      setActiveId(postId);
+      const params = new URLSearchParams(searchParams);
+      params.delete('post');
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    }
+  }, [searchParams, items, router, pathname]);
 
   const active = items.find((p) => p.id === activeId) ?? null;
 

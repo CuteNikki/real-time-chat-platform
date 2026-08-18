@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useSWR from 'swr';
 import { toast } from 'sonner';
@@ -43,7 +44,12 @@ import type {
   NotificationType,
 } from '@/lib/types';
 
-type Counts = { requests: number; messages: number; total: number };
+type Counts = {
+  requests: number;
+  messages: number;
+  likes: number;
+  total: number;
+};
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -83,8 +89,17 @@ function categoryForType(type: NotificationType): NotificationCategory {
 }
 
 const isMessage = (n: NotificationSummary) => n.type === 'MESSAGE';
+const isLike = (n: NotificationSummary) => n.type === 'LIKE';
 
-export function NotificationBell({ userId }: { userId: string }) {
+export function NotificationBell({
+  userId,
+  username,
+}: {
+  userId: string;
+  // The current user's own username, used to deep-link LIKE notifications to
+  // the liked post on their own profile.
+  username: string | null;
+}) {
   const router = useRouter();
   const { data, mutate } = useSWR<Counts>(
     '/api/notifications/unread-count',
@@ -96,7 +111,9 @@ export function NotificationBell({ userId }: { userId: string }) {
   const total = data?.total ?? 0;
 
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'requests' | 'messages'>('requests');
+  const [tab, setTab] = useState<'requests' | 'messages' | 'likes'>(
+    'requests',
+  );
   const [items, setItems] = useState<NotificationSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -104,8 +121,9 @@ export function NotificationBell({ userId }: { userId: string }) {
 
   const { prefs } = useNotificationPrefs();
 
-  const requests = items.filter((n) => !isMessage(n));
+  const requests = items.filter((n) => !isMessage(n) && !isLike(n));
   const messages = items.filter(isMessage);
+  const likes = items.filter(isLike);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -157,21 +175,25 @@ export function NotificationBell({ userId }: { userId: string }) {
   // Mark the active tab's notifications read shortly after viewing.
   useEffect(() => {
     if (!open) return;
-    const list = tab === 'messages' ? messages : requests;
+    const list = tab === 'messages' ? messages : tab === 'likes' ? likes : requests;
     if (!list.some((n) => !n.read)) return;
     const t = setTimeout(async () => {
       await markNotificationsRead({ category: tab });
       setItems((prev) =>
-        prev.map((n) =>
-          (tab === 'messages' ? isMessage(n) : !isMessage(n))
-            ? { ...n, read: true }
-            : n,
-        ),
+        prev.map((n) => {
+          const inTab =
+            tab === 'messages'
+              ? isMessage(n)
+              : tab === 'likes'
+                ? isLike(n)
+                : !isMessage(n) && !isLike(n);
+          return inTab ? { ...n, read: true } : n;
+        }),
       );
       mutate();
     }, 800);
     return () => clearTimeout(t);
-  }, [open, tab, requests, messages, mutate]);
+  }, [open, tab, requests, messages, likes, mutate]);
 
   async function respond(n: NotificationSummary, accept: boolean) {
     if (!n.inviteId || busyId) return;
@@ -207,9 +229,11 @@ export function NotificationBell({ userId }: { userId: string }) {
   async function clearTab() {
     const category = tab;
     setItems((prev) =>
-      prev.filter((n) =>
-        category === 'messages' ? !isMessage(n) : isMessage(n),
-      ),
+      prev.filter((n) => {
+        if (category === 'messages') return !isMessage(n);
+        if (category === 'likes') return !isLike(n);
+        return isMessage(n) || isLike(n);
+      }),
     );
     try {
       await clearNotifications({ category });
@@ -226,6 +250,9 @@ export function NotificationBell({ userId }: { userId: string }) {
 
   const unreadRequests = requests.filter((n) => !n.read).length;
   const unreadMessages = messages.filter((n) => !n.read).length;
+  const unreadLikes = likes.filter((n) => !n.read).length;
+
+  const activeList = tab === 'messages' ? messages : tab === 'likes' ? likes : requests;
 
   return (
     <>
@@ -259,7 +286,7 @@ export function NotificationBell({ userId }: { userId: string }) {
         >
           <div className='border-border flex items-center justify-between gap-2 border-b px-3 py-2.5'>
             <h2 className='text-sm font-semibold'>Notifications</h2>
-            {(tab === 'requests' ? requests : messages).length > 0 && (
+            {activeList.length > 0 && (
               <button
                 type='button'
                 onClick={clearTab}
@@ -272,7 +299,9 @@ export function NotificationBell({ userId }: { userId: string }) {
 
           <Tabs
             value={tab}
-            onValueChange={(v) => setTab(v as 'requests' | 'messages')}
+            onValueChange={(v) =>
+              setTab(v as 'requests' | 'messages' | 'likes')
+            }
           >
             <div className='px-3 pt-3'>
               <TabsList className='w-full'>
@@ -292,6 +321,14 @@ export function NotificationBell({ userId }: { userId: string }) {
                     </Badge>
                   ) : null}
                 </TabsTrigger>
+                <TabsTrigger value='likes' className='gap-2'>
+                  Likes
+                  {unreadLikes > 0 ? (
+                    <Badge className='h-5 min-w-5 justify-center px-1 tabular-nums'>
+                      {unreadLikes}
+                    </Badge>
+                  ) : null}
+                </TabsTrigger>
               </TabsList>
             </div>
 
@@ -307,7 +344,7 @@ export function NotificationBell({ userId }: { userId: string }) {
                 <>
                   <TabsContent value='requests'>
                     {requests.length === 0 ? (
-                      <EmptyState label='No friend requests or updates.' />
+                      <EmptyState label='No friend requests right now.' />
                     ) : (
                       <ul className='flex flex-col gap-1.5'>
                         {requests.map((n) => (
@@ -338,6 +375,27 @@ export function NotificationBell({ userId }: { userId: string }) {
                             n={n}
                             onOpen={() => openMessage(n)}
                             onDelete={() => remove(n)}
+                          />
+                        ))}
+                      </ul>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value='likes'>
+                    {likes.length === 0 ? (
+                      <EmptyState label='No likes on your posts yet.' />
+                    ) : (
+                      <ul className='flex flex-col gap-1.5'>
+                        {likes.map((n) => (
+                          <LikeRow
+                            key={n.id}
+                            n={n}
+                            username={username}
+                            onView={() =>
+                              n.actorId && setPreviewUserId(n.actorId)
+                            }
+                            onDelete={() => remove(n)}
+                            onNavigate={() => setOpen(false)}
                           />
                         ))}
                       </ul>
@@ -481,6 +539,62 @@ function RequestRow({
           </Button>
         </div>
       ) : n.actorId ? (
+        <button
+          type='button'
+          onClick={onView}
+          className='text-primary mt-1 text-xs font-medium hover:underline'
+        >
+          View profile
+        </button>
+      ) : null}
+    </RowShell>
+  );
+}
+
+function LikeRow({
+  n,
+  username,
+  onView,
+  onDelete,
+  onNavigate,
+}: {
+  n: NotificationSummary;
+  // The current user's own username, so we can deep-link to the liked post
+  // on their profile. Null if it hasn't loaded yet — falls back to plain text.
+  username: string | null;
+  onView: () => void;
+  onDelete: () => void;
+  onNavigate: () => void;
+}) {
+  const postHref =
+    n.postId && username ? `/app/u/${username}?post=${n.postId}` : null;
+
+  return (
+    <RowShell n={n} onDelete={onDelete}>
+      <div className='flex items-start justify-between gap-2 pr-5'>
+        <p className='text-sm leading-tight'>
+          <span className='font-medium'>{n.actorName ?? 'Someone'}</span>
+          <span className='text-muted-foreground'> liked your </span>
+          {postHref ? (
+            <Link
+              href={postHref}
+              onClick={onNavigate}
+              className='text-muted-foreground underline hover:text-foreground'
+            >
+              post
+            </Link>
+          ) : (
+            <span className='text-muted-foreground'>post</span>
+          )}
+        </p>
+        <span
+          className='text-muted-foreground shrink-0 text-xs'
+          suppressHydrationWarning
+        >
+          {timeAgo(n.createdAt)}
+        </span>
+      </div>
+      {n.actorId ? (
         <button
           type='button'
           onClick={onView}

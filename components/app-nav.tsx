@@ -124,7 +124,7 @@ export function AppNav({
         </nav>
 
         <div className='flex items-center gap-1'>
-          <NotificationBell userId={user.id} />
+            <NotificationBell userId={user.id} username={user.username ?? null} />
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(

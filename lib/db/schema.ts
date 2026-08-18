@@ -25,6 +25,9 @@ export const user = pgTable(
     role: text('role').notNull().default('MEMBER'),
     // JSON-serialized NotificationPreferences. Null = use app defaults.
     notificationPrefs: text('notificationPrefs'),
+    // Privacy: when true, only accepted friends (and the owner) can see this
+    // user's posts. Off by default, so posts stay publicly viewable.
+    friendsOnlyPosts: boolean('friendsOnlyPosts').notNull().default(false),
     // Denormalized current ban status for fast per-request gating. Full history
     // lives in the `ban` table. `banExpiresAt` null while banned = permanent.
     isBanned: boolean('isBanned').notNull().default(false),
@@ -256,8 +259,8 @@ export const bannedIp = pgTable(
   }),
 );
 
-// A notification for a user: friend requests, accepts, and new messages.
-// type: "FRIEND_REQUEST" | "FRIEND_ACCEPT" | "MESSAGE"
+// A notification for a user: friend requests, accepts, likes, and new messages.
+// type: "FRIEND_REQUEST" | "FRIEND_ACCEPT" | "MESSAGE" | "LIKE"
 export const notification = pgTable(
   'notification',
   {
@@ -266,6 +269,8 @@ export const notification = pgTable(
     type: text('type').notNull(),
     actorId: text('actorId'),
     chatId: text('chatId'),
+    // Set for LIKE notifications, so the inbox can deep-link to the post.
+    postId: text('postId'),
     // Free-form context: sender name, message preview, etc.
     body: text('body'),
     readAt: timestamp('readAt'),

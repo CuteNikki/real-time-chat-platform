@@ -40,6 +40,17 @@ function getContext(): AudioContext | null {
   return ctx;
 }
 
+// Browsers keep a freshly-created AudioContext suspended until it's resumed
+// from inside a user-gesture handler. Realtime notifications arrive over a
+// Pusher callback (not a gesture), so if we wait until the first one to
+// create/resume the context it can silently stay suspended forever. Call
+// this from any early click/keydown/touch on the page so the context is
+// already running by the time a notification needs to play.
+export function unlockAudioContext() {
+  const context = getContext();
+  if (context && context.state === 'suspended') void context.resume();
+}
+
 // Play the chime for a category at the given master volume (0..1). Safe to call
 // anywhere; silently no-ops when Web Audio is unavailable or volume is 0.
 export function playNotificationSound(

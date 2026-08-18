@@ -1,9 +1,12 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { AccountSettings } from '@/components/account-settings';
 import { PreferenceSettings } from '@/components/preference-settings';
+import { PrivacySettings } from '@/components/privacy-settings';
 import { ProfileSettings } from '@/components/profile-settings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { SettingsTab } from '@/lib/settings-tabs';
 
 type SettingsProfile = {
   id: string;
@@ -12,22 +15,72 @@ type SettingsProfile = {
   image: string | null;
   bio: string | null;
   interests: string[];
+  friendsOnlyPosts: boolean;
 };
 
-export function SettingsTabs({ profile }: { profile: SettingsProfile }) {
+export function SettingsTabs({
+  profile,
+  tab,
+}: {
+  profile: SettingsProfile;
+  // The active tab, resolved from the URL by the page. Defaults to "profile".
+  tab: SettingsTab;
+}) {
+  const router = useRouter();
+
   return (
-    <Tabs defaultValue='profile' className='w-full'>
-      <TabsList className='mb-6 w-full justify-start'>
-        <TabsTrigger value='profile'>Profile</TabsTrigger>
-        <TabsTrigger value='account'>Account</TabsTrigger>
-        <TabsTrigger value='preferences'>Preferences</TabsTrigger>
-      </TabsList>
+    <Tabs
+      value={tab}
+      onValueChange={(v) => {
+        // Keep the URL in sync so /app/settings/<tab> is shareable and
+        // browser back/forward works, without a full page reload.
+        router.push(`/app/settings/${v}`, { scroll: false });
+      }}
+      className='w-full'
+    >
+      {/* On narrow screens, four equal-width tabs get too cramped to tap
+          comfortably. Let the bar scroll horizontally at its natural size
+          instead of squeezing labels — bleed to the page edges so it scrolls
+          under the same padding the rest of the page uses. overflow-y-hidden
+          is required alongside overflow-x-auto: CSS forces a "visible" y-axis
+          to compute as "auto" once x is anything but visible, which is what
+          was producing the stray vertical scrollbar. The edge fades signal
+          "more tabs this way" instead of hard-clipping the last label. */}
+      <div className='relative -mx-4 mb-6 sm:mx-0'>
+        <div className='overflow-x-auto overflow-y-hidden px-4 sm:overflow-visible sm:px-0'>
+          <TabsList className='w-max sm:w-fit'>
+            <TabsTrigger value='profile' className='flex-none px-3'>
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value='account' className='flex-none px-3'>
+              Account
+            </TabsTrigger>
+            <TabsTrigger value='privacy' className='flex-none px-3'>
+              Privacy
+            </TabsTrigger>
+            <TabsTrigger value='preferences' className='flex-none px-3'>
+              Preferences
+            </TabsTrigger>
+          </TabsList>
+        </div>
+        <div
+          className='pointer-events-none absolute inset-y-0 left-0 w-4 bg-gradient-to-r from-background to-transparent sm:hidden'
+          aria-hidden
+        />
+        <div
+          className='pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden'
+          aria-hidden
+        />
+      </div>
 
       <TabsContent value='profile'>
         <ProfileSettings profile={profile} />
       </TabsContent>
       <TabsContent value='account'>
         <AccountSettings />
+      </TabsContent>
+      <TabsContent value='privacy'>
+        <PrivacySettings initialFriendsOnlyPosts={profile.friendsOnlyPosts} />
       </TabsContent>
       <TabsContent value='preferences'>
         <PreferenceSettings />
