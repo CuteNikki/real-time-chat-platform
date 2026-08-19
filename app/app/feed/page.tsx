@@ -14,7 +14,7 @@ export default async function FeedPage() {
   const posts = await getFeed();
 
   return (
-    <div className='h-full w-full overflow-y-auto pt-16 xs:pt-20'>
+    <div className='xs:pt-20 h-full w-full overflow-y-auto pt-16 pb-14 md:pb-0'>
       <div className='mx-auto w-full max-w-xl px-4 py-6'>
         <h1 className='mb-4 text-2xl font-semibold tracking-tight'>Feed</h1>
         <div className='mb-6'>
