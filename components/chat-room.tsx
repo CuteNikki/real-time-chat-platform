@@ -1,17 +1,22 @@
 'use client';
 
 import type React from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+
+import { ImagePlusIcon, Loader2Icon, SendHorizonal, XIcon } from 'lucide-react';
 
 import { sendMessage } from '@/app/actions/chat';
-import { Button } from '@/components/ui/button';
-import { UserAvatar } from '@/components/user-avatar';
+
 import { useChat } from '@/hooks/use-chat';
+
 import { newId } from '@/lib/id';
 import type { ChatMessage, NotificationCategory } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { ImagePlus, Loader2, SendHorizonal, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { UserAvatar } from '@/components/user-avatar';
 
 function timeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString([], {
@@ -97,13 +102,13 @@ export function ChatRoom({
     }
   }
 
-  async function submit(e: React.FormEvent) {
+  async function submit(
+    e: React.SubmitEvent | React.KeyboardEvent<HTMLTextAreaElement>,
+  ) {
     e.preventDefault();
     const content = text.trim();
     if ((!content && !pendingImage) || sending || ended) return;
 
-    // Optimistic message. The client-generated id is passed to the server so
-    // the saved row and realtime echo reuse it, keeping a single deduped copy.
     const clientId = newId('msg');
     const optimistic: ChatMessage = {
       id: clientId,
@@ -210,7 +215,6 @@ export function ChatRoom({
                       )}
                     >
                       {m.imageUrl && (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={m.imageUrl || '/placeholder.svg'}
                           alt='Shared image'
@@ -239,24 +243,24 @@ export function ChatRoom({
       </div>
 
       {/* Composer */}
-      <div className='border-border bg-background border-t px-4 py-3 sm:px-6'>
-        <div className='w-full'>
+      <div className='border-border bg-background border-t p-2'>
+        <div className='flex w-full flex-col gap-2'>
           {pendingImage && (
-            <div className='relative mb-2 inline-block'>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+            <div className='relative self-start'>
               <img
                 src={pendingImage || '/placeholder.svg'}
                 alt='Pending upload preview'
                 className='border-border max-h-28 rounded-lg border object-cover'
               />
-              <button
+              <Button
                 type='button'
                 onClick={() => setPendingImage(null)}
-                className='bg-foreground text-background absolute -top-2 -right-2 flex size-6 items-center justify-center rounded-full'
+                className='absolute -top-1 -right-1'
+                size='icon-xs'
                 aria-label='Remove image'
               >
-                <X className='size-3.5' aria-hidden />
-              </button>
+                <XIcon aria-hidden />
+              </Button>
             </div>
           )}
           {ended ? (
@@ -264,7 +268,7 @@ export function ChatRoom({
               This conversation has ended.
             </p>
           ) : (
-            <form onSubmit={submit} className='flex items-end gap-2'>
+            <form onSubmit={submit} className='flex items-center gap-2'>
               {allowImages && (
                 <>
                   <input
@@ -277,21 +281,21 @@ export function ChatRoom({
                   <Button
                     type='button'
                     variant='outline'
-                    size='icon'
-                    className='size-11 shrink-0 bg-transparent'
+                    size='icon-lg'
                     disabled={uploading}
                     onClick={() => fileRef.current?.click()}
                     aria-label='Attach image'
                   >
                     {uploading ? (
-                      <Loader2 className='size-5 animate-spin' aria-hidden />
+                      <Loader2Icon className='animate-spin' aria-hidden />
                     ) : (
-                      <ImagePlus className='size-5' aria-hidden />
+                      <ImagePlusIcon aria-hidden />
                     )}
                   </Button>
                 </>
               )}
-              <textarea
+              <Textarea
+                id='message'
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 onKeyDown={(e) => {
@@ -302,21 +306,20 @@ export function ChatRoom({
                     )
                       return;
                     e.preventDefault();
-                    submit(e as unknown as React.FormEvent);
+                    submit(e);
                   }
                 }}
+                className='max-h-18 min-h-0! resize-none'
                 rows={1}
                 placeholder='Type a message…'
-                className='border-input bg-card ring-ring max-h-32 min-h-11 flex-1 resize-none rounded-xl border px-4 py-3 text-sm outline-none focus-visible:ring-2'
               />
               <Button
                 type='submit'
-                size='icon'
-                className='size-11 shrink-0'
+                size='icon-lg'
                 disabled={sending || (!text.trim() && !pendingImage)}
                 aria-label='Send message'
               >
-                <SendHorizonal className='size-5' aria-hidden />
+                <SendHorizonal aria-hidden />
               </Button>
             </form>
           )}
