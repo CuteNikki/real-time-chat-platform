@@ -20,7 +20,7 @@ export default async function MessagesPage({
   const conversations = await getPrivateConversations();
 
   return (
-    <div className='xs:pt-20 h-full w-full overflow-y-auto pt-16 pb-14 md:pb-0'>
+    <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>
       <MessagesWorkspace
         currentUserId={session.user.id}
         currentUserName={session.user.name}

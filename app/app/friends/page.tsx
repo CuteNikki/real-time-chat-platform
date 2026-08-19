@@ -20,7 +20,7 @@ export default async function FriendsPage() {
   ]);
 
   return (
-    <div className='xs:pt-20 h-full w-full overflow-y-auto pt-16 pb-14 md:pb-0'>
+    <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>
       <div className='mx-auto w-full max-w-2xl px-4 py-8'>
         <h1 className='mb-1 text-2xl font-semibold tracking-tight'>Friends</h1>
         <p className='text-muted-foreground mb-6 text-sm'>

@@ -21,7 +21,7 @@ export default async function SettingsTabPage({
   if (!profile) redirect('/sign-in');
 
   return (
-    <div className='xs:pt-20 h-full w-full overflow-y-auto pt-16 pb-14 md:pb-0'>
+    <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>
       <div className='mx-auto w-full max-w-2xl px-4 py-8'>
         <h1 className='mb-6 text-2xl font-semibold tracking-tight'>Settings</h1>
         <SettingsTabs profile={profile} tab={tab} />

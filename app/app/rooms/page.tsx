@@ -17,7 +17,7 @@ export default async function RoomsPage() {
   const [rooms, role] = await Promise.all([listRooms(), getMyRole()]);
 
   return (
-    <div className='xs:pt-20 h-full w-full overflow-y-auto pt-16 pb-14 md:pb-0'>
+    <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>
       <RoomsWorkspace
         initialRooms={rooms}
         me={{

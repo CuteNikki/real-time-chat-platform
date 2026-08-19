@@ -7,6 +7,7 @@ import { getMessages } from '@/app/actions/chat';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { chat, chatParticipant, user } from '@/lib/db/schema';
+import { ChatType } from '@/lib/types';
 
 import { ChatView } from '@/components/chat-view';
 
@@ -66,18 +67,20 @@ export default async function ChatPage({
   }
 
   return (
-    <ChatView
-      chatId={chatId}
-      type={c.type as 'RANDOM' | 'GROUP' | 'PRIVATE'}
-      title={title}
-      subtitle={subtitle}
-      partnerId={partnerId}
-      partnerImage={partnerImage}
-      ended={!!c.endedAt}
-      currentUserId={me.id}
-      currentUserName={me.name}
-      currentUserImage={me.image ?? null}
-      initialMessages={messages}
-    />
+    <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>
+      <ChatView
+        chatId={chatId}
+        type={c.type as ChatType}
+        title={title}
+        subtitle={subtitle}
+        partnerId={partnerId}
+        partnerImage={partnerImage}
+        ended={!!c.endedAt}
+        currentUserId={me.id}
+        currentUserName={me.name}
+        currentUserImage={me.image ?? null}
+        initialMessages={messages}
+      />
+    </div>
   );
 }
