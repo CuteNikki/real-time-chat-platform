@@ -37,7 +37,6 @@ export function ChatView({
   chatId,
   type,
   title,
-  subtitle,
   partnerId,
   partnerImage,
   ended: initialEnded,
@@ -49,7 +48,6 @@ export function ChatView({
   chatId: string;
   type: ChatType;
   title: string;
-  subtitle: string;
   partnerId: string | null;
   partnerImage: string | null;
   ended: boolean;
