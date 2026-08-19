@@ -243,7 +243,7 @@ export function ChatRoom({
       </div>
 
       {/* Composer */}
-      <div className='border-border bg-background border-t p-2'>
+      <div className='border-border bg-background border-t p-2 xs:p-4'>
         <div className='flex w-full flex-col gap-2'>
           {pendingImage && (
             <div className='relative self-start'>
