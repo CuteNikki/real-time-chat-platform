@@ -96,10 +96,10 @@ export function AppNav({
       )}
     >
       <div className='xs:p-6 mx-auto flex w-full max-w-7xl items-center justify-between p-4'>
-        <div className='flex items-center gap-2'>
+        <Link href='/' className='flex items-center gap-2'>
           <OrbitIcon className='text-primary size-6' aria-hidden />
           <span className='text-lg font-semibold tracking-tight'>Orbit</span>
-        </div>
+        </Link>
 
         <nav className='hidden items-center gap-1 md:flex'>
           {links.map((link) => {
