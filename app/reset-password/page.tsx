@@ -10,7 +10,7 @@ export default async function ResetPasswordPage({
 
   return (
     <AuthShell
-      title='Set a new password'
+      title='Set Your Password'
       subtitle="Choose a strong password you don't use elsewhere."
     >
       <ResetPasswordForm token={token ?? null} tokenError={error ?? null} />

@@ -1,11 +1,13 @@
 'use client';
 
-import type React from 'react';
-
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+import { Loader2Icon } from 'lucide-react';
+
 import { resetPassword } from '@/lib/auth-client';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -49,22 +51,22 @@ export function ResetPasswordForm({
 
   if (invalidToken) {
     return (
-      <div className='flex flex-col gap-5'>
+      <div className='flex flex-col gap-2'>
         <p className='text-destructive text-sm' role='alert'>
           This reset link is invalid or has expired. Request a new one.
         </p>
         <Link
           href='/forgot-password'
-          className='text-foreground text-center text-sm font-medium underline underline-offset-4'
+          className='text-foreground text-center text-sm font-medium underline'
         >
-          Request a new link
+          Request New Link
         </Link>
       </div>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className='flex flex-col gap-5'>
+    <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
       <div className='flex flex-col gap-2'>
         <Label htmlFor='password'>New password</Label>
         <Input
@@ -93,13 +95,14 @@ export function ResetPasswordForm({
       </div>
 
       {error && (
-        <p className='text-destructive text-sm' role='alert'>
+        <p className='text-destructive text-center text-sm' role='alert'>
           {error}
         </p>
       )}
 
-      <Button type='submit' disabled={loading} className='mt-1 h-11 text-base'>
-        {loading ? 'Saving…' : 'Update password'}
+      <Button type='submit' disabled={loading} size='lg'>
+        {loading && <Loader2Icon className='animate-spin' aria-hidden />}
+        {loading ? 'Saving…' : 'Update Password'}
       </Button>
     </form>
   );

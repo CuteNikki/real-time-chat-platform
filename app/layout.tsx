@@ -12,10 +12,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Orbit — Live Chat & Random Match',
+  title: 'Orbit | Connect Now!',
   description:
     'Get matched with a stranger, spin up group rooms, or invite friends to private chats. Real-time conversations, instant connections.',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
