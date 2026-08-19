@@ -315,7 +315,7 @@ export function AdminView({
                       {canManageRoles && (
                         <DropdownMenuRadioGroup
                           value={u.role}
-                          onValueChange={(r) => changeRole(u, r)}
+                          onValueChange={(r) => changeRole(u, r as Role)}
                         >
                           {moderatable && <DropdownMenuSeparator />}
                           <DropdownMenuLabel>Change role</DropdownMenuLabel>
