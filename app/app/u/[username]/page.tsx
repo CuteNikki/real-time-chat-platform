@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation';
-import { getProfileByUsername } from '@/app/actions/profile';
+
 import { getUserPosts } from '@/app/actions/posts';
+import { getProfileByUsername } from '@/app/actions/profile';
+
 import { ProfileView } from '@/components/profile-view';
 
 export default async function ProfilePage({
@@ -14,5 +16,9 @@ export default async function ProfilePage({
 
   const posts = await getUserPosts(profile.id);
 
-  return <ProfileView profile={profile} initialPosts={posts} />;
+  return (
+    <div className='xs:pt-20 h-full w-full overflow-y-auto pt-16 pb-14 md:pb-0'>
+      <ProfileView profile={profile} initialPosts={posts} />
+    </div>
+  );
 }
