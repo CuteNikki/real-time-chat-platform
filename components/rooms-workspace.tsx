@@ -1,9 +1,30 @@
 'use client';
 
+import { useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import useSWR from 'swr';
+
+import {
+  ArrowLeftIcon,
+  HashIcon,
+  Loader2Icon,
+  MessageCircleQuestionMarkIcon,
+  MessagesSquareIcon,
+  Plus,
+  Trash2Icon,
+  Users2Icon,
+} from 'lucide-react';
 
 import { getMessages } from '@/app/actions/chat';
 import { createRoom, deleteRoom, joinRoom } from '@/app/actions/rooms';
+
+import { RoomMember, useRoomMembers } from '@/hooks/use-room-members';
+
+import type { ChatMessage, RoomSummary } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
 import { ChatRoom } from '@/components/chat-room';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,23 +41,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UserAvatar } from '@/components/user-avatar';
 import { UserPreviewDialog } from '@/components/user-preview';
-import { RoomMember, useRoomMembers } from '@/hooks/use-room-members';
-import type { ChatMessage, RoomSummary } from '@/lib/types';
-import { cn } from '@/lib/utils';
-import {
-  ArrowLeftIcon,
-  HashIcon,
-  Loader2Icon,
-  MessageCircleQuestionMarkIcon,
-  MessagesSquareIcon,
-  Plus,
-  Trash2Icon,
-  Users2Icon,
-} from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
