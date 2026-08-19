@@ -6,13 +6,13 @@ import useSWR from 'swr';
 
 import {
   HomeIcon,
-  LogOut,
+  LogOutIcon,
   MessageCircleIcon,
   OrbitIcon,
-  Settings,
-  Shield,
+  SettingsIcon,
+  ShieldIcon,
   ShuffleIcon,
-  User,
+  User2Icon,
   UserPlus2Icon,
   Users2Icon,
 } from 'lucide-react';
@@ -91,7 +91,7 @@ export function AppNav({
   return (
     <header
       className={cn(
-        'bg-background/90 fixed inset-x-0 top-0 z-50 backdrop-blur-md',
+        'bg-background/70 fixed inset-x-0 top-0 z-50 backdrop-blur-md',
         hideBorder ? '' : 'border-b',
       )}
     >
@@ -163,26 +163,23 @@ export function AppNav({
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem render={<Link href={profileHref} />}>
-                <User className='size-4' aria-hidden />
-                My profile
+                <User2Icon aria-hidden />
+                Profile
               </DropdownMenuItem>
               <DropdownMenuItem render={<Link href='/app/settings' />}>
-                <Settings className='size-4' aria-hidden />
+                <SettingsIcon aria-hidden />
                 Settings
               </DropdownMenuItem>
               {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
                 <DropdownMenuItem render={<Link href='/app/admin' />}>
-                  <Shield className='size-4' aria-hidden />
-                  Admin
+                  <ShieldIcon aria-hidden />
+                  Dashboard
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={signOut}
-                className='text-destructive focus:text-destructive'
-              >
-                <LogOut className='size-4' aria-hidden />
-                Sign out
+              <DropdownMenuItem onClick={signOut} variant='destructive'>
+                <LogOutIcon aria-hidden />
+                Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -192,8 +189,6 @@ export function AppNav({
   );
 }
 
-// Primary navigation as a bottom tab bar on small screens, where the icons
-// don't fit in the top header. Hidden at md+ (the header nav takes over).
 export function MobileBottomNav() {
   const pathname = usePathname();
 
@@ -209,7 +204,7 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label='Primary'
-      className='border-border bg-background/80 flex shrink-0 items-stretch justify-around border-t backdrop-blur md:hidden'
+      className='border-border bg-background/70 fixed inset-x-0 bottom-0 z-50 flex shrink-0 items-stretch justify-around border-t backdrop-blur-md md:hidden'
     >
       {links.map((link) => {
         const active = link.exact
@@ -222,14 +217,14 @@ export function MobileBottomNav() {
             key={link.href}
             href={link.href}
             className={cn(
-              'relative flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium transition-colors',
+              'relative flex flex-1 flex-col items-center gap-1 py-2 text-xs font-medium transition-colors',
               active
                 ? 'text-foreground'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
             <span className='relative'>
-              <Icon className='size-5' aria-hidden />
+              <Icon className='size-4' aria-hidden />
               {showBadge && (
                 <Badge
                   className='absolute -top-1.5 -right-2 h-4 min-w-4 justify-center px-1 text-[10px] tabular-nums'
