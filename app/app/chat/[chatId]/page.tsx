@@ -42,7 +42,6 @@ export default async function ChatPage({
 
   // Build a title. For 1-on-1 (RANDOM/PRIVATE) show the other person's name.
   let title = c.name ?? 'Chat';
-  let subtitle = '';
   let partnerId: string | null = null;
   let partnerImage: string | null = null;
   if (c.type === 'RANDOM' || c.type === 'PRIVATE') {
@@ -59,11 +58,8 @@ export default async function ChatPage({
       .limit(1);
     title =
       others[0]?.name ?? (c.type === 'RANDOM' ? 'Anonymous' : 'Private chat');
-    subtitle = c.type === 'RANDOM' ? 'Random match' : 'Private chat';
     partnerId = others[0]?.id ?? null;
     partnerImage = others[0]?.image ?? null;
-  } else {
-    subtitle = 'Group room';
   }
 
   return (
@@ -72,7 +68,6 @@ export default async function ChatPage({
         chatId={chatId}
         type={c.type as ChatType}
         title={title}
-        subtitle={subtitle}
         partnerId={partnerId}
         partnerImage={partnerImage}
         ended={!!c.endedAt}
