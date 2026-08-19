@@ -1,6 +1,7 @@
 'use server';
 
-import { and, count, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, isNull, sql } from 'drizzle-orm';
+
 import { db } from '@/lib/db';
 import {
   chat,
@@ -9,27 +10,28 @@ import {
   notification,
   report,
 } from '@/lib/db/schema';
-import { getCurrentUser } from '@/lib/session';
-import { requireRole } from '@/lib/roles-server';
 import { newId } from '@/lib/id';
+import { requireRole } from '@/lib/roles-server';
+import { getCurrentUser } from '@/lib/session';
 import type { RoomSummary } from '@/lib/types';
 
 // List all open group rooms with a live-ish member count (active participants).
 export async function listRooms(): Promise<RoomSummary[]> {
   await getCurrentUser();
 
+  const memberCountSql = sql<number>`count(${chatParticipant.id}) filter (where ${chatParticipant.leftAt} is null)`;
   const rows = await db
     .select({
       id: chat.id,
       name: chat.name,
       createdAt: chat.createdAt,
-      memberCount: sql<number>`count(${chatParticipant.id}) filter (where ${chatParticipant.leftAt} is null)`,
+      memberCount: memberCountSql,
     })
     .from(chat)
     .leftJoin(chatParticipant, eq(chatParticipant.chatId, chat.id))
     .where(and(eq(chat.type, 'GROUP'), isNull(chat.endedAt)))
     .groupBy(chat.id, chat.name, chat.createdAt)
-    .orderBy(desc(chat.createdAt));
+    .orderBy(desc(memberCountSql), asc(chat.createdAt));
 
   return rows.map((r) => ({
     id: r.id,
