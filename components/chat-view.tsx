@@ -1,7 +1,25 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  Flag,
+  LogOutIcon,
+  MoreVertical,
+  Users2Icon,
+} from 'lucide-react';
+
 import { endRandomChat } from '@/app/actions/match';
 import { reportUser } from '@/app/actions/report';
+
+import { useChatHeader } from '@/hooks/use-chat-header';
+
+import type { ChatMessage, ChatType } from '@/lib/types';
+
 import { ChatRoom } from '@/components/chat-room';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,16 +27,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { UserAvatar } from '@/components/user-avatar';
 import { UserPreviewDialog } from '@/components/user-preview';
-import { useChatHeader } from '@/hooks/use-chat-header';
-import type { ChatMessage, ChatType } from '@/lib/types';
-import { ArrowLeft, Flag, LogOut, MoreVertical, Users } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
 
 export function ChatView({
   chatId,
@@ -129,8 +142,9 @@ export function ChatView({
   }
 
   async function handleReport() {
+    if (!partnerId) return;
     try {
-      await reportUser({ chatId });
+      await reportUser({ chatId, reportedUserId: partnerId });
       toast.success('Report submitted. Thanks for keeping Orbit safe.');
     } catch {
       toast.error('Could not submit report');
@@ -155,85 +169,70 @@ export function ChatView({
   return (
     <div className='flex h-full flex-col'>
       {/* Header */}
-      <header className='border-border bg-background flex items-center gap-3 border-b px-4 py-3 sm:px-6'>
+      <header className='border-border bg-background flex items-center gap-2 border-b p-2'>
         <Button
           variant='ghost'
-          size='icon'
-          className='shrink-0 md:hidden'
+          size='icon-lg'
+          className='shrink-0'
           onClick={() => router.back()}
           aria-label='Back'
         >
-          <ArrowLeft className='size-5' aria-hidden />
+          <ArrowLeftIcon className='shrink-0' aria-hidden />
         </Button>
-        <button
+        <Button
           type='button'
+          variant='ghost'
+          size='lg'
           onClick={() => canPreview && setPreviewUserId(partnerId)}
           disabled={!canPreview}
-          className='flex min-w-0 flex-1 items-center gap-3 text-left enabled:hover:opacity-80'
+          className='flex min-w-0 flex-1 items-center text-left'
         >
-          <UserAvatar name={title} image={partnerImage} className='shrink-0' />
-          <div className='min-w-0 flex-1'>
-            <h1 className='truncate leading-tight font-semibold'>{title}</h1>
-            <div className='flex items-center gap-2'>
-              <p className='text-muted-foreground truncate text-xs'>
-                {subtitle}
-              </p>
-              {isGroup && memberCount != null && (
-                <Badge
-                  variant='secondary'
-                  className='h-5 gap-1 px-1.5 text-[11px]'
-                >
-                  <span
-                    className='bg-primary size-1.5 rounded-full'
-                    aria-hidden
-                  />
-                  {memberCount} online
-                </Badge>
-              )}
-              {ended && (
-                <Badge variant='outline' className='h-5 px-1.5 text-[11px]'>
-                  Ended
-                </Badge>
-              )}
-            </div>
+          <UserAvatar
+            name={title}
+            image={partnerImage}
+            className='size-6 shrink-0'
+          />
+          <div className='flex min-w-0 flex-1 gap-2'>
+            <span className='truncate leading-tight font-semibold'>
+              {title}
+            </span>
+            {ended && (
+              <Badge variant='outline' className='h-5 px-1.5 text-[11px]'>
+                Ended
+              </Badge>
+            )}
           </div>
-        </button>
+        </Button>
 
         <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button
-                variant='ghost'
-                size='icon'
-                className='shrink-0'
-                aria-label='Chat options'
-              />
-            }
-          >
-            <MoreVertical className='size-5' aria-hidden />
+          <DropdownMenuTrigger asChild>
+            <Button variant='ghost' size='icon-lg' aria-label='Chat options'>
+              <MoreVertical className='shrink-0' aria-hidden />
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align='end' className='w-48'>
             {canPreview && (
               <DropdownMenuItem onClick={() => setPreviewUserId(partnerId)}>
-                <Users className='size-4' aria-hidden />
-                View profile
+                <Users2Icon className='shrink-0' aria-hidden />
+                View Profile
               </DropdownMenuItem>
             )}
-            {!isGroup && (
-              <DropdownMenuItem onClick={handleReport}>
-                <Flag className='size-4' aria-hidden />
-                Report user
-              </DropdownMenuItem>
-            )}
+            <DropdownMenuItem variant='destructive' onClick={handleReport}>
+              <Flag className='shrink-0' aria-hidden />
+              Report User
+            </DropdownMenuItem>
             {isRandom && (
-              <DropdownMenuItem
-                onClick={handleEndChat}
-                disabled={leaving}
-                className='text-destructive focus:text-destructive'
-              >
-                <LogOut className='size-4' aria-hidden />
-                End chat
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={handleEndChat}
+                  disabled={leaving}
+                  variant='destructive'
+                >
+                  <LogOutIcon className='shrink-0' aria-hidden />
+                  End Chat
+                </DropdownMenuItem>
+              </>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -243,13 +242,10 @@ export function ChatView({
       {isRandom && ended && (
         <div className='border-border bg-secondary/60 text-secondary-foreground border-b px-4 py-2 text-center text-sm sm:px-6'>
           {partnerLeft ? `${title} disconnected. ` : 'This chat has ended. '}
-          <button
-            type='button'
-            onClick={() => router.push('/app/match')}
-            className='text-primary font-medium hover:underline'
-          >
+          <Button variant='link' onClick={() => router.push('/app/match')}>
             Find a new match
-          </button>
+            <ArrowRightIcon className='shrink-0' aria-hidden />
+          </Button>
         </div>
       )}
 
@@ -271,7 +267,7 @@ export function ChatView({
 
       <UserPreviewDialog
         userId={previewUserId}
-        onClose={() => setPreviewUserId(null)}
+        onCloseAction={() => setPreviewUserId(null)}
       />
     </div>
   );
