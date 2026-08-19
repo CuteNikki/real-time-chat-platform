@@ -24,7 +24,7 @@ import { Separator } from '@/components/ui/separator';
 export default function HomePage() {
   return (
     <div className='bg-background relative flex h-svh flex-col overflow-hidden'>
-      <header className='bg-background/90 fixed inset-x-0 top-0 z-50 backdrop-blur-md'>
+      <header className='bg-background/70 fixed inset-x-0 top-0 z-50 border-b backdrop-blur-md'>
         <div className='xs:p-6 mx-auto flex w-full max-w-7xl items-center justify-between p-4'>
           <div className='flex items-center gap-2'>
             <OrbitIcon className='text-primary size-6' aria-hidden />
