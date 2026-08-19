@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 
-// Read-only display of interest tags as small pills.
+import { Badge } from '@/components/ui/badge';
+
 export function InterestTags({
   interests,
   className,
@@ -15,18 +16,15 @@ export function InterestTags({
   const extra = max ? interests.length - shown.length : 0;
 
   return (
-    <ul className={cn('flex flex-wrap gap-1.5', className)}>
+    <ul className={cn('flex flex-wrap gap-1', className)}>
       {shown.map((tag) => (
-        <li
-          key={tag}
-          className='bg-secondary text-secondary-foreground rounded-full px-2.5 py-0.5 text-xs font-medium'
-        >
-          {tag}
+        <li key={tag}>
+          <Badge variant='secondary'>{tag}</Badge>
         </li>
       ))}
       {extra > 0 ? (
-        <li className='text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium'>
-          +{extra}
+        <li>
+          <Badge variant='outline'>+{extra} more</Badge>
         </li>
       ) : null}
     </ul>
