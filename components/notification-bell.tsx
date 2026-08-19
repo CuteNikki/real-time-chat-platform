@@ -410,7 +410,7 @@ export function NotificationBell({
 
       <UserPreviewDialog
         userId={previewUserId}
-        onClose={() => {
+        onCloseAction={() => {
           setPreviewUserId(null);
           // The preview can accept/cancel a request; resync when it closes.
           if (open) load();

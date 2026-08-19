@@ -1,51 +1,48 @@
 'use server';
 
-import { and, eq, ne } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
+
 import { db } from '@/lib/db';
 import { chatParticipant, report } from '@/lib/db/schema';
-import { getCurrentUser } from '@/lib/session';
 import { newId } from '@/lib/id';
+import { getCurrentUser } from '@/lib/session';
 
-// Report the other participant of a 1-on-1 chat.
+// Report a user
 export async function reportUser({
+  reportedUserId,
   chatId,
   reason,
 }: {
-  chatId: string;
+  reportedUserId: string;
+  chatId?: string;
   reason?: string;
 }) {
   const me = await getCurrentUser();
 
-  // Confirm the reporter is in the chat.
-  const [membership] = await db
-    .select()
-    .from(chatParticipant)
-    .where(
-      and(
-        eq(chatParticipant.chatId, chatId),
-        eq(chatParticipant.userId, me.id),
-      ),
-    )
-    .limit(1);
-  if (!membership) throw new Error('Not a member of this chat');
+  if (me.id === reportedUserId) {
+    throw new Error('You cannot report yourself');
+  }
 
-  // Find the other participant.
-  const [other] = await db
-    .select({ userId: chatParticipant.userId })
-    .from(chatParticipant)
-    .where(
-      and(
-        eq(chatParticipant.chatId, chatId),
-        ne(chatParticipant.userId, me.id),
-      ),
-    )
-    .limit(1);
+  // If a chatId is provided, optionally verify the reporter is actually in that chat.
+  if (chatId) {
+    const [membership] = await db
+      .select()
+      .from(chatParticipant)
+      .where(
+        and(
+          eq(chatParticipant.chatId, chatId),
+          eq(chatParticipant.userId, me.id),
+        ),
+      )
+      .limit(1);
+    if (!membership) throw new Error('Not a member of this chat');
+  }
 
   await db.insert(report).values({
     id: newId('rep'),
     reporterId: me.id,
-    reportedUserId: other?.userId ?? me.id,
-    chatId,
+    reportedUserId,
+    chatId: chatId ?? null,
     reason: reason ?? null,
   });
 

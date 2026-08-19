@@ -1,11 +1,15 @@
-import { getMessages } from '@/app/actions/chat';
-import { ChatView } from '@/components/chat-view';
-import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { chat, chatParticipant, user } from '@/lib/db/schema';
 import { and, eq, isNull, ne } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+
+import { getMessages } from '@/app/actions/chat';
+
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { chat, chatParticipant, user } from '@/lib/db/schema';
+import { ChatType } from '@/lib/types';
+
+import { ChatView } from '@/components/chat-view';
 
 export default async function ChatPage({
   params,
@@ -38,7 +42,6 @@ export default async function ChatPage({
 
   // Build a title. For 1-on-1 (RANDOM/PRIVATE) show the other person's name.
   let title = c.name ?? 'Chat';
-  let subtitle = '';
   let partnerId: string | null = null;
   let partnerImage: string | null = null;
   if (c.type === 'RANDOM' || c.type === 'PRIVATE') {
@@ -55,26 +58,24 @@ export default async function ChatPage({
       .limit(1);
     title =
       others[0]?.name ?? (c.type === 'RANDOM' ? 'Anonymous' : 'Private chat');
-    subtitle = c.type === 'RANDOM' ? 'Random match' : 'Private chat';
     partnerId = others[0]?.id ?? null;
     partnerImage = others[0]?.image ?? null;
-  } else {
-    subtitle = 'Group room';
   }
 
   return (
-    <ChatView
-      chatId={chatId}
-      type={c.type as 'RANDOM' | 'GROUP' | 'PRIVATE'}
-      title={title}
-      subtitle={subtitle}
-      partnerId={partnerId}
-      partnerImage={partnerImage}
-      ended={!!c.endedAt}
-      currentUserId={me.id}
-      currentUserName={me.name}
-      currentUserImage={me.image ?? null}
-      initialMessages={messages}
-    />
+    <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>
+      <ChatView
+        chatId={chatId}
+        type={c.type as ChatType}
+        title={title}
+        partnerId={partnerId}
+        partnerImage={partnerImage}
+        ended={!!c.endedAt}
+        currentUserId={me.id}
+        currentUserName={me.name}
+        currentUserImage={me.image ?? null}
+        initialMessages={messages}
+      />
+    </div>
   );
 }

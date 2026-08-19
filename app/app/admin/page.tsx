@@ -9,17 +9,17 @@ import { AdminView } from '@/components/admin-view';
 
 export default async function AdminPage() {
   const role = await getMyRole();
-  // Moderators and admins can moderate; members can't reach this page.
+
   if (!atLeast(role, 'MODERATOR')) redirect('/app');
 
   const users = await listUsersForAdmin();
 
   return (
-    <div className='h-full w-full scrollbar-gutter-stable overflow-y-auto'>
+    <div className='xs:pt-20 h-full w-full overflow-y-auto pt-16 pb-14 md:pb-0'>
       <div className='mx-auto w-full max-w-3xl px-4 py-8'>
         <header className='mb-6'>
           <h1 className='text-2xl font-semibold tracking-tight'>Admin</h1>
-          <p className='text-muted-foreground mt-1 text-sm'>
+          <p className='text-muted-foreground text-sm text-pretty'>
             {role === 'ADMIN'
               ? 'Manage roles, ban or delete accounts, and review moderation history.'
               : 'Ban members and review moderation history.'}

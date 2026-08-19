@@ -1,36 +1,41 @@
 'use client';
 
-import type React from 'react';
-
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { UserAvatar } from '@/components/user-avatar';
-import { InterestTags } from '@/components/interest-tags';
-import { getProfilePreview } from '@/app/actions/profile';
-import { sendFriendRequest, cancelFriendRequest } from '@/app/actions/invites';
-import type { UserProfile } from '@/lib/types';
+
 import {
-  Check,
-  Clock,
-  ExternalLink,
-  Loader2,
+  CheckIcon,
+  ClockIcon,
+  ExternalLinkIcon,
+  Loader2Icon,
   MessageCircle,
-  UserPlus,
+  UserMinus2Icon,
+  UserPlus2Icon,
+  XIcon,
 } from 'lucide-react';
 
-// A small popup card that previews a user's profile without navigating away.
-// Controlled by a `userId` (null = closed). Used from in-chat avatars/names and
-// the members sidebar so clicking a user opens a preview instead of redirecting.
+import {
+  cancelFriendRequest,
+  removeFriend,
+  sendFriendRequest,
+} from '@/app/actions/invites';
+import { getProfilePreview } from '@/app/actions/profile';
+
+import type { UserProfile } from '@/lib/types';
+
+import { InterestTags } from '@/components/interest-tags';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { UserAvatar } from '@/components/user-avatar';
+import Link from 'next/link';
+
 export function UserPreviewDialog({
   userId,
-  onClose,
+  onCloseAction,
 }: {
   userId: string | null;
-  onClose: () => void;
+  onCloseAction: () => void;
 }) {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -99,47 +104,64 @@ export function UserPreviewDialog({
     }
   }
 
+  async function unfriend() {
+    if (!profile) return;
+    setBusy(true);
+    try {
+      await removeFriend(profile.id);
+      setProfile({ ...profile, friendStatus: 'none' });
+      toast.success('Unfriended successfully');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not unfriend');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function message() {
     if (!profile?.dmChatId) return;
-    onClose();
+    onCloseAction();
     router.push(`/app/messages?c=${profile.dmChatId}`);
   }
 
   return (
-    <Dialog open={userId !== null} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={userId !== null}
+      onOpenChange={(open) => !open && onCloseAction()}
+    >
       <DialogContent className='max-w-xs'>
-        <DialogTitle className='sr-only'>Profile preview</DialogTitle>
+        <DialogTitle className='sr-only'>Profile Preview</DialogTitle>
         {loading || !profile ? (
           <div className='flex h-44 items-center justify-center'>
-            <Loader2
+            <Loader2Icon
               className='text-muted-foreground size-6 animate-spin'
               aria-hidden
             />
           </div>
         ) : (
-          <div className='flex flex-col items-center pt-2 text-center'>
+          <div className='flex flex-col items-center gap-2 pt-2 text-center'>
             <UserAvatar
               name={profile.name}
               image={profile.image}
               className='size-20'
             />
-            <h2 className='mt-3 text-lg font-semibold text-balance'>
-              {profile.name}
-            </h2>
-            {profile.username ? (
+            <div className='flex flex-col'>
+              <span className='text-lg font-semibold text-balance'>
+                {profile.name}
+              </span>
               <p className='text-muted-foreground text-sm'>
                 @{profile.username}
               </p>
-            ) : null}
+            </div>
             {profile.bio ? (
-              <p className='text-muted-foreground mt-2 max-w-[16rem] text-sm leading-relaxed text-pretty'>
+              <p className='text-muted-foreground mt-2 line-clamp-4 max-w-[16rem] text-sm leading-relaxed text-pretty whitespace-pre-wrap'>
                 {profile.bio}
               </p>
             ) : null}
             <InterestTags
               interests={profile.interests}
-              className='mt-3 justify-center'
-              max={6}
+              className='justify-center'
+              max={4}
             />
 
             <div className='mt-3 flex items-center gap-6 text-sm'>
@@ -147,72 +169,123 @@ export function UserPreviewDialog({
                 <strong className='font-semibold tabular-nums'>
                   {profile.postCount}
                 </strong>{' '}
-                <span className='text-muted-foreground'>posts</span>
+                <span className='text-muted-foreground'>post(s)</span>
               </span>
               <span>
                 <strong className='font-semibold tabular-nums'>
                   {profile.friendCount}
                 </strong>{' '}
-                <span className='text-muted-foreground'>friends</span>
+                <span className='text-muted-foreground'>friend(s)</span>
               </span>
             </div>
 
             <div className='mt-5 flex w-full flex-col gap-2'>
               {profile.isSelf ? null : profile.friendStatus === 'friends' ? (
-                <Button
-                  className='gap-2'
-                  disabled={!profile.dmChatId}
-                  onClick={message}
-                >
-                  <MessageCircle className='size-4' aria-hidden />
-                  Message
-                </Button>
+                <div className='flex gap-2'>
+                  <Button
+                    className='flex-1'
+                    disabled={!profile.dmChatId}
+                    onClick={message}
+                  >
+                    <MessageCircle className='shrink-0' aria-hidden />
+                    Message
+                  </Button>
+                  <Button
+                    variant='destructive'
+                    disabled={busy}
+                    onClick={unfriend}
+                  >
+                    {busy ? (
+                      <>
+                        <Loader2Icon
+                          className='shrink-0 animate-spin'
+                          aria-hidden
+                        />
+                        Removing...
+                      </>
+                    ) : (
+                      <>
+                        <UserMinus2Icon className='shrink-0' aria-hidden />
+                        Remove Friend
+                      </>
+                    )}
+                  </Button>
+                </div>
               ) : profile.friendStatus === 'outgoing' ? (
                 <Button
                   variant='secondary'
-                  className='gap-2'
+                  className='group/req gap-2'
                   disabled={busy}
                   onClick={cancel}
                 >
                   {busy ? (
-                    <Loader2 className='size-4 animate-spin' aria-hidden />
+                    <Loader2Icon
+                      className='shrink-0 animate-spin'
+                      aria-hidden
+                    />
                   ) : (
-                    <Clock className='size-4' aria-hidden />
+                    <>
+                      <ClockIcon
+                        className='shrink-0 group-hover/req:hidden'
+                        aria-hidden
+                      />
+                      <XIcon
+                        className='hidden shrink-0 group-hover/req:inline'
+                        aria-hidden
+                      />
+                    </>
                   )}
-                  Requested · Cancel
+                  <span className='group-hover/req:hidden'>
+                    {busy ? 'Cancelling...' : 'Requested'}
+                  </span>
+                  <span className='hidden group-hover/req:inline'>
+                    {busy ? 'Cancelling...' : 'Cancel'}
+                  </span>
                 </Button>
               ) : profile.friendStatus === 'incoming' ? (
                 <Button className='gap-2' disabled={busy} onClick={addOrAccept}>
                   {busy ? (
-                    <Loader2 className='size-4 animate-spin' aria-hidden />
+                    <>
+                      <Loader2Icon
+                        className='shrink-0 animate-spin'
+                        aria-hidden
+                      />
+                      Accepting...
+                    </>
                   ) : (
-                    <Check className='size-4' aria-hidden />
+                    <>
+                      <CheckIcon className='shrink-0' aria-hidden />
+                      Accept Request
+                    </>
                   )}
-                  Accept request
                 </Button>
               ) : (
                 <Button className='gap-2' disabled={busy} onClick={addOrAccept}>
                   {busy ? (
-                    <Loader2 className='size-4 animate-spin' aria-hidden />
+                    <>
+                      <Loader2Icon
+                        className='shrink-0 animate-spin'
+                        aria-hidden
+                      />
+                      Adding...
+                    </>
                   ) : (
-                    <UserPlus className='size-4' aria-hidden />
+                    <>
+                      <UserPlus2Icon className='shrink-0' aria-hidden />
+                      Add Friend
+                    </>
                   )}
-                  Add friend
                 </Button>
               )}
 
-              <Button
-                variant='outline'
-                className='gap-2'
-                render={
-                  <Link
-                    href={profile.username ? `/app/u/${profile.username}` : '#'}
-                    onClick={onClose}
-                  />
-                }
-              >
-                <ExternalLink className='size-4' aria-hidden />
-                View full profile
+              <Button variant='outline' className='gap-2' asChild>
+                <Link
+                  href={profile.username ? `/app/u/${profile.username}` : '#'}
+                  onClick={onCloseAction}
+                >
+                  <ExternalLinkIcon className='size-4' aria-hidden />
+                  View Full Profile
+                </Link>
               </Button>
             </div>
           </div>

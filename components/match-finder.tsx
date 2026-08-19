@@ -1,17 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+
+import { Loader2Icon, ShuffleIcon, SparklesIcon } from 'lucide-react';
+
 import {
-  requestMatch,
   cancelMatch,
   checkMatchStatus,
+  requestMatch,
 } from '@/app/actions/match';
+
+import { EVENTS, userChannel } from '@/lib/pusher/channels';
 import { getPusherClient } from '@/lib/pusher/client';
-import { userChannel, EVENTS } from '@/lib/pusher/channels';
+
 import { Button } from '@/components/ui/button';
-import { Shuffle, Loader2, Sparkles } from 'lucide-react';
 
 export function MatchFinder({ userId }: { userId: string }) {
   const router = useRouter();
@@ -98,59 +102,53 @@ export function MatchFinder({ userId }: { userId: string }) {
   }
 
   return (
-    <div className='mx-auto flex h-full w-full max-w-lg flex-col items-center justify-center overflow-y-auto px-6 py-12 text-center'>
-      <div className='bg-accent relative mb-8 flex size-28 items-center justify-center rounded-full'>
+    <div className='xs:p-6 mx-auto flex min-h-full w-full max-w-lg flex-col items-center justify-center gap-4 p-4 text-center'>
+      <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
         {status === 'searching' ? (
           <>
             <span className='bg-primary/20 absolute inline-flex size-28 animate-ping rounded-full' />
-            <Loader2
+            <Loader2Icon
               className='text-primary size-12 animate-spin'
               aria-hidden
             />
           </>
         ) : (
-          <Shuffle className='text-primary size-12' aria-hidden />
+          <ShuffleIcon className='text-primary size-12 shrink-0' aria-hidden />
         )}
       </div>
 
       {status === 'searching' ? (
-        <>
-          <h1 className='text-2xl font-semibold tracking-tight'>
-            Finding someone for you…
-          </h1>
-          <p className='text-muted-foreground mt-2 max-w-sm text-pretty'>
-            Hang tight — we&apos;ll drop you into a chat the moment we find a
-            match.
+        <div className='flex flex-col items-center gap-2'>
+          <span className='text-3xl font-semibold tracking-tight'>
+            Finding Someone…
+          </span>
+          <p className='text-muted-foreground max-w-sm text-balance'>
+            Hang tight - we'll drop you into a chat the moment we find a match.
           </p>
           <Button
             variant='outline'
             size='lg'
-            className='mt-8 bg-transparent'
             onClick={stop}
             disabled={busy}
+            className='mt-2'
           >
             Cancel
           </Button>
-        </>
+        </div>
       ) : (
-        <>
-          <h1 className='text-3xl font-semibold tracking-tight text-balance'>
-            Meet someone new
-          </h1>
-          <p className='text-muted-foreground mt-3 max-w-sm text-pretty'>
-            Tap below and we&apos;ll pair you one-on-one with another person
-            who&apos;s ready to chat right now.
+        <div className='flex flex-col items-center gap-2'>
+          <span className='text-3xl font-semibold tracking-tight text-balance'>
+            Meet Someone New
+          </span>
+          <p className='text-muted-foreground max-w-sm text-pretty'>
+            Tap below and we'll pair you one-on-one with another person who's
+            ready to chat right now.
           </p>
-          <Button
-            size='lg'
-            className='mt-8 h-12 gap-2 px-8 text-base'
-            onClick={start}
-            disabled={busy}
-          >
-            <Sparkles className='size-5' aria-hidden />
-            {busy ? 'Starting…' : 'Find a match'}
+          <Button size='lg' onClick={start} disabled={busy} className='mt-2'>
+            <SparklesIcon aria-hidden />
+            {busy ? 'Searching…' : 'Find a Match'}
           </Button>
-        </>
+        </div>
       )}
     </div>
   );

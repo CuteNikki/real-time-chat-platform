@@ -1,9 +1,11 @@
-import { getFeed } from '@/app/actions/posts';
-import { getMyProfile } from '@/app/actions/profile';
-import { PostCard } from '@/components/post-card';
-import { PostComposer } from '@/components/post-composer';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+
+import { getFeed } from '@/app/actions/posts';
+import { getMyProfile } from '@/app/actions/profile';
+
+import { PostCard } from '@/components/post-card';
+import { PostComposer } from '@/components/post-composer';
 
 export default async function FeedPage() {
   const me = await getMyProfile();
@@ -12,7 +14,7 @@ export default async function FeedPage() {
   const posts = await getFeed();
 
   return (
-    <div className='h-full w-full scrollbar-gutter-stable overflow-y-auto'>
+    <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>
       <div className='mx-auto w-full max-w-xl px-4 py-6'>
         <h1 className='mb-4 text-2xl font-semibold tracking-tight'>Feed</h1>
         <div className='mb-6'>

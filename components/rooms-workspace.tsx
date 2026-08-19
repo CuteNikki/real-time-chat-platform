@@ -1,10 +1,32 @@
 'use client';
 
+import { useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import useSWR from 'swr';
+
+import {
+  ArrowLeftIcon,
+  HashIcon,
+  Loader2Icon,
+  MessageCircleQuestionMarkIcon,
+  MessagesSquareIcon,
+  Plus,
+  Trash2Icon,
+  Users2Icon,
+} from 'lucide-react';
 
 import { getMessages } from '@/app/actions/chat';
 import { createRoom, deleteRoom, joinRoom } from '@/app/actions/rooms';
+
+import { RoomMember, useRoomMembers } from '@/hooks/use-room-members';
+
+import type { ChatMessage, RoomSummary } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
 import { ChatRoom } from '@/components/chat-room';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,28 +41,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UserAvatar } from '@/components/user-avatar';
 import { UserPreviewDialog } from '@/components/user-preview';
-import { RoomMember, useRoomMembers } from '@/hooks/use-room-members';
-import type { ChatMessage, RoomSummary } from '@/lib/types';
-import { cn } from '@/lib/utils';
-import {
-  ArrowLeft,
-  Hash,
-  Loader2,
-  MessageSquare,
-  Plus,
-  Trash2Icon,
-  Users,
-  Users2Icon,
-} from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
-import useSWR from 'swr';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-// Shared online-members list, used both in the desktop sidebar and the mobile
-// "who's online" dialog so the two never drift apart.
 function MembersList({
   members,
   onSelect,
@@ -49,33 +52,22 @@ function MembersList({
   onSelect: (id: string) => void;
 }) {
   return (
-    <ul className='flex flex-col gap-0.5'>
+    <ul className='flex flex-col gap-1'>
       {members.map((m) => (
         <li key={m.id}>
-          <button
-            type='button'
+          <Button
             onClick={() => onSelect(m.id)}
-            className='hover:bg-secondary flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors'
-            aria-label={
-              m.isMe ? 'View your profile' : `View ${m.name}'s profile`
-            }
+            size='lg'
+            variant='secondary'
+            className='w-full justify-start text-left'
           >
-            <div className='relative shrink-0'>
-              <UserAvatar
-                name={m.name}
-                image={m.image ?? null}
-                className='size-7'
-              />
-            </div>
-            <span className='min-w-0 flex-1 truncate text-base'>
-              {m.name}
-              {m.isMe && (
-                <span className='text-muted-foreground ml-1 text-xs'>
-                  (YOU)
-                </span>
-              )}
-            </span>
-          </button>
+            <UserAvatar
+              name={m.name}
+              image={m.image ?? null}
+              className='size-6'
+            />
+            <span className='min-w-0 flex-1 truncate text-base'>{m.name}</span>
+          </Button>
         </li>
       ))}
     </ul>
@@ -126,6 +118,22 @@ export function RoomsWorkspace({
   // a channel is open on small screens).
   const [membersOpen, setMembersOpen] = useState(false);
 
+  const [isChannelScrollable, setIsChannelScrollable] = useState(false);
+  const [isChannelScrolledTop, setIsChannelScrolledTop] = useState(true);
+  const [isChannelScrolledBottom, setIsChannelScrolledBottom] = useState(false);
+  const channelScrollRef = useRef<HTMLDivElement>(null);
+
+  const [isUserScrollable, setIsUserScrollable] = useState(false);
+  const [isUserScrolledTop, setIsUserScrolledTop] = useState(true);
+  const [isUserScrolledBottom, setIsUserScrolledBottom] = useState(false);
+  const userScrollRef = useRef<HTMLDivElement>(null);
+
+  const [isMobileUserScrollable, setIsUserMobileScrollable] = useState(false);
+  const [isMobileUserScrolledTop, setIsMobileUserScrolledTop] = useState(true);
+  const [isMobileUserScrolledBottom, setIsMobileUserScrolledBottom] =
+    useState(false);
+  const mobileUserScrollRef = useRef<HTMLDivElement>(null);
+
   const members = useRoomMembers(activeChatId);
   const activeRoom = rooms.find((r) => r.id === activeChatId) ?? null;
 
@@ -150,6 +158,39 @@ export function RoomsWorkspace({
       });
     }
   }, []);
+
+  const checkUserScroll = () => {
+    const el = userScrollRef.current;
+    if (!el) return;
+    const scrollable = el.scrollHeight > el.clientHeight;
+    setIsUserScrollable(scrollable);
+    setIsUserScrolledTop(el.scrollTop <= 10);
+    setIsUserScrolledBottom(
+      el.scrollHeight - el.scrollTop - el.clientHeight <= 10,
+    );
+  };
+
+  const checkMobileUserScroll = () => {
+    const el = mobileUserScrollRef.current;
+    if (!el) return;
+    const scrollable = el.scrollHeight > el.clientHeight;
+    setIsUserMobileScrollable(scrollable);
+    setIsMobileUserScrolledTop(el.scrollTop <= 10);
+    setIsMobileUserScrolledBottom(
+      el.scrollHeight - el.scrollTop - el.clientHeight <= 10,
+    );
+  };
+
+  const checkChannelScroll = () => {
+    const el = channelScrollRef.current;
+    if (!el) return;
+    const scrollable = el.scrollHeight > el.clientHeight;
+    setIsChannelScrollable(scrollable);
+    setIsChannelScrolledTop(el.scrollTop <= 10);
+    setIsChannelScrolledBottom(
+      el.scrollHeight - el.scrollTop - el.clientHeight <= 10,
+    );
+  };
 
   const openChannel = useCallback(
     async (chatId: string) => {
@@ -204,7 +245,13 @@ export function RoomsWorkspace({
     }
   }, [urlChatId, openChannel]);
 
-  async function handleCreate(e: React.FormEvent) {
+  useEffect(() => {
+    checkChannelScroll();
+    checkUserScroll();
+    checkMobileUserScroll();
+  }, [rooms.length, members.length]);
+
+  async function handleCreate(e: React.SubmitEvent) {
     e.preventDefault();
     const trimmedName = name.trim();
     if (!trimmedName || creating) return;
@@ -261,91 +308,102 @@ export function RoomsWorkspace({
       {/* Left rail: channels + members */}
       <aside
         className={cn(
-          'border-border bg-card flex w-full flex-col border-r md:w-72 lg:w-80',
+          'border-border flex w-full flex-col border-r md:w-72 lg:w-80',
           activeChatId && 'hidden md:flex',
         )}
       >
         {/* Channels */}
         <div className='flex min-h-0 flex-1 flex-col'>
-          <div className='flex items-center justify-between p-4 pb-2'>
-            <h2 className='text-muted-foreground text-xs font-semibold tracking-wider uppercase'>
-              Channels
-            </h2>
-            <span className='text-muted-foreground text-xs'>
-              {rooms.length}
-            </span>
-          </div>
-
-          <nav className='min-h-0 flex-1 overflow-y-auto p-2'>
-            {rooms.length === 0 ? (
-              <p className='text-muted-foreground px-2 py-6 text-center text-sm'>
-                No channels yet. Create the first one.
-              </p>
-            ) : (
-              <ul className='flex flex-col'>
-                {rooms.map((room) => {
-                  const active = room.id === activeChatId;
-                  return (
-                    <li key={room.id}>
-                      <button
-                        type='button'
-                        onClick={() => openChannel(room.id)}
-                        className={cn(
-                          'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors',
-                          active
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-foreground hover:bg-secondary',
-                        )}
-                      >
-                        <Hash
-                          className={cn(
-                            'size-4 shrink-0',
-                            active
-                              ? 'text-primary-foreground/80'
-                              : 'text-muted-foreground',
-                          )}
-                          aria-hidden
-                        />
-                        <span className='min-w-0 flex-1 truncate font-medium'>
-                          {room.name}
-                        </span>
-                        <span
-                          className={cn(
-                            'flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-semibold tabular-nums',
-                            active
-                              ? 'bg-primary-foreground/20 text-primary-foreground'
-                              : 'bg-secondary text-muted-foreground',
-                          )}
+          <div className='relative min-h-0 flex-1'>
+            <nav
+              className='custom-scrollbar xs:p-4 h-full overflow-y-auto p-2'
+              ref={channelScrollRef}
+              onScroll={checkChannelScroll}
+            >
+              {rooms.length === 0 ? (
+                <p className='text-muted-foreground px-2 py-6 text-center text-sm'>
+                  No channels yet. Create the first one.
+                </p>
+              ) : (
+                <ul className='flex flex-col gap-1'>
+                  {rooms.map((room) => {
+                    const active = room.id === activeChatId;
+                    return (
+                      <li key={room.id}>
+                        <Button
+                          onClick={() => openChannel(room.id)}
+                          className='w-full justify-between gap-2'
+                          variant={active ? 'default' : 'secondary'}
+                          size='lg'
                         >
-                          {room.memberCount}
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </nav>
+                          <div className='flex min-w-0 flex-1 items-center gap-2 text-left'>
+                            <HashIcon
+                              className={cn(
+                                'shrink-0',
+                                active
+                                  ? 'text-primary-foreground'
+                                  : 'text-muted-foreground',
+                              )}
+                              aria-hidden
+                            />
+                            <span className='truncate font-medium'>
+                              {room.name}
+                            </span>
+                          </div>
+                          {room.memberCount > 0 && (
+                            <Badge
+                              variant={active ? 'secondary' : 'default'}
+                              className='shrink-0'
+                            >
+                              {room.memberCount}
+                            </Badge>
+                          )}
+                        </Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </nav>
+            {/* Top Fade */}
+            <div
+              className={`from-background pointer-events-none absolute inset-x-0 -top-1 z-10 h-12 bg-linear-to-b to-transparent transition-opacity duration-200 ${
+                isChannelScrollable && !isChannelScrolledTop
+                  ? 'opacity-100'
+                  : 'opacity-0'
+              }`}
+              aria-hidden
+            />
+            {/* Bottom Fade */}
+            <div
+              className={`from-background pointer-events-none absolute inset-x-0 -bottom-1 z-10 h-12 bg-linear-to-t to-transparent transition-opacity duration-200 ${
+                isChannelScrollable && !isChannelScrolledBottom
+                  ? 'opacity-100'
+                  : 'opacity-0'
+              }`}
+              aria-hidden
+            />
+          </div>
 
           {canCreate && (
             <div className='p-2'>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant='ghost' size='sm' className='w-full'>
+                  <Button variant='secondary' size='lg' className='w-full'>
                     <Plus aria-hidden />
-                    Create channel
+                    Create Channel
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <form onSubmit={handleCreate}>
                     <DialogHeader>
-                      <DialogTitle>Create a channel</DialogTitle>
+                      <DialogTitle>Create a Channel</DialogTitle>
                       <DialogDescription>
                         Give it a name. Anyone can find and join it.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className='my-5 flex flex-col gap-2'>
-                      <Label htmlFor='room-name'>Channel name</Label>
+                    <div className='flex flex-col gap-2 py-4'>
+                      <Label htmlFor='room-name'>Channel Name</Label>
                       <Input
                         id='room-name'
                         value={name}
@@ -357,7 +415,7 @@ export function RoomsWorkspace({
                     </div>
                     <DialogFooter>
                       <Button type='submit' disabled={creating || !name.trim()}>
-                        {creating ? 'Creating…' : 'Create & enter'}
+                        {creating ? 'Creating…' : 'Create'}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -366,32 +424,47 @@ export function RoomsWorkspace({
             </div>
           )}
         </div>
+        {activeChatId && (
+          <div className='border-border hidden min-h-0 flex-1 flex-col border-t md:flex'>
+            <div className='p-4 pb-2'>
+              <span className='text-muted-foreground text-xs font-semibold tracking-wider uppercase'>
+                {`${members.length} online in this chat`}
+              </span>
+            </div>
 
-        {/* Members of the active channel. Hidden on mobile: while browsing the
-            channel list there's no active channel, and inside a channel the
-            header's "who's online" button covers this. Desktop keeps it. */}
-        <div className='border-border hidden min-h-0 flex-1 flex-col border-t md:flex'>
-          <div className='px-4 pt-3 pb-2'>
-            <h2 className='text-muted-foreground text-xs font-semibold tracking-wider uppercase'>
-              {activeChatId
-                ? `${members.length} online in this chat`
-                : 'Online'}
-            </h2>
+            <div className='relative min-h-0 flex-1'>
+              <div
+                className='custom-scrollbar xs:p-4 h-full scrollbar-none overflow-y-auto p-2 pt-0!'
+                ref={userScrollRef}
+                onScroll={checkUserScroll}
+              >
+                {members.length === 0 ? (
+                  <div className='flex h-full items-center justify-center py-4'>
+                    <Loader2Icon className='animate-spin' aria-hidden />
+                  </div>
+                ) : (
+                  <MembersList members={members} onSelect={setPreviewUserId} />
+                )}
+              </div>
+              <div
+                className={`from-background pointer-events-none absolute inset-x-0 -top-1 z-10 h-12 bg-linear-to-b to-transparent transition-opacity duration-200 ${
+                  isUserScrollable && !isUserScrolledTop
+                    ? 'opacity-100'
+                    : 'opacity-0'
+                }`}
+                aria-hidden
+              />
+              <div
+                className={`from-background pointer-events-none absolute inset-x-0 -bottom-1 z-10 h-12 bg-linear-to-t to-transparent transition-opacity duration-200 ${
+                  isUserScrollable && !isUserScrolledBottom
+                    ? 'opacity-100'
+                    : 'opacity-0'
+                }`}
+                aria-hidden
+              />
+            </div>
           </div>
-          <div className='min-h-0 flex-1 overflow-y-auto px-3 pb-3'>
-            {!activeChatId ? (
-              <p className='text-muted-foreground px-2 py-6 text-center text-sm'>
-                Pick a channel to see who&apos;s here.
-              </p>
-            ) : members.length === 0 ? (
-              <p className='text-muted-foreground px-2 py-6 text-center text-sm'>
-                Connecting…
-              </p>
-            ) : (
-              <MembersList members={members} onSelect={setPreviewUserId} />
-            )}
-          </div>
-        </div>
+        )}
       </aside>
 
       {/* Main pane */}
@@ -402,22 +475,29 @@ export function RoomsWorkspace({
         )}
       >
         {!activeChatId ? (
-          <div className='flex h-full flex-col items-center justify-center px-6 text-center'>
-            <div className='bg-accent text-accent-foreground flex size-14 items-center justify-center rounded-2xl'>
-              <MessageSquare className='size-7' aria-hidden />
+          <div className='flex h-full flex-col items-center justify-center gap-4 px-6 text-center'>
+            <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
+              <MessagesSquareIcon
+                className='text-primary size-12 shrink-0'
+                aria-hidden
+              />
             </div>
-            <p className='mt-4 text-lg font-semibold'>Choose a channel</p>
-            <p className='text-muted-foreground mt-1 max-w-xs text-sm'>
-              Select a channel from the left to jump into the conversation, or
-              create your own.
-            </p>
+            <div className='flex flex-col items-center gap-2'>
+              <span className='text-3xl font-semibold tracking-tight text-balance'>
+                Choose a Channel
+              </span>
+              <p className='text-muted-foreground max-w-sm text-pretty'>
+                Select a channel from the left to jump into the conversation, or
+                create your own.
+              </p>
+            </div>
           </div>
         ) : (
           <>
-            <header className='border-border flex items-center gap-3 border-b px-4 py-3 sm:px-6'>
+            <header className='border-border xs:p-4 flex items-center gap-2 border-b p-2'>
               <Button
                 variant='ghost'
-                size='icon'
+                size='icon-lg'
                 className='shrink-0 md:hidden'
                 onClick={() => {
                   if (loadedFor.current) beaconLeave(loadedFor.current);
@@ -428,44 +508,38 @@ export function RoomsWorkspace({
                 }}
                 aria-label='Back to channels'
               >
-                <ArrowLeft className='size-5' aria-hidden />
+                <ArrowLeftIcon aria-hidden />
               </Button>
-              <div className='bg-secondary text-secondary-foreground flex size-10 shrink-0 items-center justify-center rounded-lg'>
-                <Hash className='size-5' aria-hidden />
-              </div>
-              <div className='min-w-0 flex-1'>
-                <h1 className='truncate leading-tight font-semibold'>
+              <div className='flex min-w-0 flex-1 items-center gap-2'>
+                <HashIcon
+                  className='text-muted-foreground size-4 shrink-0 -translate-y-px'
+                  aria-hidden
+                />
+                <span className='truncate font-semibold'>
                   {activeRoom?.name ?? 'Channel'}
-                </h1>
-                <p className='text-muted-foreground flex items-center gap-1.5 text-xs'>
-                  <Users className='size-3.5' aria-hidden />
-                  {members.length > 0
-                    ? `${members.length} online`
-                    : 'Group channel'}
-                </p>
+                </span>
               </div>
-              {/* Mobile-only: open the online-members list without leaving the room. */}
-              <Button
-                variant='ghost'
-                size='icon'
-                className='md:hidden'
-                onClick={() => setMembersOpen(true)}
-                aria-label="Show who's online"
-              >
-                <Users2Icon aria-hidden />
-              </Button>
+              <div className='text-muted-foreground flex items-center gap-2 text-sm md:hidden'>
+                <Button
+                  variant='secondary'
+                  size='lg'
+                  className='text-foreground'
+                  onClick={() => setMembersOpen(true)}
+                >
+                  <span>{members.length}</span>
+                  <Users2Icon aria-hidden />
+                </Button>
+              </div>
               {canDelete && (
                 <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
                   <DialogTrigger asChild aria-label='Delete channel'>
-                    <Button variant='destructive' size='icon'>
+                    <Button variant='destructive' size='icon-lg'>
                       <Trash2Icon aria-hidden />
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>
-                        Delete #{activeRoom?.name ?? 'channel'}?
-                      </DialogTitle>
+                      <DialogTitle>Delete Channel?</DialogTitle>
                       <DialogDescription>
                         This permanently deletes the channel and all of its
                         messages for everyone. This action cannot be undone.
@@ -484,7 +558,7 @@ export function RoomsWorkspace({
                         onClick={handleDelete}
                         disabled={deleting}
                       >
-                        {deleting ? 'Deleting…' : 'Delete channel'}
+                        {deleting ? 'Deleting…' : 'Delete'}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -495,7 +569,7 @@ export function RoomsWorkspace({
             <div className='min-h-0 flex-1'>
               {loading ? (
                 <div className='flex h-full items-center justify-center'>
-                  <Loader2
+                  <Loader2Icon
                     className='text-muted-foreground size-6 animate-spin'
                     aria-hidden
                   />
@@ -512,13 +586,21 @@ export function RoomsWorkspace({
                   onUserClickAction={setPreviewUserId}
                   notifyCategory='roomMessage'
                   emptyState={
-                    <div className='text-center'>
-                      <p className='text-sm font-medium'>
-                        Welcome to #{activeRoom?.name ?? 'channel'}
-                      </p>
-                      <p className='text-muted-foreground mt-1 text-sm'>
-                        Be the first to say something.
-                      </p>
+                    <div className='flex h-full flex-col items-center justify-center gap-4 px-6 text-center'>
+                      <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
+                        <MessageCircleQuestionMarkIcon
+                          className='text-primary size-12 shrink-0'
+                          aria-hidden
+                        />
+                      </div>
+                      <div className='flex flex-col items-center gap-2'>
+                        <span className='text-3xl font-semibold tracking-tight text-balance'>
+                          No messages yet
+                        </span>
+                        <p className='text-muted-foreground max-w-sm text-pretty'>
+                          Be the first to say something.
+                        </p>
+                      </div>
                     </div>
                   }
                 />
@@ -528,42 +610,61 @@ export function RoomsWorkspace({
         )}
       </main>
 
-      {/* Mobile "who's online" list. Selecting a member opens their preview. */}
       <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
-        <DialogContent className='max-h-[70vh] gap-0 overflow-hidden'>
+        <DialogContent className='max-h-[70vh] gap-4 overflow-hidden'>
           <DialogHeader>
-            <DialogTitle>
-              {members.length > 0
-                ? `${members.length} online in this chat`
-                : 'Online'}
-            </DialogTitle>
+            <DialogTitle>Members in this Channel</DialogTitle>
             <DialogDescription>
               {activeRoom
-                ? `Everyone currently in #${activeRoom.name}.`
-                : 'Members currently in this channel.'}
+                ? `There's currently ${members.length} member(s) in ${activeRoom.name}.`
+                : `There's currently no active room.`}
             </DialogDescription>
           </DialogHeader>
-          <div className='mt-4 min-h-0 flex-1 overflow-y-auto'>
-            {members.length === 0 ? (
-              <p className='text-muted-foreground px-2 py-6 text-center text-sm'>
-                Connecting…
-              </p>
-            ) : (
-              <MembersList
-                members={members}
-                onSelect={(id) => {
-                  setMembersOpen(false);
-                  setPreviewUserId(id);
-                }}
+          <div className='relative min-w-0'>
+            <div
+              className='custom-scrollbar max-h-[60vh] min-w-0 overflow-y-auto'
+              ref={mobileUserScrollRef}
+              onScroll={checkMobileUserScroll}
+            >
+              {members.length === 0 ? (
+                <div className='flex h-full items-center justify-center py-4'>
+                  <Loader2Icon className='animate-spin' aria-hidden />
+                </div>
+              ) : (
+                <MembersList
+                  members={members}
+                  onSelect={(id) => {
+                    setMembersOpen(false);
+                    setPreviewUserId(id);
+                  }}
+                />
+              )}
+              {/* Top Fade */}
+              <div
+                className={`from-card pointer-events-none absolute inset-x-0 -top-1 z-10 h-12 bg-linear-to-b to-transparent transition-opacity duration-200 ${
+                  isMobileUserScrollable && !isMobileUserScrolledTop
+                    ? 'opacity-100'
+                    : 'opacity-0'
+                }`}
+                aria-hidden
               />
-            )}
+              {/* Bottom Fade */}
+              <div
+                className={`from-card pointer-events-none absolute inset-x-0 -bottom-1 z-10 h-12 bg-linear-to-t to-transparent transition-opacity duration-200 ${
+                  isMobileUserScrollable && !isMobileUserScrolledBottom
+                    ? 'opacity-100'
+                    : 'opacity-0'
+                }`}
+                aria-hidden
+              />
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
       <UserPreviewDialog
         userId={previewUserId}
-        onClose={() => setPreviewUserId(null)}
+        onCloseAction={() => setPreviewUserId(null)}
       />
     </div>
   );
