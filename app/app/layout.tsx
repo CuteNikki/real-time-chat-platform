@@ -1,12 +1,15 @@
-import type React from 'react';
-import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import type React from 'react';
+
+import { getMyNotificationPreferences } from '@/app/actions/preferences';
+
 import { auth } from '@/lib/auth';
-import { getMyRole } from '@/lib/roles-server';
 import { getEffectiveBan } from '@/lib/ban';
+
 import { AppNav, MobileBottomNav } from '@/components/app-nav';
 import { NotificationPrefsProvider } from '@/components/notification-prefs-provider';
-import { getMyNotificationPreferences } from '@/app/actions/preferences';
+import { getMyRole } from '@/lib/roles-server';
 
 export default async function AppLayout({
   children,
@@ -16,31 +19,23 @@ export default async function AppLayout({
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user) redirect('/sign-in');
 
-  // Gate the entire app: any active account ban (or a ban on the request's IP)
-  // bounces the user to the /banned page, which lives outside this layout.
-  const effectiveBan = await getEffectiveBan(session.user.id);
+  const [role, effectiveBan] = await Promise.all([
+    getMyRole(),
+    getEffectiveBan(session.user.id),
+  ]);
   if (effectiveBan) redirect('/banned');
 
-  const u = session.user as typeof session.user & { username?: string | null };
-  const [role, notificationPrefs] = await Promise.all([
-    getMyRole(),
-    getMyNotificationPreferences(),
-  ]);
+  const notificationPrefs = await getMyNotificationPreferences();
 
   return (
     <NotificationPrefsProvider initial={notificationPrefs}>
-      <div className='bg-background flex h-svh flex-col overflow-hidden'>
-        <AppNav
-          user={{
-            id: session.user.id,
-            name: session.user.name,
-            email: session.user.email,
-            image: session.user.image ?? null,
-            username: u.username ?? null,
-            role,
-          }}
-        />
-        <div className='min-h-0 flex-1 overflow-hidden'>{children}</div>
+      <div className='bg-background relative flex h-svh flex-col overflow-hidden'>
+        <AppNav user={{ ...session.user, role }} />
+
+        <main className='relative flex min-h-0 w-full flex-1 flex-col'>
+          {children}
+        </main>
+
         <MobileBottomNav />
       </div>
     </NotificationPrefsProvider>

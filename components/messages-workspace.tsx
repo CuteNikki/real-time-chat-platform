@@ -1,8 +1,26 @@
 'use client';
 
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+
+import {
+  ArrowLeft,
+  Eraser,
+  MessageCircleIcon,
+  MoreVertical,
+  Search,
+  UserMinus,
+} from 'lucide-react';
+
 import { clearChat, getMessages } from '@/app/actions/chat';
 import type { PrivateConversation } from '@/app/actions/invites';
 import { removeFriend } from '@/app/actions/invites';
+
+import type { ChatMessage } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
 import { ChatRoom } from '@/components/chat-room';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,20 +33,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { UserAvatar } from '@/components/user-avatar';
 import { UserPreviewDialog } from '@/components/user-preview';
-import type { ChatMessage } from '@/lib/types';
-import { cn } from '@/lib/utils';
-import {
-  ArrowLeft,
-  Eraser,
-  MessageCircle,
-  MoreVertical,
-  Search,
-  UserMinus,
-} from 'lucide-react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 export function MessagesWorkspace({
   currentUserId,
@@ -323,16 +327,21 @@ export function MessagesWorkspace({
             </div>
           </>
         ) : (
-          <div className='flex h-full flex-col items-center justify-center gap-3 text-center'>
-            <div className='bg-secondary flex size-14 items-center justify-center rounded-full'>
-              <MessageCircle
-                className='text-secondary-foreground size-7'
+          <div className='flex h-full flex-col items-center justify-center gap-4 px-6 text-center'>
+            <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
+              <MessageCircleIcon
+                className='text-primary size-12 shrink-0'
                 aria-hidden
               />
             </div>
-            <p className='text-muted-foreground text-sm text-balance'>
-              Select a conversation to start chatting.
-            </p>
+            <div className='flex flex-col items-center gap-2'>
+              <span className='text-3xl font-semibold tracking-tight text-balance'>
+                Choose a Channel
+              </span>
+              <p className='text-muted-foreground max-w-sm text-balance'>
+                Select a channel from the left to jump into the conversation.
+              </p>
+            </div>
           </div>
         )}
       </section>

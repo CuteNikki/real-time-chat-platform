@@ -26,7 +26,7 @@ import {
   ArrowLeft,
   Hash,
   Loader2,
-  MessageSquare,
+  MessagesSquareIcon,
   Plus,
   Trash2Icon,
   Users,
@@ -261,7 +261,7 @@ export function RoomsWorkspace({
       {/* Left rail: channels + members */}
       <aside
         className={cn(
-          'border-border bg-card flex w-full flex-col border-r md:w-72 lg:w-80',
+          'border-border flex w-full flex-col border-r md:w-72 lg:w-80',
           activeChatId && 'hidden md:flex',
         )}
       >
@@ -366,32 +366,26 @@ export function RoomsWorkspace({
             </div>
           )}
         </div>
-
-        {/* Members of the active channel. Hidden on mobile: while browsing the
-            channel list there's no active channel, and inside a channel the
-            header's "who's online" button covers this. Desktop keeps it. */}
-        <div className='border-border hidden min-h-0 flex-1 flex-col border-t md:flex'>
-          <div className='px-4 pt-3 pb-2'>
-            <h2 className='text-muted-foreground text-xs font-semibold tracking-wider uppercase'>
-              {activeChatId
-                ? `${members.length} online in this chat`
-                : 'Online'}
-            </h2>
+        {activeChatId && (
+          <div className='border-border hidden min-h-0 flex-1 flex-col border-t md:flex'>
+            <div className='px-4 pt-3 pb-2'>
+              <h2 className='text-muted-foreground text-xs font-semibold tracking-wider uppercase'>
+                {activeChatId
+                  ? `${members.length} online in this chat`
+                  : 'Online'}
+              </h2>
+            </div>
+            <div className='min-h-0 flex-1 overflow-y-auto px-3 pb-3'>
+              {members.length === 0 ? (
+                <p className='text-muted-foreground px-2 py-6 text-center text-sm'>
+                  Connecting…
+                </p>
+              ) : (
+                <MembersList members={members} onSelect={setPreviewUserId} />
+              )}
+            </div>
           </div>
-          <div className='min-h-0 flex-1 overflow-y-auto px-3 pb-3'>
-            {!activeChatId ? (
-              <p className='text-muted-foreground px-2 py-6 text-center text-sm'>
-                Pick a channel to see who&apos;s here.
-              </p>
-            ) : members.length === 0 ? (
-              <p className='text-muted-foreground px-2 py-6 text-center text-sm'>
-                Connecting…
-              </p>
-            ) : (
-              <MembersList members={members} onSelect={setPreviewUserId} />
-            )}
-          </div>
-        </div>
+        )}
       </aside>
 
       {/* Main pane */}
@@ -402,15 +396,22 @@ export function RoomsWorkspace({
         )}
       >
         {!activeChatId ? (
-          <div className='flex h-full flex-col items-center justify-center px-6 text-center'>
-            <div className='bg-accent text-accent-foreground flex size-14 items-center justify-center rounded-2xl'>
-              <MessageSquare className='size-7' aria-hidden />
+          <div className='flex h-full flex-col items-center justify-center gap-4 px-6 text-center'>
+            <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
+              <MessagesSquareIcon
+                className='text-primary size-12 shrink-0'
+                aria-hidden
+              />
             </div>
-            <p className='mt-4 text-lg font-semibold'>Choose a channel</p>
-            <p className='text-muted-foreground mt-1 max-w-xs text-sm'>
-              Select a channel from the left to jump into the conversation, or
-              create your own.
-            </p>
+            <div className='flex flex-col items-center gap-2'>
+              <span className='text-3xl font-semibold tracking-tight text-balance'>
+                Choose a Channel
+              </span>
+              <p className='text-muted-foreground max-w-sm text-pretty'>
+                Select a channel from the left to jump into the conversation, or
+                create your own.
+              </p>
+            </div>
           </div>
         ) : (
           <>

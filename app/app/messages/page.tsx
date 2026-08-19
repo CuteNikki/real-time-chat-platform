@@ -1,6 +1,10 @@
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getMyProfile } from '@/app/actions/profile';
+
 import { getPrivateConversations } from '@/app/actions/invites';
+
+import { auth } from '@/lib/auth';
+
 import { MessagesWorkspace } from '@/components/messages-workspace';
 
 export default async function MessagesPage({
@@ -8,19 +12,22 @@ export default async function MessagesPage({
 }: {
   searchParams: Promise<{ c?: string }>;
 }) {
-  const me = await getMyProfile();
-  if (!me) redirect('/sign-in');
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user) redirect('/sign-in');
 
   const { c } = await searchParams;
+
   const conversations = await getPrivateConversations();
 
   return (
-    <MessagesWorkspace
-      currentUserId={me.id}
-      currentUserName={me.name}
-      currentUserImage={me.image ?? null}
-      conversations={conversations}
-      initialChatId={c ?? null}
-    />
+    <div className='xs:pt-20 h-full w-full overflow-y-auto pt-16'>
+      <MessagesWorkspace
+        currentUserId={session.user.id}
+        currentUserName={session.user.name}
+        currentUserImage={session.user.image ?? null}
+        conversations={conversations}
+        initialChatId={c ?? null}
+      />
+    </div>
   );
 }

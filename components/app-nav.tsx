@@ -3,12 +3,26 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import useSWR from 'swr';
+
+import {
+  HomeIcon,
+  LogOut,
+  MessageCircleIcon,
+  OrbitIcon,
+  Settings,
+  Shield,
+  ShuffleIcon,
+  User,
+  UserPlus2Icon,
+  Users2Icon,
+} from 'lucide-react';
+
 import { authClient } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { UserAvatar } from '@/components/user-avatar';
+
 import { NotificationBell } from '@/components/notification-bell';
+import { Badge } from '@/components/ui/badge';
+import { buttonVariants } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,45 +30,40 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Orbit,
-  Home,
-  Shuffle,
-  Users,
-  MessageCircle,
-  UserPlus,
-  User,
-  Settings,
-  Shield,
-  LogOut,
-} from 'lucide-react';
+import { UserAvatar } from '@/components/user-avatar';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const links = [
-  { href: '/app/feed', label: 'Feed', icon: Home, exact: false },
-  { href: '/app/match', label: 'Match', icon: Shuffle, exact: false },
-  { href: '/app/rooms', label: 'Rooms', icon: Users, exact: false },
+  { href: '/app/feed', label: 'Feed', icon: HomeIcon, exact: false },
+  { href: '/app/match', label: 'Match', icon: ShuffleIcon, exact: false },
+  { href: '/app/rooms', label: 'Rooms', icon: Users2Icon, exact: false },
   {
     href: '/app/messages',
     label: 'Messages',
-    icon: MessageCircle,
+    icon: MessageCircleIcon,
     exact: false,
   },
-  { href: '/app/friends', label: 'Friends', icon: UserPlus, exact: false },
+  { href: '/app/friends', label: 'Friends', icon: UserPlus2Icon, exact: false },
 ];
 
 export function AppNav({
   user,
+  hideBorder = false,
 }: {
   user: {
     id: string;
-    name: string;
+    createdAt: Date;
+    updatedAt: Date;
     email: string;
-    image: string | null;
-    username: string | null;
+    emailVerified: boolean;
+    name: string;
+    image?: string | null;
+    username?: string | null;
+    bio?: string | null;
     role: 'ADMIN' | 'MODERATOR' | 'MEMBER';
   };
+  hideBorder?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -80,14 +89,17 @@ export function AppNav({
     : '/app/settings';
 
   return (
-    <header className='border-border bg-background/80 sticky top-0 z-40 border-b backdrop-blur'>
-      <div className='mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6'>
-        <Link href='/app/feed' className='flex items-center gap-2'>
-          <Orbit className='text-primary size-6' aria-hidden />
-          <span className='hidden text-lg font-semibold tracking-tight sm:inline'>
-            Orbit
-          </span>
-        </Link>
+    <header
+      className={cn(
+        'bg-background/90 fixed inset-x-0 top-0 z-50 backdrop-blur-md',
+        hideBorder ? '' : 'border-b',
+      )}
+    >
+      <div className='xs:p-6 mx-auto flex w-full max-w-7xl items-center justify-between p-4'>
+        <div className='flex items-center gap-2'>
+          <OrbitIcon className='text-primary size-6' aria-hidden />
+          <span className='text-lg font-semibold tracking-tight'>Orbit</span>
+        </div>
 
         <nav className='hidden items-center gap-1 md:flex'>
           {links.map((link) => {
@@ -102,10 +114,7 @@ export function AppNav({
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  'relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  active
-                    ? 'bg-secondary text-secondary-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
+                  buttonVariants({ variant: active ? 'secondary' : 'ghost' }),
                 )}
               >
                 <Icon className='size-4' aria-hidden />
@@ -124,13 +133,10 @@ export function AppNav({
         </nav>
 
         <div className='flex items-center gap-1'>
-            <NotificationBell userId={user.id} username={user.username ?? null} />
+          <NotificationBell userId={user.id} username={user.username ?? null} />
           <DropdownMenu>
             <DropdownMenuTrigger
-              className={cn(
-                buttonVariants({ variant: 'ghost' }),
-                'h-10 gap-2 px-2',
-              )}
+              className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }))}
             >
               <UserAvatar
                 name={user.name}
