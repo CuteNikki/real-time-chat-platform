@@ -1,11 +1,14 @@
-import { getMessages } from '@/app/actions/chat';
-import { ChatView } from '@/components/chat-view';
-import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
-import { chat, chatParticipant, user } from '@/lib/db/schema';
 import { and, eq, isNull, ne } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
+
+import { getMessages } from '@/app/actions/chat';
+
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { chat, chatParticipant, user } from '@/lib/db/schema';
+
+import { ChatView } from '@/components/chat-view';
 
 export default async function ChatPage({
   params,
