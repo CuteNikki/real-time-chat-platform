@@ -472,7 +472,6 @@ function BanDialog({
               {DURATIONS.map((d) => (
                 <Button
                   key={d.key}
-                  type='button'
                   onClick={() => setDurationKey(d.key)}
                   variant={durationKey === d.key ? 'default' : 'outline'}
                 >
@@ -839,7 +838,7 @@ function HistoryDialog({
 
           <div className='relative min-w-0'>
             <div
-              className='custom-scrollbar scroll-fade-top-bottom max-h-[60vh] min-w-0 space-y-6 overflow-y-auto p-1'
+              className='custom-scrollbar max-h-[60vh] min-w-0 space-y-6 overflow-y-auto p-1'
               ref={scrollRef}
               onScroll={checkScroll}
             >
