@@ -162,18 +162,24 @@ export function AppNav({
                 </div>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem render={<Link href={profileHref} />}>
-                <User2Icon aria-hidden />
-                Profile
+              <DropdownMenuItem asChild>
+                <Link href={profileHref}>
+                  <User2Icon aria-hidden />
+                  Profile
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem render={<Link href='/app/settings' />}>
-                <SettingsIcon aria-hidden />
-                Settings
+              <DropdownMenuItem asChild>
+                <Link href='/app/settings'>
+                  <SettingsIcon aria-hidden />
+                  Settings
+                </Link>
               </DropdownMenuItem>
               {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
-                <DropdownMenuItem render={<Link href='/app/admin' />}>
-                  <ShieldIcon aria-hidden />
-                  Dashboard
+                <DropdownMenuItem asChild>
+                  <Link href='/app/admin'>
+                    <ShieldIcon aria-hidden />
+                    Dashboard
+                  </Link>
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
