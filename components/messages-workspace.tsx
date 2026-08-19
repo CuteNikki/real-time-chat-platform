@@ -268,18 +268,16 @@ export function MessagesWorkspace({
               </button>
 
               <DropdownMenu>
-                <DropdownMenuTrigger
-                  render={
-                    <Button
-                      size='icon'
-                      variant='ghost'
-                      className='ml-auto shrink-0'
-                      disabled={menuBusy}
-                      aria-label='Conversation options'
-                    />
-                  }
-                >
-                  <MoreVertical className='size-5' aria-hidden />
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size='icon'
+                    variant='ghost'
+                    className='ml-auto shrink-0'
+                    disabled={menuBusy}
+                    aria-label='Conversation options'
+                  >
+                    <MoreVertical className='shrink-0' aria-hidden />
+                  </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align='end'>
                   <DropdownMenuItem onClick={handleClearChat}>
@@ -348,7 +346,7 @@ export function MessagesWorkspace({
 
       <UserPreviewDialog
         userId={previewUserId}
-        onClose={() => setPreviewUserId(null)}
+        onCloseAction={() => setPreviewUserId(null)}
       />
     </div>
   );
