@@ -838,7 +838,7 @@ function HistoryDialog({
 
           <div className='relative min-w-0'>
             <div
-              className='custom-scrollbar max-h-[60vh] min-w-0 space-y-6 overflow-y-auto p-1'
+              className='max-h-[60vh] min-w-0 space-y-6 overflow-y-auto p-1'
               ref={scrollRef}
               onScroll={checkScroll}
             >

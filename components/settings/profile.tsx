@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import {
@@ -173,6 +173,34 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
     }
   }
 
+  useEffect(() => {
+    const clean = username.trim().toLowerCase();
+    if (!clean || clean === profile.username.toLowerCase()) {
+      setAvailable(null);
+      setChecking(false);
+      return;
+    }
+    if (!/^[a-z0-9_]{3,20}$/.test(clean)) {
+      setAvailable(false);
+      setChecking(false);
+      return;
+    }
+
+    setChecking(true);
+    const t = setTimeout(async () => {
+      try {
+        const res = await isUsernameAvailable(clean);
+        setAvailable(res.available);
+      } catch {
+        setAvailable(null);
+      } finally {
+        setChecking(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(t);
+  }, [username, profile.username]);
+
   return (
     <div className='space-y-4'>
       {/* Avatar */}
@@ -247,7 +275,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
           <Input
             id='username'
             value={username}
-            onChange={(e) => checkUsername(e.target.value)}
+            onChange={(e) => setUsername(e.target.value)}
             className='pl-6'
             maxLength={20}
             autoCapitalize='none'
@@ -294,7 +322,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder='Tell people a bit about yourself'
-          className='max-h-25 resize-none'
+          className='max-h-24 resize-none'
           maxLength={300}
         />
         <p className='text-muted-foreground text-right text-xs'>

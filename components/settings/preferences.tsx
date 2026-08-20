@@ -121,15 +121,17 @@ export function PreferenceSettings() {
           <div className='bg-muted flex w-fit items-center gap-1 rounded-lg p-1'>
             {!mounted ? (
               <>
-                <Loader2Icon
-                  className='size-4 shrink-0 animate-spin'
-                  aria-hidden
-                />
+                <Button variant='secondary' size='sm' disabled>
+                  <Loader2Icon
+                    className='size-4 shrink-0 animate-spin'
+                    aria-hidden
+                  />
+                  Loading...  
+                </Button>
               </>
             ) : (
               <>
                 <Button
-                  type='button'
                   variant={mounted && theme === 'light' ? 'default' : 'ghost'}
                   size='sm'
                   onClick={() => setTheme('light')}
@@ -138,7 +140,6 @@ export function PreferenceSettings() {
                   Light
                 </Button>
                 <Button
-                  type='button'
                   variant={mounted && theme === 'dark' ? 'default' : 'ghost'}
                   size='sm'
                   onClick={() => setTheme('dark')}
@@ -147,7 +148,6 @@ export function PreferenceSettings() {
                   Dark
                 </Button>
                 <Button
-                  type='button'
                   variant={mounted && theme === 'system' ? 'default' : 'ghost'}
                   size='sm'
                   onClick={() => setTheme('system')}
