@@ -1,34 +1,18 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import {
-  CheckIcon,
-  ClockIcon,
-  ExternalLinkIcon,
-  Loader2Icon,
-  MessageCircle,
-  UserMinus2Icon,
-  UserPlus2Icon,
-  XIcon,
-} from 'lucide-react';
+import { Loader2Icon } from 'lucide-react';
 
-import {
-  cancelFriendRequest,
-  removeFriend,
-  sendFriendRequest,
-} from '@/app/actions/invites';
 import { getProfilePreview } from '@/app/actions/profile';
 
 import type { UserProfile } from '@/lib/types';
 
+import { FriendshipButtons } from '@/components/friendship-buttons';
 import { InterestTags } from '@/components/interest-tags';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { UserAvatar } from '@/components/user-avatar';
-import Link from 'next/link';
 
 export function UserPreviewDialog({
   userId,
@@ -37,10 +21,8 @@ export function UserPreviewDialog({
   userId: string | null;
   onCloseAction: () => void;
 }) {
-  const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
-  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!userId) {
@@ -63,66 +45,6 @@ export function UserPreviewDialog({
       active = false;
     };
   }, [userId]);
-
-  async function addOrAccept() {
-    if (!profile) return;
-    setBusy(true);
-    try {
-      // sendFriendRequest also auto-accepts if they had already requested us.
-      const res = await sendFriendRequest(profile.id);
-      if ('status' in res && res.status === 'accepted') {
-        setProfile({
-          ...profile,
-          friendStatus: 'friends',
-          dmChatId: 'chatId' in res ? (res.chatId ?? null) : null,
-        });
-        toast.success(`You and ${profile.name} are now friends`);
-      } else {
-        setProfile({ ...profile, friendStatus: 'outgoing' });
-        toast.success('Friend request sent');
-      }
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : 'Could not send request',
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function cancel() {
-    if (!profile) return;
-    setBusy(true);
-    try {
-      await cancelFriendRequest(profile.id);
-      setProfile({ ...profile, friendStatus: 'none' });
-      toast.success('Request canceled');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not cancel');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function unfriend() {
-    if (!profile) return;
-    setBusy(true);
-    try {
-      await removeFriend(profile.id);
-      setProfile({ ...profile, friendStatus: 'none' });
-      toast.success('Unfriended successfully');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not unfriend');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function message() {
-    if (!profile?.dmChatId) return;
-    onCloseAction();
-    router.push(`/app/messages?c=${profile.dmChatId}`);
-  }
 
   return (
     <Dialog
@@ -154,7 +76,7 @@ export function UserPreviewDialog({
               </p>
             </div>
             {profile.bio ? (
-              <p className='text-muted-foreground mt-2 line-clamp-4 max-w-[16rem] text-sm leading-relaxed text-pretty whitespace-pre-wrap'>
+              <p className='text-muted-foreground line-clamp-4 text-sm leading-relaxed text-pretty whitespace-pre-wrap'>
                 {profile.bio}
               </p>
             ) : null}
@@ -164,7 +86,7 @@ export function UserPreviewDialog({
               max={4}
             />
 
-            <div className='mt-3 flex items-center gap-6 text-sm'>
+            <div className='flex items-center gap-6 py-4 text-sm'>
               <span>
                 <strong className='font-semibold tabular-nums'>
                   {profile.postCount}
@@ -179,115 +101,11 @@ export function UserPreviewDialog({
               </span>
             </div>
 
-            <div className='mt-5 flex w-full flex-col gap-2'>
-              {profile.isSelf ? null : profile.friendStatus === 'friends' ? (
-                <div className='flex gap-2'>
-                  <Button
-                    className='flex-1'
-                    disabled={!profile.dmChatId}
-                    onClick={message}
-                  >
-                    <MessageCircle className='shrink-0' aria-hidden />
-                    Message
-                  </Button>
-                  <Button
-                    variant='destructive'
-                    disabled={busy}
-                    onClick={unfriend}
-                  >
-                    {busy ? (
-                      <>
-                        <Loader2Icon
-                          className='shrink-0 animate-spin'
-                          aria-hidden
-                        />
-                        Removing...
-                      </>
-                    ) : (
-                      <>
-                        <UserMinus2Icon className='shrink-0' aria-hidden />
-                        Remove Friend
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ) : profile.friendStatus === 'outgoing' ? (
-                <Button
-                  variant='secondary'
-                  className='group/req gap-2'
-                  disabled={busy}
-                  onClick={cancel}
-                >
-                  {busy ? (
-                    <Loader2Icon
-                      className='shrink-0 animate-spin'
-                      aria-hidden
-                    />
-                  ) : (
-                    <>
-                      <ClockIcon
-                        className='shrink-0 group-hover/req:hidden'
-                        aria-hidden
-                      />
-                      <XIcon
-                        className='hidden shrink-0 group-hover/req:inline'
-                        aria-hidden
-                      />
-                    </>
-                  )}
-                  <span className='group-hover/req:hidden'>
-                    {busy ? 'Cancelling...' : 'Requested'}
-                  </span>
-                  <span className='hidden group-hover/req:inline'>
-                    {busy ? 'Cancelling...' : 'Cancel'}
-                  </span>
-                </Button>
-              ) : profile.friendStatus === 'incoming' ? (
-                <Button className='gap-2' disabled={busy} onClick={addOrAccept}>
-                  {busy ? (
-                    <>
-                      <Loader2Icon
-                        className='shrink-0 animate-spin'
-                        aria-hidden
-                      />
-                      Accepting...
-                    </>
-                  ) : (
-                    <>
-                      <CheckIcon className='shrink-0' aria-hidden />
-                      Accept Request
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button className='gap-2' disabled={busy} onClick={addOrAccept}>
-                  {busy ? (
-                    <>
-                      <Loader2Icon
-                        className='shrink-0 animate-spin'
-                        aria-hidden
-                      />
-                      Adding...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus2Icon className='shrink-0' aria-hidden />
-                      Add Friend
-                    </>
-                  )}
-                </Button>
-              )}
-
-              <Button variant='outline' className='gap-2' asChild>
-                <Link
-                  href={profile.username ? `/app/u/${profile.username}` : '#'}
-                  onClick={onCloseAction}
-                >
-                  <ExternalLinkIcon className='size-4' aria-hidden />
-                  View Full Profile
-                </Link>
-              </Button>
-            </div>
+            <FriendshipButtons
+              initialProfile={profile}
+              onCloseAction={onCloseAction}
+              showFullProfileButton
+            />
           </div>
         )}
       </DialogContent>
