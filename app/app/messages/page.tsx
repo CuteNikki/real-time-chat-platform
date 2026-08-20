@@ -5,7 +5,7 @@ import { getPrivateConversations } from '@/app/actions/invites';
 
 import { auth } from '@/lib/auth';
 
-import { MessagesWorkspace } from '@/components/messages-workspace';
+import { MessagesWorkspace } from '@/components/chat/messages-workspace';
 
 export default async function MessagesPage({
   searchParams,

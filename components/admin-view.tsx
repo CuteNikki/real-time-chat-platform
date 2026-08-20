@@ -69,7 +69,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { UserAvatar } from '@/components/user-avatar';
+import { UserAvatar } from '@/components/user/user-avatar';
 
 const ROLE_BADGE: Record<
   Role,

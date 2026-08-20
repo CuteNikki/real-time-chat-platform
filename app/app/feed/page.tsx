@@ -6,9 +6,9 @@ import { UserPlus2Icon } from 'lucide-react';
 import { getFeed } from '@/app/actions/posts';
 import { getMyProfile } from '@/app/actions/profile';
 
-import { PostCard } from '@/components/post-card';
-import { PostComposer } from '@/components/post-composer';
 import { Button } from '@/components/ui/button';
+import { PostCard } from '@/components/user/post-card';
+import { PostComposer } from '@/components/user/post-composer';
 
 export default async function FeedPage() {
   const me = await getMyProfile();
@@ -32,7 +32,11 @@ export default async function FeedPage() {
               Add friends to see their posts here, or share your first post
               above.
             </p>
-            <Button variant='ghost' asChild className='mt-2 text-primary/90 hover:text-primary'>
+            <Button
+              variant='ghost'
+              asChild
+              className='text-primary/90 hover:text-primary mt-2'
+            >
               <Link href='/app/friends'>
                 Find Friends
                 <UserPlus2Icon className='shrink-0' />

@@ -25,7 +25,7 @@ import { RoomMember, useRoomMembers } from '@/hooks/use-room-members';
 import type { ChatMessage, RoomSummary } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { ChatRoom } from '@/components/chat-room';
+import { ChatRoom } from '@/components/chat/chat-room';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,8 +39,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserAvatar } from '@/components/user-avatar';
-import { UserPreviewDialog } from '@/components/user-preview';
+import { UserAvatar } from '@/components/user/user-avatar';
+import { UserPreviewDialog } from '@/components/user/user-preview';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 

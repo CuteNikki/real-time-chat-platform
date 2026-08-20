@@ -9,10 +9,10 @@ import { getProfilePreview } from '@/app/actions/profile';
 
 import type { UserProfile } from '@/lib/types';
 
-import { FriendshipButtons } from '@/components/friendship-buttons';
-import { InterestTags } from '@/components/interest-tags';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { UserAvatar } from '@/components/user-avatar';
+import { FriendshipButtons } from '@/components/user/friendship-buttons';
+import { InterestTags } from '@/components/user/interest-tags';
+import { UserAvatar } from '@/components/user/user-avatar';
 
 export function UserPreviewDialog({
   userId,

@@ -1,48 +1,48 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import useSWR from 'swr';
-import { toast } from 'sonner';
+import { respondToRequest } from '@/app/actions/invites';
 import {
-  Bell,
-  UserPlus,
-  UserCheck,
-  MessageCircle,
-  Heart,
-  Check,
-  X,
-  Loader2,
-  Trash2,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { buttonVariants, Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from '@/components/ui/popover';
-import { UserAvatar } from '@/components/user-avatar';
-import { UserPreviewDialog } from '@/components/user-preview';
-import { getPusherClient } from '@/lib/pusher/client';
-import { userChannel, EVENTS } from '@/lib/pusher/channels';
-import {
+  clearNotifications,
+  deleteNotification,
   getNotifications,
   markNotificationsRead,
-  deleteNotification,
-  clearNotifications,
 } from '@/app/actions/notifications';
-import { respondToRequest } from '@/app/actions/invites';
 import { useNotificationPrefs } from '@/components/notification-prefs-provider';
+import { Badge } from '@/components/ui/badge';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UserAvatar } from '@/components/user/user-avatar';
+import { UserPreviewDialog } from '@/components/user/user-preview';
 import { playNotificationSound } from '@/lib/notification-sound';
+import { EVENTS, userChannel } from '@/lib/pusher/channels';
+import { getPusherClient } from '@/lib/pusher/client';
 import type {
   NotificationCategory,
   NotificationSummary,
   NotificationType,
 } from '@/lib/types';
+import { cn } from '@/lib/utils';
+import {
+  Bell,
+  Check,
+  Heart,
+  Loader2,
+  MessageCircle,
+  Trash2,
+  UserCheck,
+  UserPlus,
+  X,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import useSWR from 'swr';
 
 type Counts = {
   requests: number;
@@ -111,9 +111,7 @@ export function NotificationBell({
   const total = data?.total ?? 0;
 
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'requests' | 'messages' | 'likes'>(
-    'requests',
-  );
+  const [tab, setTab] = useState<'requests' | 'messages' | 'likes'>('requests');
   const [items, setItems] = useState<NotificationSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -175,7 +173,8 @@ export function NotificationBell({
   // Mark the active tab's notifications read shortly after viewing.
   useEffect(() => {
     if (!open) return;
-    const list = tab === 'messages' ? messages : tab === 'likes' ? likes : requests;
+    const list =
+      tab === 'messages' ? messages : tab === 'likes' ? likes : requests;
     if (!list.some((n) => !n.read)) return;
     const t = setTimeout(async () => {
       await markNotificationsRead({ category: tab });
@@ -252,7 +251,8 @@ export function NotificationBell({
   const unreadMessages = messages.filter((n) => !n.read).length;
   const unreadLikes = likes.filter((n) => !n.read).length;
 
-  const activeList = tab === 'messages' ? messages : tab === 'likes' ? likes : requests;
+  const activeList =
+    tab === 'messages' ? messages : tab === 'likes' ? likes : requests;
 
   return (
     <>
@@ -579,7 +579,7 @@ function LikeRow({
             <Link
               href={postHref}
               onClick={onNavigate}
-              className='text-muted-foreground underline hover:text-foreground'
+              className='text-muted-foreground hover:text-foreground underline'
             >
               post
             </Link>

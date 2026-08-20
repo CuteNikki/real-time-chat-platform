@@ -20,7 +20,7 @@ import { useChatHeader } from '@/hooks/use-chat-header';
 
 import type { ChatMessage, ChatType } from '@/lib/types';
 
-import { ChatRoom } from '@/components/chat-room';
+import { ChatRoom } from '@/components/chat/chat-room';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -30,8 +30,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { UserAvatar } from '@/components/user-avatar';
-import { UserPreviewDialog } from '@/components/user-preview';
+import { UserAvatar } from '@/components/user/user-avatar';
+import { UserPreviewDialog } from '@/components/user/user-preview';
 
 export function ChatView({
   chatId,

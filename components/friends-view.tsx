@@ -12,13 +12,13 @@ import type {
   UserProfile,
 } from '@/lib/types';
 
+import { Input } from '@/components/ui/input';
 import {
   FriendshipButtons,
   InitialProfile,
-} from '@/components/friendship-buttons';
-import { Input } from '@/components/ui/input';
-import { UserAvatar } from '@/components/user-avatar';
-import { UserPreviewDialog } from '@/components/user-preview';
+} from '@/components/user/friendship-buttons';
+import { UserAvatar } from '@/components/user/user-avatar';
+import { UserPreviewDialog } from '@/components/user/user-preview';
 
 export function FriendsView({
   initialIncoming,

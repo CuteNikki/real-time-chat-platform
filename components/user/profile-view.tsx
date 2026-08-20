@@ -7,11 +7,11 @@ import { LockIcon } from 'lucide-react';
 import { Role } from '@/lib/roles';
 import type { PostSummary, UserProfile } from '@/lib/types';
 
-import { FriendshipButtons } from '@/components/friendship-buttons';
-import { InterestTags } from '@/components/interest-tags';
-import { PostGrid } from '@/components/post-grid';
 import { Badge } from '@/components/ui/badge';
-import { UserAvatar } from '@/components/user-avatar';
+import { FriendshipButtons } from '@/components/user/friendship-buttons';
+import { InterestTags } from '@/components/user/interest-tags';
+import { PostGrid } from '@/components/user/post-grid';
+import { UserAvatar } from '@/components/user/user-avatar';
 
 export function ProfileView({
   profile,

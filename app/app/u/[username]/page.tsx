@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getUserPosts } from '@/app/actions/posts';
 import { getProfileByUsername } from '@/app/actions/profile';
 
-import { ProfileView } from '@/components/profile-view';
+import { ProfileView } from '@/components/user/profile-view';
 import { getMyRole } from '@/lib/roles-server';
 
 export default async function ProfilePage({

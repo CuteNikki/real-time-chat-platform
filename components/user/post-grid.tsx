@@ -8,8 +8,8 @@ import { ImageIcon, PlusIcon } from 'lucide-react';
 
 import type { PostSummary } from '@/lib/types';
 
-import { PostCard } from '@/components/post-card';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { PostCard } from '@/components/user/post-card';
 
 export function PostGrid({
   posts,

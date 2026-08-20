@@ -11,7 +11,7 @@ import {
   Users2Icon,
 } from 'lucide-react';
 
-import { AuthNav } from '@/components/auth-nav';
+import { AuthNav } from '@/components/auth/auth-nav';
 import {
   Accordion,
   AccordionContent,

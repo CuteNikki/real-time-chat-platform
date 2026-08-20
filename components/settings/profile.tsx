@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { UserAvatar } from '@/components/user-avatar';
+import { UserAvatar } from '@/components/user/user-avatar';
 
 type Profile = {
   id: string;
