@@ -23,7 +23,7 @@ export function UserAvatar({
   className?: string;
 }) {
   return (
-    <Avatar size={size} className={className}>
+    <Avatar size={size} className={className} key={image || 'no-image'}>
       {image ? (
         <AvatarImage src={image || '/placeholder.svg'} alt={name} />
       ) : null}
