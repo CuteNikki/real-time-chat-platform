@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { getEffectiveBan } from '@/lib/ban';
 import { LocalTime } from '@/components/local-time';
-import { SignOutButton } from '@/components/sign-out-button';
+import { SignOutButton } from '@/components/auth/sign-out-button';
 import { Ban, Clock, ShieldAlert, User } from 'lucide-react';
 
 export const metadata: Metadata = {

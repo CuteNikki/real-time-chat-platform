@@ -1,12 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { AccountSettings } from '@/components/account-settings';
-import { PreferenceSettings } from '@/components/preference-settings';
-import { PrivacySettings } from '@/components/privacy-settings';
-import { ProfileSettings } from '@/components/profile-settings';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import type { SettingsTab } from '@/lib/settings-tabs';
+
+import { AccountSettings } from '@/components/settings/account';
+import { PreferenceSettings } from '@/components/settings/preferences';
+import { PrivacySettings } from '@/components/settings/privacy';
+import { ProfileSettings } from '@/components/settings/profile';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type SettingsProfile = {
   id: string;
@@ -23,7 +25,6 @@ export function SettingsTabs({
   tab,
 }: {
   profile: SettingsProfile;
-  // The active tab, resolved from the URL by the page. Defaults to "profile".
   tab: SettingsTab;
 }) {
   const router = useRouter();
@@ -32,33 +33,23 @@ export function SettingsTabs({
     <Tabs
       value={tab}
       onValueChange={(v) => {
-        // Keep the URL in sync so /app/settings/<tab> is shareable and
-        // browser back/forward works, without a full page reload.
         router.push(`/app/settings/${v}`, { scroll: false });
       }}
       className='w-full'
     >
-      {/* On narrow screens, four equal-width tabs get too cramped to tap
-          comfortably. Let the bar scroll horizontally at its natural size
-          instead of squeezing labels — bleed to the page edges so it scrolls
-          under the same padding the rest of the page uses. overflow-y-hidden
-          is required alongside overflow-x-auto: CSS forces a "visible" y-axis
-          to compute as "auto" once x is anything but visible, which is what
-          was producing the stray vertical scrollbar. The edge fades signal
-          "more tabs this way" instead of hard-clipping the last label. */}
-      <div className='relative -mx-4 mb-6 sm:mx-0'>
-        <div className='overflow-x-auto overflow-y-hidden px-4 sm:overflow-visible sm:px-0'>
+      <div className='relative sm:mx-0 pb-4'>
+        <div className='overflow-x-auto overflow-y-hidden scrollbar-none px-4 sm:overflow-visible sm:px-0'>
           <TabsList className='w-max sm:w-fit'>
-            <TabsTrigger value='profile' className='flex-none px-3'>
+            <TabsTrigger value='profile' className='flex-none px-2'>
               Profile
             </TabsTrigger>
-            <TabsTrigger value='account' className='flex-none px-3'>
+            <TabsTrigger value='account' className='flex-none px-2'>
               Account
             </TabsTrigger>
-            <TabsTrigger value='privacy' className='flex-none px-3'>
+            <TabsTrigger value='privacy' className='flex-none px-2'>
               Privacy
             </TabsTrigger>
-            <TabsTrigger value='preferences' className='flex-none px-3'>
+            <TabsTrigger value='preferences' className='flex-none px-2'>
               Preferences
             </TabsTrigger>
           </TabsList>

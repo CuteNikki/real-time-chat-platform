@@ -25,7 +25,7 @@ import { RoomMember, useRoomMembers } from '@/hooks/use-room-members';
 import type { ChatMessage, RoomSummary } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { ChatRoom } from '@/components/chat-room';
+import { ChatRoom } from '@/components/chat/chat-room';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,8 +39,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { UserAvatar } from '@/components/user-avatar';
-import { UserPreviewDialog } from '@/components/user-preview';
+import { UserAvatar } from '@/components/user/user-avatar';
+import { UserPreviewDialog } from '@/components/user/user-preview';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -316,7 +316,7 @@ export function RoomsWorkspace({
         <div className='flex min-h-0 flex-1 flex-col'>
           <div className='relative min-h-0 flex-1'>
             <nav
-              className='custom-scrollbar xs:p-4 h-full overflow-y-auto p-2'
+              className='xs:p-4 h-full overflow-y-auto p-2'
               ref={channelScrollRef}
               onScroll={checkChannelScroll}
             >
@@ -434,7 +434,7 @@ export function RoomsWorkspace({
 
             <div className='relative min-h-0 flex-1'>
               <div
-                className='custom-scrollbar xs:p-4 h-full scrollbar-none overflow-y-auto p-2 pt-0!'
+                className='xs:p-4 h-full scrollbar-none overflow-y-auto p-2 pt-0!'
                 ref={userScrollRef}
                 onScroll={checkUserScroll}
               >
@@ -622,7 +622,7 @@ export function RoomsWorkspace({
           </DialogHeader>
           <div className='relative min-w-0'>
             <div
-              className='custom-scrollbar max-h-[60vh] min-w-0 overflow-y-auto'
+              className='max-h-[60vh] min-w-0 overflow-y-auto'
               ref={mobileUserScrollRef}
               onScroll={checkMobileUserScroll}
             >

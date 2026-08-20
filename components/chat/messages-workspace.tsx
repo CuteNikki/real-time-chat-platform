@@ -21,7 +21,7 @@ import { removeFriend } from '@/app/actions/invites';
 import type { ChatMessage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-import { ChatRoom } from '@/components/chat-room';
+import { ChatRoom } from '@/components/chat/chat-room';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -31,8 +31,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { UserAvatar } from '@/components/user-avatar';
-import { UserPreviewDialog } from '@/components/user-preview';
+import { UserAvatar } from '@/components/user/user-avatar';
+import { UserPreviewDialog } from '@/components/user/user-preview';
 
 export function MessagesWorkspace({
   currentUserId,

@@ -8,8 +8,8 @@ import { ImageIcon, PlusIcon } from 'lucide-react';
 
 import type { PostSummary } from '@/lib/types';
 
-import { PostCard } from '@/components/post-card';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { PostCard } from '@/components/user/post-card';
 
 export function PostGrid({
   posts,
@@ -71,10 +71,10 @@ export function PostGrid({
             }}
             className='group border-border hover:bg-muted bg-card relative flex aspect-square flex-col items-center justify-center gap-2 overflow-hidden rounded-md border-2 border-dashed transition-colors'
           >
-            <div className='bg-primary/80 flex size-10 items-center justify-center rounded-full transition-all group-hover:scale-110'>
+            <div className='bg-primary/80 flex size-10 items-center justify-center rounded-full'>
               <PlusIcon className='shrink-0' aria-hidden />
             </div>
-            <span className='text-muted-foreground group-hover:text-foreground text-xs font-medium transition-all group-hover:scale-110'>
+            <span className='text-muted-foreground text-xs font-medium'>
               New Post
             </span>
           </button>

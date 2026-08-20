@@ -1,6 +1,26 @@
 'use client';
 
-import type React from 'react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
+import {
+  CheckIcon,
+  KeyRoundIcon,
+  Loader2Icon,
+  MailIcon,
+  MailsIcon,
+  SaveIcon,
+  Trash2Icon,
+} from 'lucide-react';
+
+import {
+  changePassword,
+  deleteUser,
+  sendVerificationEmail,
+  signOut,
+  useSession,
+} from '@/lib/auth-client';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -16,28 +36,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  changePassword,
-  deleteUser,
-  sendVerificationEmail,
-  signOut,
-  useSession,
-} from '@/lib/auth-client';
-import {
-  KeyRound,
-  Loader2,
-  MailCheckIcon,
-  MailIcon,
-  Trash2,
-} from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
 
 export function AccountSettings() {
   const router = useRouter();
   const { data: session, isPending: sessionPending } = useSession();
   const [sendingVerify, setSendingVerify] = useState(false);
+
+  const isVerified = session?.user.emailVerified ?? false;
 
   async function handleResendVerification() {
     if (!session?.user.email) return;
@@ -53,7 +58,7 @@ export function AccountSettings() {
       })(),
       {
         loading: 'Sending verification email...',
-        success: 'Verification email sent — check your inbox',
+        success: 'Verification email sent! Check your inbox.',
         error: (err) =>
           err instanceof Error ? err.message : 'Something went wrong',
         finally: () => setSendingVerify(false),
@@ -71,7 +76,7 @@ export function AccountSettings() {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleting, setDeleting] = useState(false);
 
-  async function handleChangePassword(e: React.FormEvent) {
+  async function handleChangePassword(e: React.SubmitEvent) {
     e.preventDefault();
     if (next !== confirm) {
       toast.error('New passwords do not match');
@@ -118,23 +123,26 @@ export function AccountSettings() {
       })(),
       {
         loading: 'Deleting account...',
-        success: 'Your account has been deleted',
+        success: 'Your account has been deleted!',
         error: (err) => {
-          setDeleting(false); // Reset on error since redirect won't happen
+          setDeleting(false);
           return err instanceof Error
             ? err.message
-            : 'Could not delete account';
+            : 'Could not delete account!';
         },
       },
     );
   }
 
   return (
-    <div className='space-y-10'>
+    <div className='space-y-4'>
       {/* Email */}
-      <section className='space-y-4'>
+      <section className='space-y-2'>
         <div className='flex items-center gap-2'>
-          <MailIcon className='text-muted-foreground size-4' aria-hidden />
+          <MailIcon
+            className='text-muted-foreground size-4 shrink-0'
+            aria-hidden
+          />
           <h2 className='text-lg font-semibold tracking-tight'>Email</h2>
         </div>
         {sessionPending ? (
@@ -151,38 +159,46 @@ export function AccountSettings() {
                 {session.user.email}
               </p>
               <p className='text-muted-foreground text-sm'>
-                {session.user.emailVerified
-                  ? 'has been verified'
-                  : 'not verified yet'}
+                {isVerified ? 'has been verified' : 'not verified yet'}
               </p>
             </div>
-
-            {session.user.emailVerified ? (
-              <MailCheckIcon
-                className='text-primary size-4 shrink-0'
-                aria-hidden
-              />
-            ) : (
-              <Button
-                variant='outline'
-                size='sm'
-                className='shrink-0'
-                disabled={sendingVerify}
-                onClick={handleResendVerification}
-              >
-                {sendingVerify ? (
-                  <Loader2 className='size-4 animate-spin' aria-hidden />
-                ) : null}
-                Resend
-              </Button>
-            )}
+            <Button
+              variant='default'
+              size='sm'
+              disabled={sendingVerify || isVerified}
+              onClick={handleResendVerification}
+            >
+              {sendingVerify ? (
+                <>
+                  <Loader2Icon className='shrink-0 animate-spin' aria-hidden />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  {isVerified ? (
+                    <>
+                      <CheckIcon className='shrink-0' aria-hidden />
+                      Verified
+                    </>
+                  ) : (
+                    <>
+                      <MailsIcon className='shrink-0' aria-hidden />
+                      Resend
+                    </>
+                  )}
+                </>
+              )}
+            </Button>
           </div>
         ) : null}
       </section>
 
-      <section className='space-y-4'>
+      <section className='space-y-2'>
         <div className='flex items-center gap-2'>
-          <KeyRound className='text-muted-foreground size-4' aria-hidden />
+          <KeyRoundIcon
+            className='text-muted-foreground size-4 shrink-0'
+            aria-hidden
+          />
           <h2 className='text-lg font-semibold tracking-tight'>
             Change Password
           </h2>
@@ -199,7 +215,7 @@ export function AccountSettings() {
               required
             />
           </div>
-          <div className='grid gap-4 sm:grid-cols-2'>
+          <div className='grid gap-2 sm:grid-cols-2'>
             <div className='space-y-2'>
               <Label htmlFor='new-password'>New password</Label>
               <Input
@@ -226,20 +242,27 @@ export function AccountSettings() {
             </div>
           </div>
           <div className='flex justify-end'>
-            <Button type='submit' disabled={savingPw} className='gap-2'>
+            <Button type='submit' disabled={savingPw}>
               {savingPw ? (
-                <Loader2 className='size-4 animate-spin' aria-hidden />
-              ) : null}
-              Update password
+                <>
+                  <Loader2Icon className='shrink-0 animate-spin' aria-hidden />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <SaveIcon className='shrink-0' aria-hidden />
+                  Update
+                </>
+              )}
             </Button>
           </div>
         </form>
       </section>
 
       {/* Danger zone */}
-      <section className='border-destructive/40 bg-destructive/5 space-y-2 rounded-xl border p-5'>
+      <section className='border-destructive/40 bg-destructive/5 space-y-2 rounded-xl border p-4'>
         <div className='flex items-center gap-2'>
-          <Trash2 className='text-destructive size-4' aria-hidden />
+          <Trash2Icon className='text-destructive size-4' aria-hidden />
           <h2 className='text-destructive text-lg font-semibold tracking-tight'>
             Delete Account
           </h2>
@@ -250,10 +273,7 @@ export function AccountSettings() {
         </p>
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant='destructive'>
-              <Trash2 className='size-4' aria-hidden />
-              Delete my account
-            </Button>
+            <Button variant='destructive'>Continue</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -261,8 +281,8 @@ export function AccountSettings() {
               <DialogDescription>
                 This permanently removes your account and all associated data.
                 Type{' '}
-                <span className='text-foreground font-semibold'>DELETE</span> to
-                confirm.
+                <span className='text-foreground font-semibold'>DELETE</span> in
+                uppercase to confirm.
               </DialogDescription>
             </DialogHeader>
             <Input
@@ -283,9 +303,13 @@ export function AccountSettings() {
                 onClick={handleDelete}
               >
                 {deleting ? (
-                  <Loader2 className='size-4 animate-spin' aria-hidden />
-                ) : null}
-                Delete forever
+                  <>
+                    <Loader2Icon className='size-4 animate-spin' aria-hidden />
+                    Deleting...
+                  </>
+                ) : (
+                  <>Delete</>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

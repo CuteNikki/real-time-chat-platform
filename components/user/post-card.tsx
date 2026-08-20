@@ -2,7 +2,6 @@
 
 import { deletePost, toggleLike, updatePost } from '@/app/actions/posts';
 import { LocalTime } from '@/components/local-time';
-import { PostLikersDialog } from '@/components/post-likers-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,7 +18,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Textarea } from '@/components/ui/textarea';
-import { UserAvatar } from '@/components/user-avatar';
+import { PostLikersDialog } from '@/components/user/post-likers-dialog';
+import { UserAvatar } from '@/components/user/user-avatar';
 import type { PostSummary } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Heart, Loader2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';

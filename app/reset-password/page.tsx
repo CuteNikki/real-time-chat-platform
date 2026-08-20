@@ -1,5 +1,5 @@
-import { AuthShell } from '@/components/auth-shell';
-import { ResetPasswordForm } from '@/components/reset-password-form';
+import { AuthShell } from '@/components/auth/auth-shell';
+import { ResetPasswordForm } from '@/components/auth/reset-password-form';
 
 export default async function ResetPasswordPage({
   searchParams,

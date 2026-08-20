@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { UserAvatar } from '@/components/user-avatar';
+import { UserAvatar } from '@/components/user/user-avatar';
 import type { PostLiker } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';

@@ -7,7 +7,7 @@ import { auth } from '@/lib/auth';
 import { canCreateGroups } from '@/lib/roles';
 import { getMyRole } from '@/lib/roles-server';
 
-import { RoomsWorkspace } from '@/components/rooms-workspace';
+import { RoomsWorkspace } from '@/components/chat/rooms-workspace';
 
 export default async function RoomsPage() {
   const session = await auth.api.getSession({ headers: await headers() });

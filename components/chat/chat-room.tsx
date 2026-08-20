@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { UserAvatar } from '@/components/user-avatar';
+import { UserAvatar } from '@/components/user/user-avatar';
 
 function timeLabel(iso: string) {
   return new Date(iso).toLocaleTimeString([], {
@@ -243,7 +243,7 @@ export function ChatRoom({
       </div>
 
       {/* Composer */}
-      <div className='border-border bg-background border-t p-2 xs:p-4'>
+      <div className='border-border bg-background xs:p-4 border-t p-2'>
         <div className='flex w-full flex-col gap-2'>
           {pendingImage && (
             <div className='relative self-start'>

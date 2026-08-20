@@ -4,8 +4,8 @@ import { redirect } from 'next/navigation';
 
 import { useSession } from '@/lib/auth-client';
 
-import { AuthShell } from '@/components/auth-shell';
-import { ForgotPasswordForm } from '@/components/forgot-password-form';
+import { AuthShell } from '@/components/auth/auth-shell';
+import { ForgotPasswordForm } from '@/components/auth/forgot-password-form';
 
 export default function ForgotPasswordPage() {
   const { data: session, isPending } = useSession();

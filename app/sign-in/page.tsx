@@ -4,8 +4,8 @@ import { redirect } from 'next/navigation';
 
 import { useSession } from '@/lib/auth-client';
 
-import { AuthForm } from '@/components/auth-form';
-import { AuthShell } from '@/components/auth-shell';
+import { AuthForm } from '@/components/auth/auth-form';
+import { AuthShell } from '@/components/auth/auth-shell';
 
 export default function SignInPage() {
   const { data: session, isPending } = useSession();
