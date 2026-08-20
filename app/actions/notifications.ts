@@ -13,8 +13,23 @@ import type {
   NotificationType,
 } from '@/lib/types';
 
+// Types that are naturally spammable by repeating the same user action
+// (send/cancel a request, like/unlike a post). Rather than piling up a fresh
+// row — and a fresh toast/chime — per repeat, these collapse into the single
+// still-unread row for the same (userId, type, actorId[, postId]) key. MESSAGE
+// is excluded: every message is genuinely new content, so it keeps one row
+// each.
+const DEDUPE_TYPES: readonly NotificationType[] = [
+  'FRIEND_REQUEST',
+  'FRIEND_ACCEPT',
+  'LIKE',
+];
+
 // Create a notification row and push it to the recipient in real time.
 // Safe to call from other server actions; never throws to the caller's flow.
+// Returns whether a new row was created vs. an existing unread one was
+// refreshed in place, so callers (and the realtime payload) can decide
+// whether this is worth re-alerting the recipient over.
 export async function createNotification(input: {
   userId: string;
   type: NotificationType;
@@ -26,30 +41,65 @@ export async function createNotification(input: {
   // Optional preference category override. MESSAGE notifications use this to
   // distinguish a direct message from a room message (both share the DB type).
   category?: NotificationCategory;
-}) {
+}): Promise<{ id: string; isNew: boolean } | null> {
   try {
-    const id = newId('ntf');
-    await db.insert(notification).values({
-      id,
-      userId: input.userId,
-      type: input.type,
-      actorId: input.actorId ?? null,
-      chatId: input.chatId ?? null,
-      postId: input.postId ?? null,
-      body: input.body ?? null,
-    });
+    let id = newId('ntf');
+    let isNew = true;
+
+    if (DEDUPE_TYPES.includes(input.type) && input.actorId) {
+      const dedupeConditions = [
+        eq(notification.userId, input.userId),
+        eq(notification.type, input.type),
+        eq(notification.actorId, input.actorId),
+        isNull(notification.readAt),
+      ];
+      if (input.type === 'LIKE') {
+        dedupeConditions.push(eq(notification.postId, input.postId ?? ''));
+      }
+      const [existing] = await db
+        .select({ id: notification.id })
+        .from(notification)
+        .where(and(...dedupeConditions))
+        .limit(1);
+
+      if (existing) {
+        id = existing.id;
+        isNew = false;
+        await db
+          .update(notification)
+          .set({ body: input.body ?? null, createdAt: new Date() })
+          .where(eq(notification.id, id));
+      }
+    }
+
+    if (isNew) {
+      await db.insert(notification).values({
+        id,
+        userId: input.userId,
+        type: input.type,
+        actorId: input.actorId ?? null,
+        chatId: input.chatId ?? null,
+        postId: input.postId ?? null,
+        body: input.body ?? null,
+      });
+    }
+
     await pusherServer.trigger(userChannel(input.userId), EVENTS.NOTIFICATION, {
       id,
       type: input.type,
       category: input.category ?? null,
       postId: input.postId ?? null,
       body: input.body ?? null,
+      isNew,
     });
+
+    return { id, isNew };
   } catch (err) {
     console.log(
       '[v0] createNotification failed:',
       err instanceof Error ? err.message : err,
     );
+    return null;
   }
 }
 
@@ -131,6 +181,35 @@ export async function deleteNotification(id: string) {
     .delete(notification)
     .where(and(eq(notification.id, id), eq(notification.userId, userId)));
   return { ok: true };
+}
+
+// Delete the notification a specific action caused, by its natural key
+// (mirrors the dedupe key in createNotification). Used to clean up after the
+// underlying event is undone — a canceled/declined/accepted friend request,
+// or a retracted like — so a reversed action doesn't leave a dead notification
+// behind. Never throws: this is best-effort cleanup, not the source of truth.
+export async function deleteNotificationByKey(key: {
+  userId: string;
+  type: NotificationType;
+  actorId: string;
+  postId?: string | null;
+}) {
+  try {
+    const conditions = [
+      eq(notification.userId, key.userId),
+      eq(notification.type, key.type),
+      eq(notification.actorId, key.actorId),
+    ];
+    if (key.type === 'LIKE') {
+      conditions.push(eq(notification.postId, key.postId ?? ''));
+    }
+    await db.delete(notification).where(and(...conditions));
+  } catch (err) {
+    console.log(
+      '[v0] deleteNotificationByKey failed:',
+      err instanceof Error ? err.message : err,
+    );
+  }
 }
 
 // Delete many notifications at once: a whole category, or everything.
