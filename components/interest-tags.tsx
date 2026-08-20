@@ -16,10 +16,12 @@ export function InterestTags({
   const extra = max ? interests.length - shown.length : 0;
 
   return (
-    <ul className={cn('flex flex-wrap gap-1', className)}>
+    <ul className={cn('flex max-w-full min-w-0 flex-wrap gap-1', className)}>
       {shown.map((tag) => (
-        <li key={tag}>
-          <Badge variant='secondary'>{tag}</Badge>
+        <li key={tag} className='max-w-full min-w-0'>
+          <Badge variant='secondary' className='block max-w-full truncate'>
+            {tag}
+          </Badge>
         </li>
       ))}
       {extra > 0 ? (
