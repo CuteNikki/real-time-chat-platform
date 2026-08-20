@@ -49,7 +49,7 @@ export function ProfileView({
                 ) : null}
               </div>
               {profile.bio ? (
-                <p className='text-muted-foreground max-w-prose text-sm leading-relaxed text-pretty'>
+                <p className='text-muted-foreground line-clamp-4 max-w-prose text-sm whitespace-pre-wrap'>
                   {profile.bio}
                 </p>
               ) : null}

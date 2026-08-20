@@ -1,12 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { AccountSettings } from '@/components/account-settings';
-import { PreferenceSettings } from '@/components/preference-settings';
-import { PrivacySettings } from '@/components/privacy-settings';
-import { ProfileSettings } from '@/components/profile-settings';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import type { SettingsTab } from '@/lib/settings-tabs';
+
+import { AccountSettings } from '@/components/settings/account';
+import { PreferenceSettings } from '@/components/settings/preferences';
+import { PrivacySettings } from '@/components/settings/privacy';
+import { ProfileSettings } from '@/components/settings/profile';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 type SettingsProfile = {
   id: string;

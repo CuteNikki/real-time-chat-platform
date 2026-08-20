@@ -76,7 +76,7 @@ export function UserPreviewDialog({
               </p>
             </div>
             {profile.bio ? (
-              <p className='text-muted-foreground line-clamp-4 text-sm leading-relaxed text-pretty whitespace-pre-wrap'>
+              <p className='text-muted-foreground line-clamp-4 text-sm whitespace-pre-wrap'>
                 {profile.bio}
               </p>
             ) : null}
