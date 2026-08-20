@@ -1,14 +1,16 @@
 'use server';
 
-import { db } from '@/lib/db';
-import { post, postLike, user, invite } from '@/lib/db/schema';
-import { newId } from '@/lib/id';
-import { getCurrentUser, getUserId } from '@/lib/session';
-import { createNotification } from '@/app/actions/notifications';
-import { getNotificationPreferencesFor } from '@/app/actions/preferences';
-import type { PostLiker, PostSummary } from '@/lib/types';
 import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+
+import { upsertNotification } from '@/app/actions/notifications';
+import { getNotificationPreferencesFor } from '@/app/actions/preferences';
+
+import { db } from '@/lib/db';
+import { invite, post, postLike, user } from '@/lib/db/schema';
+import { newId } from '@/lib/id';
+import { getCurrentUser, getUserId } from '@/lib/session';
+import type { PostLiker, PostSummary } from '@/lib/types';
 
 // Ids of a user's accepted friends.
 async function friendIds(userId: string): Promise<string[]> {
@@ -251,7 +253,7 @@ export async function toggleLike(postId: string) {
           .from(user)
           .where(eq(user.id, userId))
           .limit(1);
-        await createNotification({
+        await upsertNotification({
           userId: p.authorId,
           type: 'LIKE',
           actorId: userId,

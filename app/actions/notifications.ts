@@ -1,12 +1,13 @@
 'use server';
 
-import { and, desc, eq, isNull, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+
 import { db } from '@/lib/db';
 import { invite, notification, user } from '@/lib/db/schema';
-import { getCurrentUser, getUserId } from '@/lib/session';
-import { pusherServer } from '@/lib/pusher/server';
-import { userChannel, EVENTS } from '@/lib/pusher/channels';
 import { newId } from '@/lib/id';
+import { EVENTS, userChannel } from '@/lib/pusher/channels';
+import { pusherServer } from '@/lib/pusher/server';
+import { getCurrentUser, getUserId } from '@/lib/session';
 import type {
   NotificationCategory,
   NotificationSummary,
@@ -223,4 +224,24 @@ export async function markNotificationsRead(opts?: {
     await db.update(notification).set({ readAt: new Date() }).where(base);
   }
   return { ok: true };
+}
+
+export async function upsertNotification(
+  input: Parameters<typeof createNotification>[0],
+) {
+  await db
+    .delete(notification)
+    .where(
+      and(
+        eq(notification.userId, input.userId),
+        eq(notification.type, input.type),
+        input.actorId
+          ? eq(notification.actorId, input.actorId)
+          : isNull(notification.actorId),
+        input.postId
+          ? eq(notification.postId, input.postId)
+          : isNull(notification.postId),
+      ),
+    );
+  return createNotification(input);
 }

@@ -1,32 +1,11 @@
 'use client';
 
-import { respondToRequest } from '@/app/actions/invites';
-import {
-  clearNotifications,
-  deleteNotification,
-  getNotifications,
-  markNotificationsRead,
-} from '@/app/actions/notifications';
-import { useNotificationPrefs } from '@/components/notification-prefs-provider';
-import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserAvatar } from '@/components/user/user-avatar';
-import { UserPreviewDialog } from '@/components/user/user-preview';
-import { playNotificationSound } from '@/lib/notification-sound';
-import { EVENTS, userChannel } from '@/lib/pusher/channels';
-import { getPusherClient } from '@/lib/pusher/client';
-import type {
-  NotificationCategory,
-  NotificationSummary,
-  NotificationType,
-} from '@/lib/types';
-import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import useSWR from 'swr';
+
 import {
   Bell,
   Check,
@@ -38,11 +17,36 @@ import {
   UserPlus,
   X,
 } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import useSWR from 'swr';
+
+import { respondToRequest } from '@/app/actions/invites';
+import {
+  clearNotifications,
+  deleteNotification,
+  getNotifications,
+  markNotificationsRead,
+} from '@/app/actions/notifications';
+
+import { playNotificationSound } from '@/lib/notification-sound';
+import { EVENTS, userChannel } from '@/lib/pusher/channels';
+import { getPusherClient } from '@/lib/pusher/client';
+import type {
+  NotificationCategory,
+  NotificationSummary,
+  NotificationType,
+} from '@/lib/types';
+import { cn } from '@/lib/utils';
+
+import { useNotificationPrefs } from '@/components/notification-prefs-provider';
+import { Badge } from '@/components/ui/badge';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { UserAvatar } from '@/components/user/user-avatar';
+import { UserPreviewDialog } from '@/components/user/user-preview';
 
 type Counts = {
   requests: number;
@@ -443,11 +447,11 @@ function RowShell({
   return (
     <li
       className={cn(
-        'group border-border relative flex gap-3 rounded-lg border p-2.5 transition-colors',
+        'border-border bg-card flex items-center justify-between gap-4 rounded-xl border p-4',
         !n.read && 'bg-card',
       )}
     >
-      <div className='relative shrink-0'>
+      <div className='relative shrink-0 self-start'>
         <UserAvatar
           name={n.actorName ?? 'User'}
           image={n.actorImage}
@@ -489,7 +493,12 @@ function RequestRow({
     <RowShell n={n} onDelete={onDelete}>
       <div className='flex items-start justify-between gap-2 pr-5'>
         <p className='text-sm leading-tight'>
-          <span className='font-medium'>{n.actorName ?? 'Someone'}</span>
+          <span
+            className='cursor-pointer font-medium hover:underline'
+            onClick={onView}
+          >
+            {n.actorName ?? 'Someone'}
+          </span>
           {n.body ? (
             <span className='text-muted-foreground'>
               {' '}
@@ -529,23 +538,7 @@ function RequestRow({
             <X className='size-3.5' aria-hidden />
             Decline
           </Button>
-          <Button
-            size='sm'
-            variant='ghost'
-            className='h-7 px-2 text-xs'
-            onClick={onView}
-          >
-            View profile
-          </Button>
         </div>
-      ) : n.actorId ? (
-        <button
-          type='button'
-          onClick={onView}
-          className='text-primary mt-1 text-xs font-medium hover:underline'
-        >
-          View profile
-        </button>
       ) : null}
     </RowShell>
   );
@@ -573,13 +566,18 @@ function LikeRow({
     <RowShell n={n} onDelete={onDelete}>
       <div className='flex items-start justify-between gap-2 pr-5'>
         <p className='text-sm leading-tight'>
-          <span className='font-medium'>{n.actorName ?? 'Someone'}</span>
+          <span
+            className='cursor-pointer font-medium hover:underline'
+            onClick={onView}
+          >
+            {n.actorName ?? 'Someone'}
+          </span>
           <span className='text-muted-foreground'> liked your </span>
           {postHref ? (
             <Link
               href={postHref}
               onClick={onNavigate}
-              className='text-muted-foreground hover:text-foreground underline'
+              className='text-foreground cursor-pointer hover:underline'
             >
               post
             </Link>
@@ -594,15 +592,6 @@ function LikeRow({
           {timeAgo(n.createdAt)}
         </span>
       </div>
-      {n.actorId ? (
-        <button
-          type='button'
-          onClick={onView}
-          className='text-primary mt-1 text-xs font-medium hover:underline'
-        >
-          View profile
-        </button>
-      ) : null}
     </RowShell>
   );
 }

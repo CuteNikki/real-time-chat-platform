@@ -1,14 +1,14 @@
 'use server';
 
-import { and, asc, eq, isNull, ne } from 'drizzle-orm';
+import { upsertNotification } from '@/app/actions/notifications';
 import { db } from '@/lib/db';
 import { chat, chatParticipant, message, user } from '@/lib/db/schema';
-import { getCurrentUser, getUserId } from '@/lib/session';
-import { pusherServer } from '@/lib/pusher/server';
-import { chatChannel, EVENTS } from '@/lib/pusher/channels';
 import { newId } from '@/lib/id';
-import { createNotification } from '@/app/actions/notifications';
+import { chatChannel, EVENTS } from '@/lib/pusher/channels';
+import { pusherServer } from '@/lib/pusher/server';
+import { getCurrentUser, getUserId } from '@/lib/session';
 import type { ChatMessage } from '@/lib/types';
+import { and, asc, eq, isNull, ne } from 'drizzle-orm';
 
 // Throws if the user is not an active participant of the chat.
 export async function assertActiveMembership(chatId: string, userId: string) {
@@ -182,10 +182,10 @@ export async function sendMessage(input: {
     // Room messages prefix the room name so the inbox shows where it came from.
     const body = isRoom
       ? `${c.name ?? 'Room'} · ${currentUser.name}: ${preview}`
-      : `${currentUser.name}: ${preview}`;
+      : `${preview}`;
     for (const r of recipients) {
       if (presentUserIds.has(r.userId)) continue;
-      await createNotification({
+      await upsertNotification({
         userId: r.userId,
         type: 'MESSAGE',
         actorId: userId,

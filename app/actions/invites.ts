@@ -2,7 +2,7 @@
 
 import { and, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 
-import { createNotification } from '@/app/actions/notifications';
+import { upsertNotification } from '@/app/actions/notifications';
 
 import { db } from '@/lib/db';
 import {
@@ -71,7 +71,7 @@ export async function sendFriendRequest(targetUserId: string) {
     senderUsername: me.username ?? null,
   });
 
-  await createNotification({
+  await upsertNotification({
     userId: receiver.id,
     type: 'FRIEND_REQUEST',
     actorId: me.id,
@@ -207,7 +207,7 @@ export async function respondToRequest(inviteId: string, accept: boolean) {
     },
   );
 
-  await createNotification({
+  await upsertNotification({
     userId: inv.senderId,
     type: 'FRIEND_ACCEPT',
     actorId: me.id,
