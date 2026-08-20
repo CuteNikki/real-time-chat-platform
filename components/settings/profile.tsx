@@ -1,19 +1,33 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+import { useRef, useState } from 'react';
+import { toast } from 'sonner';
+
+import {
+  CameraIcon,
+  CheckIcon,
+  Loader2,
+  Loader2Icon,
+  SaveIcon,
+  Trash2,
+  XIcon,
+} from 'lucide-react';
+
 import {
   isUsernameAvailable,
   updateInterests,
   updateProfile,
 } from '@/app/actions/profile';
+
+import { cn } from '@/lib/utils';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { UserAvatar } from '@/components/user-avatar';
-import { Camera, Check, Loader2, Trash2, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useRef, useState } from 'react';
-import { toast } from 'sonner';
 
 type Profile = {
   id: string;
@@ -160,15 +174,20 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-4'>
       {/* Avatar */}
-      <div className='flex items-center gap-4'>
+      <div className='flex items-center gap-2'>
         <div className='relative'>
-          <UserAvatar name={name} image={image} className='size-20 text-2xl' />
+          <UserAvatar
+            name={name}
+            image={image}
+            className='size-20'
+            fontSize='2xl'
+          />
           {uploading ? (
             <div className='bg-background/60 absolute inset-0 flex items-center justify-center rounded-full'>
-              <Loader2
-                className='text-primary size-5 animate-spin'
+              <Loader2Icon
+                className='text-primary size-8 animate-spin'
                 aria-hidden
               />
             </div>
@@ -184,23 +203,23 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
             id='avatar'
           />
           <Button
-            type='button'
             variant='secondary'
+            disabled={uploading}
             onClick={() => fileRef.current?.click()}
           >
-            <Camera className='size-4' aria-hidden />
+            <CameraIcon className='shrink-0' aria-hidden />
             {image ? 'Change' : 'Upload'}
           </Button>
           {image ? (
             <Button
-              type='button'
               variant='destructive'
+              disabled={uploading}
               onClick={() => {
                 setImage(null);
                 if (fileRef.current) fileRef.current.value = '';
               }}
             >
-              <Trash2 className='size-4' aria-hidden />
+              <Trash2 className='shrink-0' aria-hidden />
               Remove
             </Button>
           ) : null}
@@ -222,35 +241,48 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
       <div className='space-y-2'>
         <Label htmlFor='username'>Username</Label>
         <div className='relative'>
-          <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2'>
+          <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 -translate-y-1/2'>
             @
           </span>
           <Input
             id='username'
             value={username}
             onChange={(e) => checkUsername(e.target.value)}
-            className='pl-7'
+            className='pl-6'
             maxLength={20}
             autoCapitalize='none'
             spellCheck={false}
           />
           {usernameChanged ? (
-            <span className='absolute top-1/2 right-3 -translate-y-1/2'>
+            <span className='absolute top-1/2 right-2 -translate-y-1/2'>
               {checking ? (
-                <Loader2
-                  className='text-muted-foreground size-4 animate-spin'
+                <Loader2Icon
+                  className='text-muted-foreground size-4 shrink-0 animate-spin'
                   aria-hidden
                 />
               ) : available === true ? (
-                <Check className='text-primary size-4' aria-hidden />
+                <CheckIcon
+                  className='text-primary size-4 shrink-0'
+                  aria-hidden
+                />
               ) : available === false ? (
-                <X className='text-destructive size-4' aria-hidden />
+                <XIcon
+                  className='text-destructive size-4 shrink-0'
+                  aria-hidden
+                />
               ) : null}
             </span>
           ) : null}
         </div>
-        <p className='text-muted-foreground text-xs'>
-          3&ndash;20 characters. Letters, numbers, and underscores only.
+        <p
+          className={cn(
+            'text-muted-foreground text-xs',
+            available === false && 'text-destructive',
+          )}
+        >
+          {available === false
+            ? 'That username is invalid or taken!'
+            : '3–20 characters. Letters, numbers, and underscores only.'}
         </p>
       </div>
 
@@ -262,7 +294,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           placeholder='Tell people a bit about yourself'
-          className='min-h-22.5 resize-none'
+          className='max-h-25 resize-none'
           maxLength={300}
         />
         <p className='text-muted-foreground text-right text-xs'>
@@ -275,20 +307,23 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
         <Label htmlFor='interests'>Interests</Label>
         <div className='border-input focus-within:border-ring focus-within:ring-ring/50 flex flex-wrap items-center gap-1.5 rounded-lg border bg-transparent p-2 focus-within:ring-3'>
           {interests.map((tag) => (
-            <span
+            <Badge
+              variant='secondary'
               key={tag}
-              className='bg-secondary text-secondary-foreground inline-flex items-center gap-1 rounded-full py-0.5 pr-1 pl-2.5 text-xs font-medium'
+              className='cursor-pointer'
+              onClick={() => removeTag(tag)}
             >
               {tag}
-              <button
-                type='button'
+              <Button
+                variant='ghost'
+                size='icon-xs'
+                className='cursor-pointer'
                 onClick={() => removeTag(tag)}
-                className='text-muted-foreground hover:bg-background hover:text-foreground rounded-full p-0.5'
                 aria-label={`Remove ${tag}`}
               >
-                <X className='size-3' aria-hidden />
-              </button>
-            </span>
+                <XIcon className='shrink-0' aria-hidden />
+              </Button>
+            </Badge>
           ))}
           <input
             id='interests'
@@ -299,7 +334,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
             placeholder={
               interests.length ? 'Add another…' : 'e.g. music, hiking, gaming'
             }
-            className='placeholder:text-muted-foreground min-w-32 flex-1 bg-transparent px-1.5 py-0.5 text-sm outline-none'
+            className='placeholder:text-muted-foreground min-w-32 flex-1 bg-transparent text-sm outline-none'
             maxLength={30}
             autoCapitalize='none'
             spellCheck={false}
@@ -314,9 +349,16 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
       <div className='flex justify-end'>
         <Button onClick={save} disabled={saving || uploading} className='gap-2'>
           {saving ? (
-            <Loader2 className='size-4 animate-spin' aria-hidden />
-          ) : null}
-          Save changes
+            <>
+              <Loader2 className='shrink-0 animate-spin' aria-hidden />
+              Saving...
+            </>
+          ) : (
+            <>
+              <SaveIcon className='shrink-0' aria-hidden />
+              Save
+            </>
+          )}
         </Button>
       </div>
     </div>

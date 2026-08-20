@@ -1,30 +1,37 @@
 'use client';
 
-import { useNotificationPrefs } from '@/components/notification-prefs-provider';
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
+import { useTheme } from 'next-themes';
+import { useEffect, useState } from 'react';
+
+import {
+  Bell,
+  HeartIcon,
+  LaptopIcon,
+  Loader2Icon,
+  MessageCircleIcon,
+  MoonIcon,
+  Play,
+  SunIcon,
+  UserCheck2Icon,
+  UserPlus2Icon,
+  Users2Icon,
+  Volume1Icon,
+  Volume2,
+  Volume2Icon,
+  VolumeIcon,
+  VolumeXIcon,
+} from 'lucide-react';
+
 import { playNotificationSound } from '@/lib/notification-sound';
 import type {
   NotificationCategory,
   NotificationPreferences,
 } from '@/lib/types';
-import {
-  Bell,
-  Heart,
-  LaptopIcon,
-  MessageCircle,
-  MoonIcon,
-  Play,
-  SunIcon,
-  UserCheck,
-  UserPlus,
-  Users,
-  Volume2,
-  VolumeX,
-} from 'lucide-react';
-import { useTheme } from 'next-themes';
-import { useEffect, useState } from 'react';
+
+import { useNotificationPrefs } from '@/components/notification-prefs-provider';
+import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 
 const CATEGORY_META: {
   key: NotificationCategory;
@@ -34,33 +41,33 @@ const CATEGORY_META: {
 }[] = [
   {
     key: 'friendRequest',
-    label: 'Friend requests',
+    label: 'Friend Requests',
     description: 'When someone sends you a request',
-    icon: UserPlus,
+    icon: UserPlus2Icon,
   },
   {
     key: 'friendAccept',
-    label: 'Request accepted',
+    label: 'Request Accepted',
     description: 'When someone accepts your request',
-    icon: UserCheck,
+    icon: UserCheck2Icon,
   },
   {
     key: 'directMessage',
-    label: 'Direct messages',
+    label: 'Direct Messages',
     description: 'New messages in a private chat',
-    icon: MessageCircle,
+    icon: MessageCircleIcon,
   },
   {
     key: 'roomMessage',
-    label: 'Room messages',
+    label: 'Room Messages',
     description: 'New messages in a group room',
-    icon: Users,
+    icon: Users2Icon,
   },
   {
     key: 'like',
-    label: 'Post likes',
+    label: 'Post Likes',
     description: 'When someone likes your post',
-    icon: Heart,
+    icon: HeartIcon,
   },
 ];
 
@@ -95,9 +102,9 @@ export function PreferenceSettings() {
   const volumePct = Math.round(prefs.volume * 100);
 
   return (
-    <div className='space-y-8'>
+    <div className='space-y-4'>
       {/* Theme Appearance controls */}
-      <section className='space-y-4'>
+      <section className='space-y-2'>
         <div className='flex items-center gap-2'>
           <SunIcon className='text-muted-foreground size-4' aria-hidden />
           <h2 className='text-lg font-semibold tracking-tight'>Appearance</h2>
@@ -105,57 +112,68 @@ export function PreferenceSettings() {
 
         <div className='border-border bg-card flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between'>
           <div className='min-w-0'>
-            <p className='text-sm font-medium'>Theme preference</p>
+            <p className='text-sm font-medium'>Theme Preference</p>
             <p className='text-muted-foreground text-sm'>
               Select how Orbit appears to you
             </p>
           </div>
 
           <div className='bg-muted flex w-fit items-center gap-1 rounded-lg p-1'>
-            <Button
-              type='button'
-              variant={mounted && theme === 'light' ? 'default' : 'ghost'}
-              size='sm'
-              className='h-8 gap-1.5 px-3 text-xs font-medium'
-              onClick={() => setTheme('light')}
-            >
-              <SunIcon className='size-3.5' aria-hidden />
-              Light
-            </Button>
-            <Button
-              type='button'
-              variant={mounted && theme === 'dark' ? 'default' : 'ghost'}
-              size='sm'
-              className='h-8 gap-1.5 px-3 text-xs font-medium'
-              onClick={() => setTheme('dark')}
-            >
-              <MoonIcon className='size-3.5' aria-hidden />
-              Dark
-            </Button>
-            <Button
-              type='button'
-              variant={mounted && theme === 'system' ? 'default' : 'ghost'}
-              size='sm'
-              className='h-8 gap-1.5 px-3 text-xs font-medium'
-              onClick={() => setTheme('system')}
-            >
-              <LaptopIcon className='size-3.5' aria-hidden />
-              System
-            </Button>
+            {!mounted ? (
+              <>
+                <Loader2Icon
+                  className='size-4 shrink-0 animate-spin'
+                  aria-hidden
+                />
+              </>
+            ) : (
+              <>
+                <Button
+                  type='button'
+                  variant={mounted && theme === 'light' ? 'default' : 'ghost'}
+                  size='sm'
+                  onClick={() => setTheme('light')}
+                >
+                  <SunIcon className='shrink-0' aria-hidden />
+                  Light
+                </Button>
+                <Button
+                  type='button'
+                  variant={mounted && theme === 'dark' ? 'default' : 'ghost'}
+                  size='sm'
+                  onClick={() => setTheme('dark')}
+                >
+                  <MoonIcon className='shrink-0' aria-hidden />
+                  Dark
+                </Button>
+                <Button
+                  type='button'
+                  variant={mounted && theme === 'system' ? 'default' : 'ghost'}
+                  size='sm'
+                  onClick={() => setTheme('system')}
+                >
+                  <LaptopIcon className='shrink-0' aria-hidden />
+                  System
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </section>
 
       {/* Sound master controls */}
-      <section className='space-y-4'>
+      <section className='space-y-2'>
         <div className='flex items-center gap-2'>
-          <Volume2 className='text-muted-foreground size-4' aria-hidden />
+          <Volume2
+            className='text-muted-foreground size-4 shrink-0'
+            aria-hidden
+          />
           <h2 className='text-lg font-semibold tracking-tight'>Sound</h2>
         </div>
 
-        <div className='border-border bg-card flex items-center justify-between gap-4 rounded-xl border p-4'>
+        <div className='border-border bg-card flex items-center justify-between gap-2 rounded-xl border p-4'>
           <div className='min-w-0'>
-            <p className='text-sm font-medium'>Play notification sounds</p>
+            <p className='text-sm font-medium'>Play Notification Sounds</p>
             <p className='text-muted-foreground text-sm'>
               A short chime plays for enabled events
             </p>
@@ -168,15 +186,19 @@ export function PreferenceSettings() {
         </div>
 
         <div className='border-border bg-card rounded-xl border p-4'>
-          <div className='mb-3 flex items-center justify-between'>
+          <div className='flex items-center justify-between pb-2'>
             <label htmlFor='volume' className='text-sm font-medium'>
-              Master volume
+              Master Volume
             </label>
-            <span className='text-muted-foreground flex items-center gap-1.5 text-sm tabular-nums'>
+            <span className='text-muted-foreground flex items-center gap-2 text-sm tabular-nums'>
               {volumePct === 0 ? (
-                <VolumeX className='size-4' aria-hidden />
+                <VolumeXIcon className='size-4 shrink-0' aria-hidden />
+              ) : volumePct < 33 ? (
+                <VolumeIcon className='size-4 shrink-0' aria-hidden />
+              ) : volumePct < 66 ? (
+                <Volume1Icon className='size-4 shrink-0' aria-hidden />
               ) : (
-                <Volume2 className='size-4' aria-hidden />
+                <Volume2Icon className='size-4 shrink-0' aria-hidden />
               )}
               {volumePct}%
             </span>
@@ -187,7 +209,7 @@ export function PreferenceSettings() {
               value={prefs.volume}
               min={0}
               max={1}
-              step={0.05}
+              step={0.01}
               disabled={!prefs.soundEnabled}
               onValueChange={(v) =>
                 setMaster({ volume: Array.isArray(v) ? v[0] : v })
@@ -198,13 +220,13 @@ export function PreferenceSettings() {
               type='button'
               variant='outline'
               size='sm'
-              className='shrink-0 gap-1.5 bg-transparent'
+              className='shrink-0'
               disabled={!prefs.soundEnabled}
               onClick={() =>
                 playNotificationSound('directMessage', prefs.volume)
               }
             >
-              <Play className='size-3.5' aria-hidden />
+              <Play className='shrink-0' aria-hidden />
               Test
             </Button>
           </div>
@@ -212,16 +234,22 @@ export function PreferenceSettings() {
       </section>
 
       {/* Per-event controls */}
-      <section className='space-y-4'>
+      <section className='space-y-2'>
         <div className='flex items-center gap-2'>
-          <Bell className='text-muted-foreground size-4' aria-hidden />
+          <Bell className='text-muted-foreground size-4 shrink-0' aria-hidden />
           <h2 className='text-lg font-semibold tracking-tight'>Events</h2>
         </div>
-        <p className='text-muted-foreground text-sm'>
-          Choose which events show a popup and which play a sound.
-        </p>
-
         <ul className='divide-border border-border bg-card divide-y overflow-hidden rounded-xl border'>
+          <li className='p-4'>
+            <div className='min-w-0'>
+              <p className='text-sm font-medium'>
+                Configure Notification Settings
+              </p>
+              <p className='text-muted-foreground text-sm'>
+                Choose which events show a popup and which play a sound
+              </p>
+            </div>
+          </li>
           {CATEGORY_META.map(({ key, label, description, icon: Icon }) => {
             const cat = prefs.categories[key];
             const soundOn = prefs.soundEnabled && cat.sound;
@@ -232,7 +260,7 @@ export function PreferenceSettings() {
               >
                 <div className='flex min-w-0 items-start gap-3'>
                   <span className='bg-secondary text-secondary-foreground mt-0.5 grid size-8 shrink-0 place-items-center rounded-full'>
-                    <Icon className='size-4' aria-hidden />
+                    <Icon className='size-4 shrink-0' aria-hidden />
                   </span>
                   <div className='min-w-0'>
                     <p className='text-sm font-medium'>{label}</p>
@@ -241,7 +269,7 @@ export function PreferenceSettings() {
                     </p>
                   </div>
                 </div>
-                <div className='flex items-center gap-4 pl-11 sm:pl-0'>
+                <div className='flex items-center gap-6 sm:pl-0'>
                   <label className='flex items-center gap-2 text-sm'>
                     <span className='text-muted-foreground'>Popup</span>
                     <Switch
@@ -261,13 +289,12 @@ export function PreferenceSettings() {
                   <Button
                     type='button'
                     variant='ghost'
-                    size='icon-sm'
-                    className='shrink-0'
+                    size='icon'
                     disabled={!soundOn}
                     onClick={() => playNotificationSound(key, prefs.volume)}
                     aria-label={`Preview ${label} sound`}
                   >
-                    <Play className='size-4' aria-hidden />
+                    <Play className='shrink-0' aria-hidden />
                   </Button>
                 </div>
               </li>

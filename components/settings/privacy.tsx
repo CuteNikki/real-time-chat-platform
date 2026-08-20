@@ -2,9 +2,12 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
+
 import { Lock } from 'lucide-react';
-import { Switch } from '@/components/ui/switch';
+
 import { updatePostsVisibility } from '@/app/actions/profile';
+
+import { Switch } from '@/components/ui/switch';
 
 export function PrivacySettings({
   initialFriendsOnlyPosts,
@@ -20,7 +23,9 @@ export function PrivacySettings({
     try {
       await updatePostsVisibility(next);
       toast.success(
-        next ? 'Only friends can see your posts now' : 'Your posts are public again',
+        next
+          ? 'Only friends can see your posts now'
+          : 'Your posts are public again',
       );
     } catch (err) {
       setFriendsOnly(!next);
@@ -31,7 +36,7 @@ export function PrivacySettings({
   }
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-2'>
       <div className='flex items-center gap-2'>
         <Lock className='text-muted-foreground size-4' aria-hidden />
         <h2 className='text-lg font-semibold tracking-tight'>Posts</h2>
@@ -41,8 +46,8 @@ export function PrivacySettings({
         <div className='min-w-0'>
           <p className='text-sm font-medium'>Only friends can see your posts</p>
           <p className='text-muted-foreground text-sm'>
-            When on, only accepted friends can view your profile posts.
-            Everyone else sees a private notice instead.
+            When on, only accepted friends can view your profile posts. Everyone
+            else sees a private notice instead.
           </p>
         </div>
         <Switch
