@@ -1,12 +1,13 @@
 'use server';
 
-import { db } from '@/lib/db';
-import { user, post, invite, interest } from '@/lib/db/schema';
-import { getCurrentUser, getUserId } from '@/lib/session';
-import { newId } from '@/lib/id';
-import type { UserProfile } from '@/lib/types';
-import { and, eq, or, sql, ne, inArray } from 'drizzle-orm';
+import { and, eq, inArray, ne, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+
+import { db } from '@/lib/db';
+import { interest, invite, post, user } from '@/lib/db/schema';
+import { newId } from '@/lib/id';
+import { getCurrentUser, getUserId } from '@/lib/session';
+import type { UserProfile } from '@/lib/types';
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 const MAX_INTERESTS = 10;
@@ -257,9 +258,7 @@ export async function updateProfile(input: {
   return { ok: true };
 }
 
-// Directory search by username, display name, or interest tag (for the "add
-// friend" search). A leading '#' forces an interest-only search.
-export async function searchUsers(query: string) {
+export async function searchUsers(query: string): Promise<UserProfile[]> {
   const me = await getCurrentUser();
   const raw = query.trim();
   if (raw.length < 2) return [];
@@ -285,12 +284,7 @@ export async function searchUsers(query: string) {
   );
 
   const rows = await db
-    .select({
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      image: user.image,
-    })
+    .select({ id: user.id })
     .from(user)
     .where(
       and(
@@ -306,50 +300,9 @@ export async function searchUsers(query: string) {
     )
     .limit(10);
 
-  // Fetch interests for the matched users in one query.
-  const resultIds = rows.map((r) => r.id);
-  const interestRows = resultIds.length
-    ? await db
-        .select({ userId: interest.userId, tag: interest.tag })
-        .from(interest)
-        .where(inArray(interest.userId, resultIds))
-    : [];
-  const interestsByUser = new Map<string, string[]>();
-  for (const r of interestRows) {
-    const arr = interestsByUser.get(r.userId) ?? [];
-    arr.push(r.tag);
-    interestsByUser.set(r.userId, arr);
-  }
+  if (rows.length === 0) return [];
 
-  // Annotate each result with the viewer's relationship so the UI can show the
-  // right action (Add / Requested / Respond / Friends).
-  const rels = await db
-    .select({
-      senderId: invite.senderId,
-      receiverId: invite.receiverId,
-      status: invite.status,
-    })
-    .from(invite)
-    .where(or(eq(invite.senderId, me.id), eq(invite.receiverId, me.id)));
+  const profiles = await Promise.all(rows.map((r) => getProfilePreview(r.id)));
 
-  function statusFor(
-    otherId: string,
-  ): 'none' | 'friends' | 'incoming' | 'outgoing' {
-    for (const r of rels) {
-      const involves =
-        (r.senderId === me.id && r.receiverId === otherId) ||
-        (r.senderId === otherId && r.receiverId === me.id);
-      if (!involves) continue;
-      if (r.status === 'ACCEPTED') return 'friends';
-      if (r.status === 'PENDING')
-        return r.senderId === me.id ? 'outgoing' : 'incoming';
-    }
-    return 'none';
-  }
-
-  return rows.map((r) => ({
-    ...r,
-    friendStatus: statusFor(r.id),
-    interests: (interestsByUser.get(r.id) ?? []).slice(0, 5),
-  }));
+  return profiles.filter((p): p is UserProfile => p !== null);
 }

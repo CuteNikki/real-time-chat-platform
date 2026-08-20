@@ -1,6 +1,9 @@
 'use server';
 
 import { and, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
+
+import { createNotification } from '@/app/actions/notifications';
+
 import { db } from '@/lib/db';
 import {
   chat,
@@ -11,11 +14,10 @@ import {
   notification,
   user,
 } from '@/lib/db/schema';
-import { getCurrentUser } from '@/lib/session';
-import { pusherServer } from '@/lib/pusher/server';
-import { userChannel, EVENTS } from '@/lib/pusher/channels';
 import { newId } from '@/lib/id';
-import { createNotification } from '@/app/actions/notifications';
+import { EVENTS, userChannel } from '@/lib/pusher/channels';
+import { pusherServer } from '@/lib/pusher/server';
+import { getCurrentUser } from '@/lib/session';
 import type {
   FriendSummary,
   InviteSummary,
@@ -117,6 +119,40 @@ export async function cancelFriendRequest(targetUserId: string) {
     },
   );
   return { ok: true };
+}
+
+export async function declineFriendRequestByUserId(targetUserId: string) {
+  const me = await getCurrentUser();
+
+  const [inv] = await db
+    .select()
+    .from(invite)
+    .where(
+      and(
+        eq(invite.senderId, targetUserId),
+        eq(invite.receiverId, me.id),
+        eq(invite.status, 'PENDING'),
+      ),
+    )
+    .limit(1);
+
+  if (!inv) throw new Error('No pending request found from this user');
+
+  await db
+    .update(invite)
+    .set({ status: 'DECLINED', respondedAt: new Date() })
+    .where(eq(invite.id, inv.id));
+
+  await pusherServer.trigger(
+    userChannel(inv.senderId),
+    EVENTS.INVITE_RESPONDED,
+    {
+      id: inv.id,
+      accepted: false,
+    },
+  );
+
+  return { status: 'declined' as const };
 }
 
 export async function respondToRequest(inviteId: string, accept: boolean) {
