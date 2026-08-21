@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 
-import Link from 'next/link';
 import { Loader2Icon } from 'lucide-react';
+import Link from 'next/link';
 
 import { getProfileByUsername } from '@/app/actions/profile';
 
@@ -11,10 +11,10 @@ import { normalizeHashtag, parseRichText } from '@/lib/mentions';
 import type { UserProfile } from '@/lib/types';
 
 import {
-  PreviewCard,
-  PreviewCardContent,
-  PreviewCardTrigger,
-} from '@/components/ui/preview-card';
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card';
 import { FriendshipButtons } from '@/components/user/friendship-buttons';
 import { InterestTags } from '@/components/user/interest-tags';
 import { UserAvatar } from '@/components/user/user-avatar';
@@ -81,18 +81,20 @@ function UserMention({ username }: { username: string }) {
   }
 
   return (
-    <PreviewCard
+    <HoverCard
       onOpenChange={(open) => {
         if (open) load();
       }}
     >
-      <PreviewCardTrigger
-        render={<Link href={`/app/u/${username}`} />}
-        className='text-primary font-medium hover:underline'
-      >
-        @{username}
-      </PreviewCardTrigger>
-      <PreviewCardContent className='w-64 p-4'>
+      <HoverCardTrigger asChild>
+        <Link
+          href={`/app/u/${username}`}
+          className='text-primary font-medium hover:underline'
+        >
+          @{username}
+        </Link>
+      </HoverCardTrigger>
+      <HoverCardContent className='w-64 p-4'>
         {state === 'loaded' && profile ? (
           <div className='flex flex-col items-center gap-2 text-center'>
             <UserAvatar
@@ -153,7 +155,7 @@ function UserMention({ username }: { username: string }) {
             />
           </div>
         )}
-      </PreviewCardContent>
-    </PreviewCard>
+      </HoverCardContent>
+    </HoverCard>
   );
 }

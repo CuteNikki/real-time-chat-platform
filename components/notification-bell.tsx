@@ -383,8 +383,8 @@ export function NotificationBell({
             )}
           </div>
 
-          <Tabs value={tab} onValueChange={(v) => setTab(v)}>
-            <div className=' px-4 pt-4'>
+          <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)}>
+            <div className='px-4 pt-4'>
               <TabsList className='w-full'>
                 <TabsTrigger
                   value='requests'
@@ -412,11 +412,7 @@ export function NotificationBell({
                     </Badge>
                   ) : null}
                 </TabsTrigger>
-                <TabsTrigger
-                  value='likes'
-                  aria-label='Likes'
-                  className='gap-1'
-                >
+                <TabsTrigger value='likes' aria-label='Likes' className='gap-1'>
                   <Heart className='size-4' aria-hidden />
                   <span className='hidden sm:inline'>Likes</span>
                   {unreadLikes > 0 ? (
@@ -720,7 +716,11 @@ function LikeRow({
         </span>
       </div>
       {n.post ? (
-        <NotifPostPreview post={n.post} href={postHref} onNavigate={onNavigate} />
+        <NotifPostPreview
+          post={n.post}
+          href={postHref}
+          onNavigate={onNavigate}
+        />
       ) : null}
     </RowShell>
   );

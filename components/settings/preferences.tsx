@@ -133,7 +133,7 @@ export function PreferenceSettings() {
                     className='size-4 shrink-0 animate-spin'
                     aria-hidden
                   />
-                  Loading...  
+                  Loading...
                 </Button>
               </>
             ) : (
@@ -213,14 +213,12 @@ export function PreferenceSettings() {
           <div className='flex items-center gap-6'>
             <Slider
               id='volume'
-              value={prefs.volume}
+              value={[prefs.volume]}
               min={0}
               max={1}
               step={0.01}
               disabled={!prefs.soundEnabled}
-              onValueChange={(v) =>
-                setMaster({ volume: Array.isArray(v) ? v[0] : v })
-              }
+              onValueChange={([v]) => setMaster({ volume: v })}
               className='data-disabled:opacity-50'
             />
             <Button

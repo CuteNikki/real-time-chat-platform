@@ -12,8 +12,9 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     q: 'How does random matching work?',
     a: (
       <>
-        Hit &quot;Find a match&quot; and we pair you one-on-one with someone else
-        looking to chat right now, prioritizing people who share your interests.
+        Hit &quot;Find a match&quot; and we pair you one-on-one with someone
+        else looking to chat right now, prioritizing people who share your
+        interests.
         <br />
         You can end the chat and find a new match anytime! Nothing from a random
         chat is saved once it ends.
@@ -35,7 +36,8 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
         Reports go to our moderation team for review. Accounts that violate our
         guidelines can be suspended for a set period or permanently.
         <br />
-        If this happens to your account, you&apos;ll see the reason and duration.
+        If this happens to your account, you&apos;ll see the reason and
+        duration.
         <br />
         If someone&apos;s made you uncomfortable, please use the report option!
       </>
@@ -59,10 +61,10 @@ export function Faq() {
         </h2>
       </Reveal>
       <Reveal className='mt-8 w-full max-w-3xl' delay={0.1}>
-        <Accordion>
+        <Accordion type='multiple'>
           {FAQS.map((f) => (
-            <AccordionItem key={f.q}>
-              <AccordionTrigger className='text-base '>{f.q}</AccordionTrigger>
+            <AccordionItem key={f.q} value={f.q}>
+              <AccordionTrigger className='text-base'>{f.q}</AccordionTrigger>
               <AccordionContent className='text-foreground/80 text-pretty'>
                 {f.a}
               </AccordionContent>
