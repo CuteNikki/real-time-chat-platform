@@ -116,7 +116,6 @@ export async function notify(input: {
       '[v0] notify failed:',
       err instanceof Error ? err.message : err,
     );
-    return null;
   }
 }
 
@@ -210,35 +209,6 @@ export async function deleteNotification(id: string) {
   return { ok: true };
 }
 
-// Delete the notification a specific action caused, by its natural key
-// (mirrors the dedupe key in createNotification). Used to clean up after the
-// underlying event is undone — a canceled/declined/accepted friend request,
-// or a retracted like — so a reversed action doesn't leave a dead notification
-// behind. Never throws: this is best-effort cleanup, not the source of truth.
-export async function deleteNotificationByKey(key: {
-  userId: string;
-  type: NotificationType;
-  actorId: string;
-  postId?: string | null;
-}) {
-  try {
-    const conditions = [
-      eq(notification.userId, key.userId),
-      eq(notification.type, key.type),
-      eq(notification.actorId, key.actorId),
-    ];
-    if (key.type === 'LIKE') {
-      conditions.push(eq(notification.postId, key.postId ?? ''));
-    }
-    await db.delete(notification).where(and(...conditions));
-  } catch (err) {
-    console.log(
-      '[v0] deleteNotificationByKey failed:',
-      err instanceof Error ? err.message : err,
-    );
-  }
-}
-
 // Delete many notifications at once: a whole category, or everything.
 export async function clearNotifications(opts?: {
   category?: 'requests' | 'messages' | 'likes' | 'mentions';
@@ -278,7 +248,9 @@ export async function getUnreadCounts() {
   const rows = await db
     .select({ type: notification.type, count: sql<number>`count(*)` })
     .from(notification)
-    .where(and(eq(notification.recipientId, userId), isNull(notification.readAt)))
+    .where(
+      and(eq(notification.recipientId, userId), isNull(notification.readAt)),
+    )
     .groupBy(notification.type);
 
   let requests = 0;

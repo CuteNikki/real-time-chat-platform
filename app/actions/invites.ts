@@ -117,13 +117,7 @@ export async function cancelFriendRequest(targetUserId: string) {
   for (const r of rows) {
     await db.delete(invite).where(eq(invite.id, r.id));
   }
-  // Clean up the FRIEND_REQUEST notification this request created — a
-  // canceled request shouldn't leave a dead entry in the recipient's bell.
-  await deleteNotificationByKey({
-    userId: targetUserId,
-    type: 'FRIEND_REQUEST',
-    actorId: me.id,
-  });
+
   // Let the recipient's client drop the incoming request in real time.
   await pusherServer.trigger(
     userChannel(targetUserId),
@@ -157,14 +151,6 @@ export async function declineFriendRequestByUserId(targetUserId: string) {
     .set({ status: 'DECLINED', respondedAt: new Date() })
     .where(eq(invite.id, inv.id));
 
-  // The request notification in my own bell is now stale — this path is used
-  // when declining from a profile page rather than the bell itself.
-  await deleteNotificationByKey({
-    userId: me.id,
-    type: 'FRIEND_REQUEST',
-    actorId: targetUserId,
-  });
-
   await pusherServer.trigger(
     userChannel(inv.senderId),
     EVENTS.INVITE_RESPONDED,
@@ -195,11 +181,6 @@ export async function respondToRequest(inviteId: string, accept: boolean) {
       .update(invite)
       .set({ status: 'DECLINED', respondedAt: new Date() })
       .where(eq(invite.id, inviteId));
-    await deleteNotificationByKey({
-      userId: me.id,
-      type: 'FRIEND_REQUEST',
-      actorId: inv.senderId,
-    });
     await pusherServer.trigger(
       userChannel(inv.senderId),
       EVENTS.INVITE_RESPONDED,
@@ -222,14 +203,6 @@ export async function respondToRequest(inviteId: string, accept: boolean) {
     .update(invite)
     .set({ status: 'ACCEPTED', respondedAt: new Date(), chatId })
     .where(eq(invite.id, inviteId));
-
-  // The original request notification is resolved now — this path is also
-  // reachable from a profile page, not just the bell's own accept action.
-  await deleteNotificationByKey({
-    userId: me.id,
-    type: 'FRIEND_REQUEST',
-    actorId: inv.senderId,
-  });
 
   await pusherServer.trigger(
     userChannel(inv.senderId),

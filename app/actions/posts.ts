@@ -395,25 +395,6 @@ export async function toggleLike(postId: string) {
     .limit(1);
   if (existing) {
     await db.delete(postLike).where(eq(postLike.id, existing.id));
-    // Retract the LIKE notification this like created — the like no longer
-    // exists, so a like/unlike spam shouldn't leave a dead entry behind.
-    try {
-      const [p] = await db
-        .select({ authorId: post.userId })
-        .from(post)
-        .where(eq(post.id, postId))
-        .limit(1);
-      if (p) {
-        await deleteNotificationByKey({
-          userId: p.authorId,
-          type: 'LIKE',
-          actorId: userId,
-          postId,
-        });
-      }
-    } catch {
-      // Notification cleanup must never block the unlike itself.
-    }
     return { liked: false };
   }
   await db
