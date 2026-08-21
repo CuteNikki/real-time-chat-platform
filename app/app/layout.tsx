@@ -8,6 +8,7 @@ import { auth } from '@/lib/auth';
 import { getEffectiveBan } from '@/lib/ban';
 
 import { AppNav, MobileBottomNav } from '@/components/app-nav';
+import { CallProvider } from '@/components/call/call-provider';
 import { NotificationPrefsProvider } from '@/components/notification-prefs-provider';
 import { getMyRole } from '@/lib/roles-server';
 
@@ -29,15 +30,23 @@ export default async function AppLayout({
 
   return (
     <NotificationPrefsProvider initial={notificationPrefs}>
-      <div className='bg-background relative flex h-svh flex-col overflow-hidden'>
-        <AppNav user={{ ...session.user, role }} />
+      <CallProvider
+        user={{
+          id: session.user.id,
+          name: session.user.name,
+          image: session.user.image ?? null,
+        }}
+      >
+        <div className='bg-background relative flex h-svh flex-col overflow-hidden'>
+          <AppNav user={{ ...session.user, role }} />
 
-        <main className='relative flex min-h-0 w-full flex-1 flex-col'>
-          {children}
-        </main>
+          <main className='relative flex min-h-0 w-full flex-1 flex-col'>
+            {children}
+          </main>
 
-        <MobileBottomNav />
-      </div>
+          <MobileBottomNav />
+        </div>
+      </CallProvider>
     </NotificationPrefsProvider>
   );
 }

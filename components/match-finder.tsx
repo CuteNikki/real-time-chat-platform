@@ -13,7 +13,7 @@ import {
 } from '@/app/actions/match';
 
 import { EVENTS, userChannel } from '@/lib/pusher/channels';
-import { getPusherClient } from '@/lib/pusher/client';
+import { acquireChannel, releaseChannel } from '@/lib/pusher/client';
 
 import { Button } from '@/components/ui/button';
 
@@ -34,17 +34,18 @@ export function MatchFinder({ userId }: { userId: string }) {
     [router],
   );
 
-  // Realtime: partner-side match notification.
+  // Realtime: partner-side match notification. Use the reference-counted
+  // channel helpers so leaving this page doesn't unsubscribe the shared
+  // per-user channel out from under the call listener / notification bell.
   useEffect(() => {
-    const pusher = getPusherClient();
-    const channel = pusher.subscribe(userChannel(userId));
+    const channel = acquireChannel(userChannel(userId));
     const onMatch = (data: { chatId: string; partnerName: string }) => {
       goToChat(data.chatId, data.partnerName);
     };
     channel.bind(EVENTS.MATCH_FOUND, onMatch);
     return () => {
       channel.unbind(EVENTS.MATCH_FOUND, onMatch);
-      pusher.unsubscribe(userChannel(userId));
+      releaseChannel(userChannel(userId));
     };
   }, [userId, goToChat]);
 
@@ -103,17 +104,17 @@ export function MatchFinder({ userId }: { userId: string }) {
 
   return (
     <div className='xs:p-6 mx-auto flex min-h-full w-full max-w-lg flex-col items-center justify-center gap-4 p-4 text-center'>
-      <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
+      <div className='bg-muted ring-border/60 relative mb-4 flex size-20 shrink-0 items-center justify-center rounded-2xl ring-1'>
         {status === 'searching' ? (
           <>
-            <span className='bg-primary/20 absolute inline-flex size-28 animate-ping rounded-full' />
+            <span className='bg-primary/15 absolute inline-flex size-20 animate-ping rounded-2xl' />
             <Loader2Icon
-              className='text-primary size-12 animate-spin'
+              className='text-primary size-9 animate-spin'
               aria-hidden
             />
           </>
         ) : (
-          <ShuffleIcon className='text-primary size-12 shrink-0' aria-hidden />
+          <ShuffleIcon className='text-primary size-9 shrink-0' aria-hidden />
         )}
       </div>
 

@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { listRooms } from '@/app/actions/rooms';
 
 import { auth } from '@/lib/auth';
-import { canCreateGroups } from '@/lib/roles';
+import { atLeast, canCreateGroups } from '@/lib/roles';
 import { getMyRole } from '@/lib/roles-server';
 
 import { RoomsWorkspace } from '@/components/chat/rooms-workspace';
@@ -27,6 +27,7 @@ export default async function RoomsPage() {
         }}
         canCreate={canCreateGroups(role)}
         canDelete={canCreateGroups(role)}
+        canModerate={atLeast(role, 'MODERATOR')}
       />
     </div>
   );

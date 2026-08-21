@@ -1,8 +1,8 @@
 'use server';
 
-import { and, desc, eq, inArray, isNull, ne, or } from 'drizzle-orm';
+import { and, desc, eq, gt, inArray, isNull, ne, or } from 'drizzle-orm';
 
-import { upsertNotification } from '@/app/actions/notifications';
+import { notify } from '@/app/actions/notifications';
 
 import { db } from '@/lib/db';
 import {
@@ -71,11 +71,18 @@ export async function sendFriendRequest(targetUserId: string) {
     senderUsername: me.username ?? null,
   });
 
-  await upsertNotification({
-    userId: receiver.id,
-    type: 'FRIEND_REQUEST',
+  await notify({
+    recipientId: receiver.id,
     actorId: me.id,
-    body: `${me.name} sent you a friend request`,
+    type: 'FRIEND_REQUEST',
+    // One pending-request notification per requester.
+    targetId: me.id,
+    category: 'friendRequest',
+    actor: {
+      name: me.name,
+      username: me.username ?? null,
+      image: me.image ?? null,
+    },
   });
 
   return { ok: true, status: 'sent' as const };
@@ -207,20 +214,29 @@ export async function respondToRequest(inviteId: string, accept: boolean) {
     },
   );
 
-  await upsertNotification({
-    userId: inv.senderId,
-    type: 'FRIEND_ACCEPT',
+  await notify({
+    recipientId: inv.senderId,
     actorId: me.id,
-    chatId,
-    body: `${me.name} accepted your friend request`,
+    type: 'FRIEND_ACCEPT',
+    // The new DM chat — deep-links to the conversation and dedupes per pair.
+    targetId: chatId,
+    category: 'friendAccept',
+    actor: {
+      name: me.name,
+      username: me.username ?? null,
+      image: me.image ?? null,
+    },
   });
 
   return { status: 'accepted' as const, chatId };
 }
 
-// Remove a friend: delete the accepted relationship AND permanently delete the
-// private DM (messages, participants, and any notifications referencing it) so
-// the conversation disappears for both people.
+// Remove a friend: delete the accepted relationship and retire the private DM
+// so the conversation disappears for both people. The chat is SOFT-deleted
+// (stamped endedAt + deletedAt) and its messages are kept for 30 days so any
+// report filed in it stays verifiable; a background purge hard-removes
+// everything past the window. Participant rows and inbox notifications
+// referencing the chat are dropped immediately — those carry no moderation value.
 export async function removeFriend(otherUserId: string) {
   const me = await getCurrentUser();
   const rows = await db
@@ -245,11 +261,15 @@ export async function removeFriend(otherUserId: string) {
     await db.delete(invite).where(eq(invite.id, r.id));
   }
 
+  const now = new Date();
   for (const chatId of chatIds) {
-    await db.delete(message).where(eq(message.chatId, chatId));
-    await db.delete(notification).where(eq(notification.chatId, chatId));
+    // Retire the chat but retain its messages for moderation review.
+    await db
+      .update(chat)
+      .set({ endedAt: now, deletedAt: now })
+      .where(eq(chat.id, chatId));
+    await db.delete(notification).where(eq(notification.targetId, chatId));
     await db.delete(chatParticipant).where(eq(chatParticipant.chatId, chatId));
-    await db.delete(chat).where(eq(chat.id, chatId));
   }
 
   // Refresh the other user's clients (conversation list / incoming requests).
@@ -340,7 +360,10 @@ export async function getPrivateConversations(): Promise<
   const me = await getCurrentUser();
 
   const myChats = await db
-    .select({ chatId: chatParticipant.chatId })
+    .select({
+      chatId: chatParticipant.chatId,
+      clearedAt: chatParticipant.clearedAt,
+    })
     .from(chatParticipant)
     .innerJoin(chat, eq(chat.id, chatParticipant.chatId))
     .where(
@@ -353,7 +376,7 @@ export async function getPrivateConversations(): Promise<
     );
 
   const results: PrivateConversation[] = [];
-  for (const { chatId } of myChats) {
+  for (const { chatId, clearedAt } of myChats) {
     const [partner] = await db
       .select({
         id: user.id,
@@ -371,17 +394,32 @@ export async function getPrivateConversations(): Promise<
       )
       .limit(1);
 
+    // Newest message the CALLER can still see: respect their clear-chat cutoff.
     const [last] = await db
       .select({
         content: message.content,
         imageUrl: message.imageUrl,
+        deletedAt: message.deletedAt,
         createdAt: message.createdAt,
         senderId: message.senderId,
       })
       .from(message)
-      .where(eq(message.chatId, chatId))
+      .where(
+        and(
+          eq(message.chatId, chatId),
+          clearedAt ? gt(message.createdAt, clearedAt) : undefined,
+        ),
+      )
       .orderBy(desc(message.createdAt))
       .limit(1);
+
+    // A soft-deleted last message shows a neutral placeholder, never its
+    // retained (moderation-only) text.
+    const lastMessage = last
+      ? last.deletedAt
+        ? 'Message deleted'
+        : (last.content ?? (last.imageUrl ? 'Sent an image' : null))
+      : null;
 
     results.push({
       chatId,
@@ -389,9 +427,7 @@ export async function getPrivateConversations(): Promise<
       partnerName: partner?.name ?? 'Unknown',
       partnerUsername: partner?.username ?? null,
       partnerImage: partner?.image ?? null,
-      lastMessage: last
-        ? (last.content ?? (last.imageUrl ? 'Sent an image' : null))
-        : null,
+      lastMessage,
       lastAt: last ? last.createdAt.toISOString() : null,
       lastFromMe: last ? last.senderId === me.id : false,
     });

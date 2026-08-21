@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Channel } from 'pusher-js';
-import { getPusherClient } from '@/lib/pusher/client';
+import { acquireChannel, releaseChannel } from '@/lib/pusher/client';
 import { chatChannel, EVENTS } from '@/lib/pusher/channels';
 import { useNotificationPrefs } from '@/components/notification-prefs-provider';
 import { playNotificationSound } from '@/lib/notification-sound';
@@ -31,7 +31,6 @@ export function useChat({
   notifyCategory?: NotificationCategory | null;
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
-  const [memberCount, setMemberCount] = useState<number | null>(null);
   const [ended, setEnded] = useState(false);
   const channelRef = useRef<Channel | null>(null);
   const { prefs } = useNotificationPrefs();
@@ -52,8 +51,7 @@ export function useChat({
   }, [initialMessages]);
 
   useEffect(() => {
-    const pusher = getPusherClient();
-    const channel = pusher.subscribe(chatChannel(chatId));
+    const channel = acquireChannel(chatChannel(chatId));
     channelRef.current = channel;
 
     const handleNew = (msg: ChatMessage) => {
@@ -83,27 +81,24 @@ export function useChat({
       setMessages([]);
     };
 
-    const recount = () => {
-      // @ts-expect-error members exists on presence channels
-      const members = channel.members;
-      if (members) setMemberCount(members.count);
+    // An edit or soft-delete: swap the matching row in place, keeping order.
+    const handleUpdated = (msg: ChatMessage) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? msg : m)),
+      );
     };
 
     channel.bind(EVENTS.NEW_MESSAGE, handleNew);
+    channel.bind(EVENTS.MESSAGE_UPDATED, handleUpdated);
     channel.bind(EVENTS.CHAT_ENDED, handleEnded);
     channel.bind(EVENTS.CHAT_CLEARED, handleCleared);
-    channel.bind('pusher:subscription_succeeded', recount);
-    channel.bind('pusher:member_added', recount);
-    channel.bind('pusher:member_removed', recount);
 
     return () => {
       channel.unbind(EVENTS.NEW_MESSAGE, handleNew);
+      channel.unbind(EVENTS.MESSAGE_UPDATED, handleUpdated);
       channel.unbind(EVENTS.CHAT_ENDED, handleEnded);
       channel.unbind(EVENTS.CHAT_CLEARED, handleCleared);
-      channel.unbind('pusher:subscription_succeeded', recount);
-      channel.unbind('pusher:member_added', recount);
-      channel.unbind('pusher:member_removed', recount);
-      pusher.unsubscribe(chatChannel(chatId));
+      releaseChannel(chatChannel(chatId));
       channelRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -118,7 +113,28 @@ export function useChat({
     });
   }, []);
 
-  return { messages, memberCount, ended, appendLocal };
+  // Optimistically patch a message we're editing/deleting so it updates
+  // instantly; the MESSAGE_UPDATED echo later replaces it with the server row.
+  const patchLocal = useCallback((id: string, patch: Partial<ChatMessage>) => {
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...patch } : m)),
+    );
+  }, []);
+
+  // Prepend a batch of older messages (from scroll-back pagination) ahead of
+  // what's loaded, dropping any ids we already hold so a boundary overlap can't
+  // duplicate a row.
+  const prependOlder = useCallback((older: ChatMessage[]) => {
+    setMessages((prev) => {
+      if (older.length === 0) return prev;
+      const have = new Set(prev.map((m) => m.id));
+      const fresh = older.filter((m) => !have.has(m.id));
+      if (fresh.length === 0) return prev;
+      return [...fresh, ...prev];
+    });
+  }, []);
+
+  return { messages, ended, appendLocal, patchLocal, prependOlder };
 }
 
 export type { PresenceMember };

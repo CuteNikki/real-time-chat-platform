@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { MentionTextarea } from '@/components/user/mention-textarea';
 import { UserAvatar } from '@/components/user/user-avatar';
 
 type Profile = {
@@ -317,10 +317,10 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
       {/* Bio */}
       <div className='space-y-2'>
         <Label htmlFor='bio'>Bio</Label>
-        <Textarea
+        <MentionTextarea
           id='bio'
           value={bio}
-          onChange={(e) => setBio(e.target.value)}
+          onValueChange={setBio}
           placeholder='Tell people a bit about yourself'
           className='max-h-24 resize-none'
           maxLength={300}

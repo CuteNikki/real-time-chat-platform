@@ -214,3 +214,86 @@
     padding-right: 36px !important;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Landing-page depth & motion
+ * Texture + ambient movement used to give the marketing page physical
+ * depth. Everything here is decorative and animates only compositor-
+ * friendly properties (transform/opacity), and is fully disabled under
+ * prefers-reduced-motion.
+ * ------------------------------------------------------------------ */
+
+/* Fine film grain baked into an inline SVG (feTurbulence) so it costs no
+   extra request. Sits at low opacity over gradients to break up flat fills.
+   Works in both themes via mix-blend-mode. */
+.bg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+}
+
+@keyframes aurora {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, -3%, 0) scale(1.12);
+  }
+  100% {
+    transform: translate3d(-3%, 2%, 0) scale(1.05);
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+/* Instagram-style burst when a post is double-tapped to like. Starts and ends
+   invisible so the heart only flashes over the image. */
+@keyframes heart-pop {
+  0% {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  45% {
+    transform: scale(1.1);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-heart-pop {
+  animation: heart-pop 0.8s ease-in-out forwards;
+}
+
+.animate-aurora {
+  animation: aurora 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.animate-float-slow {
+  animation: float-slow 9s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-aurora,
+  .animate-float-slow,
+  .animate-heart-pop {
+    animation: none !important;
+  }
+}

@@ -1,13 +1,17 @@
 'use client';
 
 import { VariantProps } from 'class-variance-authority';
+import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import {
   AlertCircleIcon,
   BanIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   ClockIcon,
+  EraserIcon,
   GlobeIcon,
   HistoryIcon,
   Loader2,
@@ -26,12 +30,14 @@ import {
   deleteUser,
   getBanHistory,
   liftIpBan,
-  listUsersForAdmin,
+  listUsersForModeration,
+  resetUserProfile,
   setUserRole,
   unbanUser,
-  type AdminUserRow,
   type BanHistoryEntry,
-} from '@/app/actions/admin';
+  type ModerationUserRow,
+  type ResetProfileFields,
+} from '@/app/actions/moderation';
 
 import { ROLES, ROLE_LABEL, type Role } from '@/lib/roles';
 import { cn } from '@/lib/utils';
@@ -87,29 +93,40 @@ const DURATIONS: { key: string; label: string; days: number | null }[] = [
   { key: 'perm', label: 'Permanent', days: null },
 ];
 
-export function AdminView({
+export function ModerationView({
   initialUsers,
+  initialTotal,
+  pageSize,
   viewerRole,
 }: {
-  initialUsers: AdminUserRow[];
+  initialUsers: ModerationUserRow[];
+  initialTotal: number;
+  pageSize: number;
   viewerRole: Role;
 }) {
-  const [users, setUsers] = useState<AdminUserRow[]>(initialUsers);
+  const [users, setUsers] = useState<ModerationUserRow[]>(initialUsers);
+  const [total, setTotal] = useState(initialTotal);
+  const [page, setPage] = useState(1);
   const [query, setQuery] = useState('');
   const [pending, startTransition] = useTransition();
   const [savingId, setSavingId] = useState<string | null>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Dialog targets.
-  const [banTarget, setBanTarget] = useState<AdminUserRow | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
-  const [historyTarget, setHistoryTarget] = useState<AdminUserRow | null>(null);
+  const [banTarget, setBanTarget] = useState<ModerationUserRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ModerationUserRow | null>(null);
+  const [historyTarget, setHistoryTarget] = useState<ModerationUserRow | null>(null);
+  const [resetTarget, setResetTarget] = useState<ModerationUserRow | null>(null);
 
   const canManageRoles = viewerRole === 'ADMIN';
   const canDelete = viewerRole === 'ADMIN';
 
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, total);
+
   // Whether the current viewer may ban/delete this target.
-  function canModerate(u: AdminUserRow): boolean {
+  function canModerate(u: ModerationUserRow): boolean {
     if (u.isSelf) return false;
     if (u.role === 'ADMIN') return false;
     // If the viewer is a moderator, they can only moderate members
@@ -117,22 +134,59 @@ export function AdminView({
     return true;
   }
 
+  // Load a given page for the current query, replacing the visible rows.
+  function fetchPage(nextQuery: string, nextPage: number) {
+    startTransition(async () => {
+      try {
+        const res = await listUsersForModeration(nextQuery, nextPage);
+        setUsers(res.users);
+        setTotal(res.total);
+        setPage(res.page);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Could not load users');
+      }
+    });
+  }
+
   function onSearch(value: string) {
     setQuery(value);
     if (debounce.current) clearTimeout(debounce.current);
 
-    debounce.current = setTimeout(() => {
-      startTransition(async () => {
-        try {
-          setUsers(await listUsersForAdmin(value));
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Search failed');
-        }
-      });
-    }, 300);
+    // A new search always restarts at the first page.
+    debounce.current = setTimeout(() => fetchPage(value, 1), 300);
   }
 
-  async function changeRole(target: AdminUserRow, role: Role) {
+  // Drop a deleted user from the current page and keep the total honest. If the
+  // page is now empty (and isn't the first), step back so we never sit on a
+  // blank page.
+  function handleDeleted(id: string) {
+    const next = users.filter((u) => u.id !== id);
+    setUsers(next);
+    setTotal((t) => Math.max(0, t - 1));
+    if (next.length === 0 && page > 1) fetchPage(query, page - 1);
+  }
+
+  // Reflect a profile reset in the visible row (name/username may have changed
+  // to placeholders; avatar may have been cleared).
+  function handleReset(
+    id: string,
+    changes: { name: string | null; username: string | null; clearedImage: boolean },
+  ) {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === id
+          ? {
+              ...u,
+              name: changes.name ?? u.name,
+              username: changes.username ?? u.username,
+              image: changes.clearedImage ? null : u.image,
+            }
+          : u,
+      ),
+    );
+  }
+
+  async function changeRole(target: ModerationUserRow, role: Role) {
     if (target.role === role) return;
     setSavingId(target.id);
 
@@ -166,7 +220,7 @@ export function AdminView({
     );
   }
 
-  async function onUnban(target: AdminUserRow) {
+  async function onUnban(target: ModerationUserRow) {
     setSavingId(target.id);
 
     // Optimistic update
@@ -233,25 +287,54 @@ export function AdminView({
             const showMenu = moderatable || canManageRoles;
             return (
               <li key={u.id} className='flex items-center gap-3 px-4 py-3'>
-                <UserAvatar
-                  name={u.name}
-                  image={u.image}
-                  className='size-10 shrink-0'
-                />
-
-                <div className='min-w-0 flex-1 leading-tight'>
-                  <p className='flex items-center gap-1.5 truncate font-medium'>
-                    <span className='truncate'>{u.name}</span>
-                    {u.isSelf ? (
-                      <span className='text-muted-foreground text-xs'>
-                        (you)
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className='text-muted-foreground truncate text-xs'>
-                    {u.username ? `@${u.username}` : u.email}
-                  </p>
-                </div>
+                {u.username ? (
+                  <Link
+                    href={`/app/u/${u.username}`}
+                    className='group flex min-w-0 flex-1 items-center gap-3 rounded-md'
+                  >
+                    <UserAvatar
+                      name={u.name}
+                      image={u.image}
+                      className='size-10 shrink-0'
+                    />
+                    <div className='min-w-0 flex-1 leading-tight'>
+                      <p className='flex items-center gap-1.5 truncate font-medium'>
+                        <span className='truncate group-hover:underline'>
+                          {u.name}
+                        </span>
+                        {u.isSelf ? (
+                          <span className='text-muted-foreground text-xs'>
+                            (you)
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className='text-muted-foreground truncate text-xs'>
+                        @{u.username}
+                      </p>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className='flex min-w-0 flex-1 items-center gap-3'>
+                    <UserAvatar
+                      name={u.name}
+                      image={u.image}
+                      className='size-10 shrink-0'
+                    />
+                    <div className='min-w-0 flex-1 leading-tight'>
+                      <p className='flex items-center gap-1.5 truncate font-medium'>
+                        <span className='truncate'>{u.name}</span>
+                        {u.isSelf ? (
+                          <span className='text-muted-foreground text-xs'>
+                            (you)
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className='text-muted-foreground truncate text-xs'>
+                        {u.email}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Right-side metadata & actions container */}
                 <div className='xs:flex-row flex shrink-0 flex-col items-center gap-2'>
@@ -309,6 +392,10 @@ export function AdminView({
                             <HistoryIcon aria-hidden />
                             Ban history
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setResetTarget(u)}>
+                            <EraserIcon aria-hidden />
+                            Reset profile
+                          </DropdownMenuItem>
                         </DropdownMenuGroup>
                       )}
 
@@ -350,6 +437,41 @@ export function AdminView({
         )}
       </ul>
 
+      {/* Pager: range summary + prev/next. Hidden when everything fits one page
+          and there's nothing to page through. */}
+      {(total > pageSize || page > 1) && (
+        <div className='flex items-center justify-between gap-2'>
+          <p className='text-muted-foreground text-xs tabular-nums'>
+            {total === 0
+              ? 'No users'
+              : `${rangeStart}–${rangeEnd} of ${total}`}
+          </p>
+          <div className='flex items-center gap-2'>
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={page <= 1 || pending}
+              onClick={() => fetchPage(query, page - 1)}
+            >
+              <ChevronLeftIcon aria-hidden />
+              Prev
+            </Button>
+            <span className='text-muted-foreground text-xs tabular-nums'>
+              Page {page} of {totalPages}
+            </span>
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={page >= totalPages || pending}
+              onClick={() => fetchPage(query, page + 1)}
+            >
+              Next
+              <ChevronRightIcon aria-hidden />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <BanDialog
         target={banTarget}
         onClose={() => setBanTarget(null)}
@@ -364,22 +486,171 @@ export function AdminView({
       <DeleteDialog
         target={deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onDeleted={(id) => setUsers((prev) => prev.filter((u) => u.id !== id))}
+        onDeleted={handleDeleted}
       />
       <HistoryDialog
         target={historyTarget}
         onClose={() => setHistoryTarget(null)}
         viewerRole={viewerRole}
       />
+      <ResetDialog
+        target={resetTarget}
+        onClose={() => setResetTarget(null)}
+        onReset={handleReset}
+      />
     </div>
   );
 }
+function ResetDialog({
+  target,
+  onClose,
+  onReset,
+}: {
+  target: ModerationUserRow | null;
+  onClose: () => void;
+  onReset: (
+    id: string,
+    changes: {
+      name: string | null;
+      username: string | null;
+      clearedImage: boolean;
+    },
+  ) => void;
+}) {
+  // Which fields to blank. Default to everything, since a moderator opening this
+  // is usually clearing inappropriate content wholesale.
+  const [fields, setFields] = useState<Required<ResetProfileFields>>({
+    name: true,
+    username: true,
+    image: true,
+    bio: true,
+    interests: true,
+    posts: true,
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const open = target !== null;
+  const targetId = target?.id ?? null;
+
+  useEffect(() => {
+    if (!targetId) return;
+    setFields({
+      name: true,
+      username: true,
+      image: true,
+      bio: true,
+      interests: true,
+      posts: true,
+    });
+    setSubmitting(false);
+  }, [targetId]);
+
+  const anySelected = Object.values(fields).some(Boolean);
+
+  const TOGGLES: { key: keyof ResetProfileFields; label: string; hint: string }[] =
+    [
+      { key: 'name', label: 'Display name', hint: 'Reset to “Removed User”' },
+      { key: 'username', label: 'Username', hint: 'Reset to a random handle' },
+      { key: 'image', label: 'Avatar', hint: 'Remove profile picture' },
+      { key: 'bio', label: 'Bio', hint: 'Clear the bio text' },
+      { key: 'interests', label: 'Interests', hint: 'Remove all interest tags' },
+      { key: 'posts', label: 'All posts', hint: 'Delete every post they’ve made' },
+    ];
+
+  async function submit() {
+    if (!target || !anySelected) return;
+    setSubmitting(true);
+
+    const clearedImage = fields.image;
+    toast.promise(
+      (async () => {
+        const res = await resetUserProfile(target.id, fields);
+        onReset(target.id, {
+          name: res.name,
+          username: res.username,
+          clearedImage,
+        });
+        onClose();
+        return res.postsDeleted;
+      })(),
+      {
+        loading: `Resetting ${target.name}'s profile...`,
+        success: (postsDeleted) =>
+          postsDeleted > 0
+            ? `Profile reset · ${postsDeleted} ${
+                postsDeleted === 1 ? 'post' : 'posts'
+              } deleted`
+            : 'Profile reset',
+        error: (err) =>
+          err instanceof Error ? err.message : 'Could not reset profile',
+        finally: () => setSubmitting(false),
+      },
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reset {target?.name}'s profile</DialogTitle>
+          <DialogDescription>
+            Blank the selected profile fields and optionally delete their posts.
+            Non-nullable fields are replaced with neutral placeholders. This
+            cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className='space-y-2'>
+          {TOGGLES.map((t) => (
+            <div
+              key={t.key}
+              className='border-border flex items-center justify-between gap-4 rounded-lg border p-3'
+            >
+              <div className='min-w-0'>
+                <Label htmlFor={`reset-${t.key}`} className='block'>
+                  {t.label}
+                </Label>
+                <p className='text-muted-foreground text-xs'>{t.hint}</p>
+              </div>
+              <Switch
+                id={`reset-${t.key}`}
+                checked={fields[t.key]}
+                onCheckedChange={(v) =>
+                  setFields((prev) => ({ ...prev, [t.key]: v }))
+                }
+              />
+            </div>
+          ))}
+        </div>
+
+        <DialogFooter>
+          <Button variant='outline' onClick={onClose} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button
+            variant='destructive'
+            onClick={submit}
+            disabled={submitting || !anySelected}
+          >
+            {submitting ? (
+              <Loader2Icon className='animate-spin' aria-hidden />
+            ) : (
+              <EraserIcon aria-hidden />
+            )}
+            Reset Profile
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function BanDialog({
   target,
   onClose,
   onBanned,
 }: {
-  target: AdminUserRow | null;
+  target: ModerationUserRow | null;
   onClose: () => void;
   onBanned: (id: string, banExpiresAt: string | null) => void;
 }) {
@@ -520,7 +791,7 @@ function DeleteDialog({
   onClose,
   onDeleted,
 }: {
-  target: AdminUserRow | null;
+  target: ModerationUserRow | null;
   onClose: () => void;
   onDeleted: (id: string) => void;
 }) {
@@ -580,7 +851,7 @@ function HistoryDialog({
   onClose,
   viewerRole,
 }: {
-  target: AdminUserRow | null;
+  target: ModerationUserRow | null;
   onClose: () => void;
   viewerRole: Role;
 }) {

@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -7,6 +8,7 @@ import { toast } from 'sonner';
 import useSWR from 'swr';
 
 import {
+  AtSign,
   Bell,
   Check,
   Heart,
@@ -27,12 +29,17 @@ import {
 } from '@/app/actions/notifications';
 
 import { playNotificationSound } from '@/lib/notification-sound';
+import {
+  categoryForType,
+  notificationActionText,
+  notificationChatHref,
+  notificationPreview,
+} from '@/lib/notifications';
 import { EVENTS, userChannel } from '@/lib/pusher/channels';
-import { getPusherClient } from '@/lib/pusher/client';
+import { acquireChannel, releaseChannel } from '@/lib/pusher/client';
 import type {
-  NotificationCategory,
+  NotificationRealtimePayload,
   NotificationSummary,
-  NotificationType,
 } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
@@ -52,8 +59,19 @@ type Counts = {
   requests: number;
   messages: number;
   likes: number;
+  mentions: number;
   total: number;
 };
+
+// The inbox tabs, also used as the category key for read/clear actions.
+type Tab = 'requests' | 'messages' | 'likes' | 'mentions';
+
+// Compact per-tab unread indicator. Absolutely positioned in the trigger's
+// top-right corner so it stays out of the flex row — otherwise its width would
+// push the four labelled tabs past the popover on desktop. Caps at "9+" to keep
+// the pill a fixed, tiny size regardless of count.
+const unreadBadgeClass =
+  'pointer-events-none absolute -top-1.5 -right-1.5 h-4 min-w-4 justify-center rounded-full px-1 text-[10px] leading-none tabular-nums';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -73,27 +91,13 @@ function iconFor(type: NotificationSummary['type']) {
   if (type === 'FRIEND_REQUEST') return UserPlus;
   if (type === 'FRIEND_ACCEPT') return UserCheck;
   if (type === 'LIKE') return Heart;
+  if (type === 'MENTION') return AtSign;
   return MessageCircle;
-}
-
-// Map a notification type to its preference category. MESSAGE is ambiguous
-// (direct vs room), so the realtime payload carries an explicit category that
-// takes precedence; this fallback assumes a direct message.
-function categoryForType(type: NotificationType): NotificationCategory {
-  switch (type) {
-    case 'FRIEND_REQUEST':
-      return 'friendRequest';
-    case 'FRIEND_ACCEPT':
-      return 'friendAccept';
-    case 'LIKE':
-      return 'like';
-    default:
-      return 'directMessage';
-  }
 }
 
 const isMessage = (n: NotificationSummary) => n.type === 'MESSAGE';
 const isLike = (n: NotificationSummary) => n.type === 'LIKE';
+const isMention = (n: NotificationSummary) => n.type === 'MENTION';
 
 export function NotificationBell({
   userId,
@@ -115,7 +119,7 @@ export function NotificationBell({
   const total = data?.total ?? 0;
 
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<'requests' | 'messages' | 'likes'>('requests');
+  const [tab, setTab] = useState<Tab>('requests');
   const [items, setItems] = useState<NotificationSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -123,9 +127,12 @@ export function NotificationBell({
 
   const { prefs } = useNotificationPrefs();
 
-  const requests = items.filter((n) => !isMessage(n) && !isLike(n));
+  const requests = items.filter(
+    (n) => !isMessage(n) && !isLike(n) && !isMention(n),
+  );
   const messages = items.filter(isMessage);
   const likes = items.filter(isLike);
+  const mentions = items.filter(isMention);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -144,41 +151,105 @@ export function NotificationBell({
   }, [open, load]);
 
   // Subscribe for realtime notifications: refresh the badge, reload the open
-  // list, and surface a lightweight toast (no forced navigation).
+  // list, and surface a rich toast composed from the structured payload — an
+  // avatar, the actor's name, the action, and a message preview — with the
+  // actor's name rendered exactly once (never baked into a stored string).
   useEffect(() => {
-    const pusher = getPusherClient();
-    const channel = pusher.subscribe(userChannel(userId));
-    const onNotification = (payload: {
-      body?: string | null;
-      type?: NotificationType;
-      category?: NotificationCategory | null;
-    }) => {
+    const channel = acquireChannel(userChannel(userId));
+    const onNotification = (payload: NotificationRealtimePayload) => {
       mutate();
       if (open) load();
 
       const category =
-        payload?.category ?? categoryForType(payload?.type ?? 'MESSAGE');
+        payload.category ??
+        categoryForType(payload.type, payload.metadata ?? null);
       const catPref = prefs.categories[category];
 
       // Popup (toast) — respect the per-category popup preference.
-      if (payload?.body && catPref.popup) toast(payload.body);
+      if (catPref?.popup) {
+        const actorName = payload.actor?.name ?? 'Someone';
+        const action = notificationActionText(
+          payload.type,
+          payload.metadata ?? null,
+        );
+        const preview = notificationPreview(payload.metadata ?? null);
+        // Deep-link the toast's action button: likes point at the liked post on
+        // the current user's own profile; mentions point at the actor's post or
+        // profile (wherever the @tag lives); everything chat-shaped opens the
+        // chat in its workspace (rooms vs. DMs, per chatType).
+        const href =
+          payload.type === 'LIKE'
+            ? payload.postId && username
+              ? `/app/u/${username}?post=${payload.postId}`
+              : null
+            : payload.type === 'MENTION'
+              ? payload.actor?.username
+                ? payload.metadata?.mentionSource === 'post' && payload.postId
+                  ? `/app/u/${payload.actor.username}?post=${payload.postId}`
+                  : `/app/u/${payload.actor.username}`
+                : null
+              : notificationChatHref(payload.chatId, payload.metadata ?? null);
+
+        // Render the avatar + text as one flex row in the toast's own content
+        // area. Sonner's `icon` slot only reserves a small fixed indent, so a
+        // full-size avatar placed there overflows onto the text — laying it out
+        // here instead keeps the avatar, name, and preview cleanly aligned.
+        toast(
+          <div className='flex min-w-0 items-center gap-3'>
+            <UserAvatar
+              name={actorName}
+              image={payload.actor?.image ?? null}
+              className='size-9 shrink-0'
+            />
+            <div className='min-w-0 flex-1'>
+              <p className='truncate text-sm leading-tight'>
+                <span className='font-semibold'>{actorName}</span>{' '}
+                <span className='text-muted-foreground'>{action}</span>
+              </p>
+              {preview ? (
+                <p className='text-muted-foreground truncate text-sm'>
+                  {preview}
+                </p>
+              ) : null}
+            </div>
+          </div>,
+          {
+            action: href
+              ? {
+                  label:
+                    payload.type === 'LIKE' || payload.type === 'MENTION'
+                      ? 'View'
+                      : 'Open',
+                  onClick: () => router.push(href),
+                }
+              : undefined,
+          },
+        );
+      }
 
       // Sound — respect the master switch, per-category sound flag, and volume.
-      if (prefs.soundEnabled && catPref.sound) {
+      if (prefs.soundEnabled && catPref?.sound) {
         playNotificationSound(category, prefs.volume);
       }
     };
     channel.bind(EVENTS.NOTIFICATION, onNotification);
     return () => {
       channel.unbind(EVENTS.NOTIFICATION, onNotification);
+      releaseChannel(userChannel(userId));
     };
-  }, [userId, mutate, open, load, prefs]);
+  }, [userId, mutate, open, load, prefs, username, router]);
 
   // Mark the active tab's notifications read shortly after viewing.
   useEffect(() => {
     if (!open) return;
     const list =
-      tab === 'messages' ? messages : tab === 'likes' ? likes : requests;
+      tab === 'messages'
+        ? messages
+        : tab === 'likes'
+          ? likes
+          : tab === 'mentions'
+            ? mentions
+            : requests;
     if (!list.some((n) => !n.read)) return;
     const t = setTimeout(async () => {
       await markNotificationsRead({ category: tab });
@@ -189,14 +260,16 @@ export function NotificationBell({
               ? isMessage(n)
               : tab === 'likes'
                 ? isLike(n)
-                : !isMessage(n) && !isLike(n);
+                : tab === 'mentions'
+                  ? isMention(n)
+                  : !isMessage(n) && !isLike(n) && !isMention(n);
           return inTab ? { ...n, read: true } : n;
         }),
       );
       mutate();
     }, 800);
     return () => clearTimeout(t);
-  }, [open, tab, requests, messages, likes, mutate]);
+  }, [open, tab, requests, messages, likes, mentions, mutate]);
 
   async function respond(n: NotificationSummary, accept: boolean) {
     if (!n.inviteId || busyId) return;
@@ -235,7 +308,8 @@ export function NotificationBell({
       prev.filter((n) => {
         if (category === 'messages') return !isMessage(n);
         if (category === 'likes') return !isLike(n);
-        return isMessage(n) || isLike(n);
+        if (category === 'mentions') return !isMention(n);
+        return isMessage(n) || isLike(n) || isMention(n);
       }),
     );
     try {
@@ -248,15 +322,23 @@ export function NotificationBell({
 
   function openMessage(n: NotificationSummary) {
     setOpen(false);
-    if (n.chatId) router.push(`/app/messages?c=${n.chatId}`);
+    const href = notificationChatHref(n.chatId, n.metadata);
+    if (href) router.push(href);
   }
 
   const unreadRequests = requests.filter((n) => !n.read).length;
   const unreadMessages = messages.filter((n) => !n.read).length;
   const unreadLikes = likes.filter((n) => !n.read).length;
+  const unreadMentions = mentions.filter((n) => !n.read).length;
 
   const activeList =
-    tab === 'messages' ? messages : tab === 'likes' ? likes : requests;
+    tab === 'messages'
+      ? messages
+      : tab === 'likes'
+        ? likes
+        : tab === 'mentions'
+          ? mentions
+          : requests;
 
   return (
     <>
@@ -286,7 +368,7 @@ export function NotificationBell({
 
         <PopoverContent
           align='end'
-          className='w-[calc(100vw-1.5rem)] p-0 sm:w-100'
+          className='w-[calc(100vw-1.5rem)] p-0 sm:w-108'
         >
           <div className='border-border flex items-center justify-between gap-2 border-b px-3 py-2.5'>
             <h2 className='text-sm font-semibold'>Notifications</h2>
@@ -301,35 +383,58 @@ export function NotificationBell({
             )}
           </div>
 
-          <Tabs
-            value={tab}
-            onValueChange={(v) =>
-              setTab(v as 'requests' | 'messages' | 'likes')
-            }
-          >
-            <div className='px-3 pt-3'>
+          <Tabs value={tab} onValueChange={(v) => setTab(v)}>
+            <div className=' px-4 pt-4'>
               <TabsList className='w-full'>
-                <TabsTrigger value='requests' className='gap-2'>
-                  Requests
+                <TabsTrigger
+                  value='requests'
+                  aria-label='Requests'
+                  className='gap-1'
+                >
+                  <UserPlus className='size-4' aria-hidden />
+                  <span className='hidden sm:inline'>Requests</span>
                   {unreadRequests > 0 ? (
-                    <Badge className='h-5 min-w-5 justify-center px-1 tabular-nums'>
-                      {unreadRequests}
+                    <Badge className={unreadBadgeClass}>
+                      {unreadRequests > 9 ? '9+' : unreadRequests}
                     </Badge>
                   ) : null}
                 </TabsTrigger>
-                <TabsTrigger value='messages' className='gap-2'>
-                  Messages
+                <TabsTrigger
+                  value='messages'
+                  aria-label='Messages'
+                  className='gap-1'
+                >
+                  <MessageCircle className='size-4' aria-hidden />
+                  <span className='hidden sm:inline'>Messages</span>
                   {unreadMessages > 0 ? (
-                    <Badge className='h-5 min-w-5 justify-center px-1 tabular-nums'>
-                      {unreadMessages}
+                    <Badge className={unreadBadgeClass}>
+                      {unreadMessages > 9 ? '9+' : unreadMessages}
                     </Badge>
                   ) : null}
                 </TabsTrigger>
-                <TabsTrigger value='likes' className='gap-2'>
-                  Likes
+                <TabsTrigger
+                  value='likes'
+                  aria-label='Likes'
+                  className='gap-1'
+                >
+                  <Heart className='size-4' aria-hidden />
+                  <span className='hidden sm:inline'>Likes</span>
                   {unreadLikes > 0 ? (
-                    <Badge className='h-5 min-w-5 justify-center px-1 tabular-nums'>
-                      {unreadLikes}
+                    <Badge className={unreadBadgeClass}>
+                      {unreadLikes > 9 ? '9+' : unreadLikes}
+                    </Badge>
+                  ) : null}
+                </TabsTrigger>
+                <TabsTrigger
+                  value='mentions'
+                  aria-label='Mentions'
+                  className='gap-1'
+                >
+                  <AtSign className='size-4' aria-hidden />
+                  <span className='hidden sm:inline'>Mentions</span>
+                  {unreadMentions > 0 ? (
+                    <Badge className={unreadBadgeClass}>
+                      {unreadMentions > 9 ? '9+' : unreadMentions}
                     </Badge>
                   ) : null}
                 </TabsTrigger>
@@ -405,6 +510,26 @@ export function NotificationBell({
                       </ul>
                     )}
                   </TabsContent>
+
+                  <TabsContent value='mentions'>
+                    {mentions.length === 0 ? (
+                      <EmptyState label="No mentions yet. You'll see @tags here." />
+                    ) : (
+                      <ul className='flex flex-col gap-1.5'>
+                        {mentions.map((n) => (
+                          <MentionRow
+                            key={n.id}
+                            n={n}
+                            onView={() =>
+                              n.actorId && setPreviewUserId(n.actorId)
+                            }
+                            onDelete={() => remove(n)}
+                            onNavigate={() => setOpen(false)}
+                          />
+                        ))}
+                      </ul>
+                    )}
+                  </TabsContent>
                 </>
               )}
             </div>
@@ -447,8 +572,7 @@ function RowShell({
   return (
     <li
       className={cn(
-        'border-border bg-card flex items-center justify-between gap-4 rounded-xl border p-4',
-        !n.read && 'bg-card',
+        'group border-border bg-card relative flex items-start justify-between gap-4 rounded-xl border p-4 transition-colors',
       )}
     >
       <div className='relative shrink-0 self-start'>
@@ -462,6 +586,12 @@ function RowShell({
         </span>
       </div>
       <div className='min-w-0 flex-1'>{children}</div>
+      {!n.read && (
+        <span
+          aria-hidden
+          className='bg-primary absolute top-2.5 right-2.5 size-2 rounded-full transition-opacity group-hover:opacity-0'
+        />
+      )}
       <button
         type='button'
         onClick={onDelete}
@@ -498,13 +628,10 @@ function RequestRow({
             onClick={onView}
           >
             {n.actorName ?? 'Someone'}
+          </span>{' '}
+          <span className='text-muted-foreground'>
+            {notificationActionText(n.type, n.metadata)}
           </span>
-          {n.body ? (
-            <span className='text-muted-foreground'>
-              {' '}
-              {stripName(n.body, n.actorName)}
-            </span>
-          ) : null}
         </p>
         <span
           className='text-muted-foreground shrink-0 text-xs'
@@ -592,6 +719,118 @@ function LikeRow({
           {timeAgo(n.createdAt)}
         </span>
       </div>
+      {n.post ? (
+        <NotifPostPreview post={n.post} href={postHref} onNavigate={onNavigate} />
+      ) : null}
+    </RowShell>
+  );
+}
+
+// A compact preview of the post a LIKE / post-@mention points at: a small image
+// thumbnail (linked when we know where the post lives) or an italic caption
+// quote for text-only posts.
+function NotifPostPreview({
+  post,
+  href,
+  onNavigate,
+}: {
+  post: NonNullable<NotificationSummary['post']>;
+  href: string | null;
+  onNavigate: () => void;
+}) {
+  if (post.imageUrl) {
+    const thumb = (
+      <span className='border-border relative block size-12 overflow-hidden rounded-md border'>
+        <Image
+          src={post.imageUrl}
+          alt={post.caption ?? 'Post'}
+          fill
+          sizes='48px'
+          className='object-cover'
+        />
+      </span>
+    );
+    return href ? (
+      <Link
+        href={href}
+        onClick={onNavigate}
+        className='mt-2 block w-fit'
+        aria-label='View post'
+      >
+        {thumb}
+      </Link>
+    ) : (
+      <span className='mt-2 block w-fit'>{thumb}</span>
+    );
+  }
+  if (post.caption) {
+    return (
+      <p className='text-muted-foreground border-border mt-2 line-clamp-2 border-l-2 pl-2 text-sm italic'>
+        {post.caption}
+      </p>
+    );
+  }
+  return null;
+}
+
+function MentionRow({
+  n,
+  onView,
+  onDelete,
+  onNavigate,
+}: {
+  n: NotificationSummary;
+  onView: () => void;
+  onDelete: () => void;
+  onNavigate: () => void;
+}) {
+  const source = n.metadata?.mentionSource === 'profile' ? 'profile' : 'post';
+  // The @tag lives on the actor's post or profile, so we link there (not to the
+  // recipient's own profile like a LIKE does).
+  const href = n.actorUsername
+    ? source === 'post' && n.postId
+      ? `/app/u/${n.actorUsername}?post=${n.postId}`
+      : `/app/u/${n.actorUsername}`
+    : null;
+  const preview = notificationPreview(n.metadata);
+
+  return (
+    <RowShell n={n} onDelete={onDelete}>
+      <div className='flex items-start justify-between gap-2 pr-5'>
+        <p className='text-sm leading-tight'>
+          <span
+            className='cursor-pointer font-medium hover:underline'
+            onClick={onView}
+          >
+            {n.actorName ?? 'Someone'}
+          </span>
+          <span className='text-muted-foreground'> tagged you in their </span>
+          {href ? (
+            <Link
+              href={href}
+              onClick={onNavigate}
+              className='text-foreground cursor-pointer hover:underline'
+            >
+              {source}
+            </Link>
+          ) : (
+            <span className='text-muted-foreground'>{source}</span>
+          )}
+        </p>
+        <span
+          className='text-muted-foreground shrink-0 text-xs'
+          suppressHydrationWarning
+        >
+          {timeAgo(n.createdAt)}
+        </span>
+      </div>
+      {n.post ? (
+        <NotifPostPreview post={n.post} href={href} onNavigate={onNavigate} />
+      ) : preview ? (
+        <p className='text-muted-foreground border-border mt-2 line-clamp-2 border-l-2 pl-2 text-sm italic'>
+          {preview}
+        </p>
+      ) : null}
     </RowShell>
   );
 }
@@ -605,6 +844,7 @@ function MessageRow({
   onOpen: () => void;
   onDelete: () => void;
 }) {
+  const preview = notificationPreview(n.metadata);
   return (
     <RowShell n={n} onDelete={onDelete}>
       <button
@@ -613,8 +853,11 @@ function MessageRow({
         className='block w-full pr-5 text-left'
       >
         <div className='flex items-start justify-between gap-2'>
-          <p className='truncate text-sm leading-tight font-medium'>
-            {n.actorName ?? 'New message'}
+          <p className='truncate text-sm leading-tight'>
+            <span className='font-medium'>{n.actorName ?? 'New message'}</span>{' '}
+            <span className='text-muted-foreground font-normal'>
+              {notificationActionText(n.type, n.metadata)}
+            </span>
           </p>
           <span
             className='text-muted-foreground shrink-0 text-xs'
@@ -623,19 +866,12 @@ function MessageRow({
             {timeAgo(n.createdAt)}
           </span>
         </div>
-        {n.body ? (
+        {preview ? (
           <p className='text-muted-foreground mt-0.5 line-clamp-2 text-sm'>
-            {n.body}
+            {preview}
           </p>
         ) : null}
       </button>
     </RowShell>
   );
-}
-
-// Notification bodies read like "Alex sent you a friend request". When we
-// already show the name in bold, drop a leading duplicate name for cleaner copy.
-function stripName(body: string, name: string | null) {
-  if (name && body.startsWith(name)) return body.slice(name.length).trimStart();
-  return body;
 }

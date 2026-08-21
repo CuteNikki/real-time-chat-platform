@@ -1,13 +1,15 @@
 'use server';
 
-import { and, eq, inArray, ne, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { db } from '@/lib/db';
 import { interest, invite, post, user } from '@/lib/db/schema';
 import { newId } from '@/lib/id';
+import { notifyMentions } from '@/lib/mentions-notify';
+import { isReservedName } from '@/lib/reserved-names';
 import { getCurrentUser, getUserId } from '@/lib/session';
-import type { UserProfile } from '@/lib/types';
+import type { MentionSuggestion, UserProfile } from '@/lib/types';
 
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 const MAX_INTERESTS = 10;
@@ -85,7 +87,7 @@ async function buildProfile(
   const [{ c: postCount }] = await db
     .select({ c: sql<number>`count(*)::int` })
     .from(post)
-    .where(eq(post.userId, u.id));
+    .where(and(eq(post.userId, u.id), isNull(post.deletedAt)));
 
   const rel = await relationship(viewerId, u.id);
   const fc = await friendCount(u.id);
@@ -201,6 +203,9 @@ export async function isUsernameAvailable(username: string) {
   if (!USERNAME_RE.test(uname)) {
     return { available: false, reason: 'invalid' as const };
   }
+  if (isReservedName(uname)) {
+    return { available: false, reason: 'reserved' as const };
+  }
   const me = await getCurrentUser();
   const [existing] = await db
     .select({ id: user.id })
@@ -219,10 +224,20 @@ export async function updateProfile(input: {
   const userId = await getUserId();
   const updates: Record<string, unknown> = { updatedAt: new Date() };
 
+  // When the bio changes, capture the previous value so we only notify handles
+  // this edit newly adds. Null until we know a bio update is happening.
+  let bioChanged = false;
+  let previousBio: string | null = null;
+  let nextBio: string | null = null;
+
   if (input.name !== undefined) {
     const n = input.name.trim();
     if (n.length < 1 || n.length > 50)
       throw new Error('Display name must be 1–50 characters');
+    if (isReservedName(n))
+      throw new Error(
+        "That display name isn't allowed — it impersonates Orbit or our staff",
+      );
     updates.name = n;
   }
 
@@ -233,6 +248,10 @@ export async function updateProfile(input: {
         'Username must be 3–20 characters: letters, numbers, underscores',
       );
     }
+    if (isReservedName(uname))
+      throw new Error(
+        "That username isn't allowed — it impersonates Orbit or our staff",
+      );
     const [taken] = await db
       .select({ id: user.id })
       .from(user)
@@ -245,7 +264,15 @@ export async function updateProfile(input: {
   if (input.bio !== undefined) {
     const b = input.bio.trim();
     if (b.length > 300) throw new Error('Bio must be 300 characters or fewer');
-    updates.bio = b || null;
+    nextBio = b || null;
+    updates.bio = nextBio;
+    const [cur] = await db
+      .select({ bio: user.bio })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+    previousBio = cur?.bio ?? null;
+    bioChanged = true;
   }
 
   if (input.image !== undefined) {
@@ -253,6 +280,16 @@ export async function updateProfile(input: {
   }
 
   await db.update(user).set(updates).where(eq(user.id, userId));
+  // Tell anyone newly @tagged in the bio that they were mentioned.
+  if (bioChanged) {
+    await notifyMentions({
+      actorId: userId,
+      source: 'profile',
+      targetId: userId,
+      text: nextBio,
+      previousText: previousBio,
+    });
+  }
   revalidatePath('/app/settings/[tab]', 'page');
   revalidatePath('/app');
   return { ok: true };
@@ -305,4 +342,46 @@ export async function searchUsers(query: string): Promise<UserProfile[]> {
   const profiles = await Promise.all(rows.map((r) => getProfilePreview(r.id)));
 
   return profiles.filter((p): p is UserProfile => p !== null);
+}
+
+// Lightweight autocomplete for @mentions. Matches username or display name by
+// substring, excludes the caller (you can't @-tag yourself), and surfaces
+// prefix matches first so typing "@ni" ranks "nikki" above "…ni…". Returns just
+// the fields a suggestion row needs — no per-user profile aggregation, so it
+// stays cheap enough to call on every keystroke.
+export async function searchMentionUsers(
+  query: string,
+): Promise<MentionSuggestion[]> {
+  const me = await getCurrentUser();
+  const q = query.trim().toLowerCase();
+  if (q.length < 1) return [];
+
+  const like = `%${q}%`;
+  const prefix = `${q}%`;
+
+  const rows = await db
+    .select({
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      image: user.image,
+    })
+    .from(user)
+    .where(
+      and(
+        ne(user.id, me.id),
+        or(
+          sql`lower(${user.username}) like ${like}`,
+          sql`lower(${user.name}) like ${like}`,
+        ),
+      ),
+    )
+    // Prefix matches on the username first, then alphabetical for stability.
+    .orderBy(
+      sql`case when lower(${user.username}) like ${prefix} then 0 else 1 end`,
+      user.username,
+    )
+    .limit(6);
+
+  return rows;
 }

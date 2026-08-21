@@ -2,8 +2,8 @@
 
 import { createPost } from '@/app/actions/posts';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { ImagePlus, Loader2, X } from 'lucide-react';
+import { MentionTextarea } from '@/components/user/mention-textarea';
+import { ImagePlus, Loader2, Loader2Icon, SendIcon, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -77,12 +77,12 @@ export function PostComposer({
   }
 
   return (
-    <div className='border-border bg-card rounded-xl border p-4'>
+    <div className='border-border bg-card rounded-2xl border p-4'>
       <div className='flex gap-3'>
         <div className='min-w-0 flex-1 space-y-3'>
-          <Textarea
+          <MentionTextarea
             value={caption}
-            onChange={(e) => setCaption(e.target.value)}
+            onValueChange={setCaption}
             placeholder='Write a caption...'
             className='block min-h-15 w-full resize-none rounded-none border-none bg-transparent! p-0 text-base leading-relaxed wrap-break-word whitespace-pre-wrap shadow-none focus-visible:ring-0 md:text-base'
             maxLength={500}
@@ -97,20 +97,21 @@ export function PostComposer({
               />
               {uploading ? (
                 <div className='bg-background/60 absolute inset-0 flex items-center justify-center'>
-                  <Loader2
-                    className='text-primary size-6 animate-spin'
+                  <Loader2Icon
+                    className='text-primary size-6 shrink-0 animate-spin'
                     aria-hidden
                   />
                 </div>
               ) : null}
-              <button
-                type='button'
+              <Button
+                variant='secondary'
                 onClick={clearImage}
-                className='bg-background/80 text-foreground hover:bg-background absolute top-2 right-2 rounded-full p-1'
+                size='icon-xs'
+                className='absolute top-2 right-2'
                 aria-label='Remove image'
               >
                 <X className='size-4' aria-hidden />
-              </button>
+              </Button>
             </div>
           ) : null}
 
@@ -126,11 +127,10 @@ export function PostComposer({
             <Button
               type='button'
               variant='ghost'
-              size='sm'
-              className='text-primary gap-2'
+              className='text-primary'
               onClick={() => fileRef.current?.click()}
             >
-              <ImagePlus className='size-4' aria-hidden />
+              <ImagePlus className='shrink-0' aria-hidden />
               Photo
             </Button>
             <Button
@@ -139,12 +139,18 @@ export function PostComposer({
               disabled={
                 posting || uploading || (!uploadedUrl && !caption.trim())
               }
-              className='gap-2'
             >
               {posting ? (
-                <Loader2 className='size-4 animate-spin' aria-hidden />
-              ) : null}
-              Share
+                <>
+                  <Loader2 className='shrink-0 animate-spin' aria-hidden />
+                  Posting...
+                </>
+              ) : (
+                <>
+                  <SendIcon className='shrink-0' aria-hidden />
+                  Post
+                </>
+              )}
             </Button>
           </div>
         </div>

@@ -12,6 +12,8 @@ import type { UserProfile } from '@/lib/types';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { FriendshipButtons } from '@/components/user/friendship-buttons';
 import { InterestTags } from '@/components/user/interest-tags';
+import { MentionText } from '@/components/user/mention-text';
+import { ReportUserButton } from '@/components/user/report-user-button';
 import { UserAvatar } from '@/components/user/user-avatar';
 
 export function UserPreviewDialog({
@@ -77,7 +79,7 @@ export function UserPreviewDialog({
             </div>
             {profile.bio ? (
               <p className='text-muted-foreground line-clamp-4 text-sm whitespace-pre-wrap'>
-                {profile.bio}
+                <MentionText text={profile.bio} />
               </p>
             ) : null}
             <InterestTags
@@ -106,6 +108,15 @@ export function UserPreviewDialog({
               onCloseAction={onCloseAction}
               showFullProfileButton
             />
+            {!profile.isSelf ? (
+              <ReportUserButton
+                reportedUserId={profile.id}
+                name={profile.name}
+                variant='ghost'
+                size='sm'
+                className='text-muted-foreground'
+              />
+            ) : null}
           </div>
         )}
       </DialogContent>

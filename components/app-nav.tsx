@@ -176,7 +176,7 @@ export function AppNav({
               </DropdownMenuItem>
               {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
                 <DropdownMenuItem asChild>
-                  <Link href='/app/admin'>
+                  <Link href='/app/dashboard'>
                     <ShieldIcon aria-hidden />
                     Dashboard
                   </Link>
@@ -210,7 +210,7 @@ export function MobileBottomNav() {
   return (
     <nav
       aria-label='Primary'
-      className='border-border bg-background/70 fixed inset-x-0 bottom-0 z-50 flex shrink-0 items-stretch justify-around border-t backdrop-blur-md md:hidden'
+      className='border-border bg-background fixed inset-x-0 bottom-0 z-50 flex shrink-0 items-stretch justify-around border-t md:hidden'
     >
       {links.map((link) => {
         const active = link.exact

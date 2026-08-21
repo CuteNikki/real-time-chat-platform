@@ -298,7 +298,7 @@ export function UserListItem({
   ) => void;
 }) {
   return (
-    <li className='border-border bg-card flex items-center gap-2 rounded-lg border p-2'>
+    <li className='border-border bg-card flex items-center gap-2 rounded-xl border p-2'>
       <button
         type='button'
         onClick={onClickAction}
@@ -334,7 +334,7 @@ export function UserListItem({
 
 export function EmptyRequests({ text }: { text: string }) {
   return (
-    <p className='border-border bg-card text-muted-foreground rounded-lg border border-dashed p-4 text-center text-sm text-balance'>
+    <p className='border-border bg-card text-muted-foreground rounded-xl border border-dashed p-4 text-center text-sm text-balance'>
       {text}
     </p>
   );

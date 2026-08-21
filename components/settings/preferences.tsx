@@ -4,6 +4,7 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
 import {
+  AtSignIcon,
   Bell,
   HeartIcon,
   LaptopIcon,
@@ -68,6 +69,12 @@ const CATEGORY_META: {
     label: 'Post Likes',
     description: 'When someone likes your post',
     icon: HeartIcon,
+  },
+  {
+    key: 'mention',
+    label: 'Mentions',
+    description: 'When someone @tags you in a post or bio',
+    icon: AtSignIcon,
   },
 ];
 

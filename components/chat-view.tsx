@@ -10,17 +10,19 @@ import {
   Flag,
   LogOutIcon,
   MoreVertical,
+  Phone,
   Users2Icon,
+  Video,
 } from 'lucide-react';
 
 import { endRandomChat } from '@/app/actions/match';
-import { reportUser } from '@/app/actions/report';
 
-import { useChatHeader } from '@/hooks/use-chat-header';
+import type { ChatMessage } from '@/lib/types';
+import { postBeacon } from '@/lib/beacon';
 
-import type { ChatMessage, ChatType } from '@/lib/types';
-
+import { useCall } from '@/components/call/call-provider';
 import { ChatRoom } from '@/components/chat/chat-room';
+import { ReportDialog } from '@/components/report-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,9 +35,11 @@ import {
 import { UserAvatar } from '@/components/user/user-avatar';
 import { UserPreviewDialog } from '@/components/user/user-preview';
 
+// Random-match chat view. Reached only via /app/chat/[chatId] (the match
+// finder navigates here); DMs and rooms have their own workspaces. So this is
+// always a RANDOM, ephemeral 1-on-1 session — no chat-type branching needed.
 export function ChatView({
   chatId,
-  type,
   title,
   partnerId,
   partnerImage,
@@ -46,7 +50,6 @@ export function ChatView({
   initialMessages,
 }: {
   chatId: string;
-  type: ChatType;
   title: string;
   partnerId: string | null;
   partnerImage: string | null;
@@ -57,27 +60,14 @@ export function ChatView({
   initialMessages: ChatMessage[];
 }) {
   const router = useRouter();
+  const { startCall, hangUp } = useCall();
   const [ended, setEnded] = useState(initialEnded);
   const [partnerLeft, setPartnerLeft] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const stillMountedRef = useRef(false);
-
-  // Live presence count for group rooms.
-  const { memberCount } = useChatHeader({ chatId, enabled: type === 'GROUP' });
-
-  const isGroup = type === 'GROUP';
-  const isRandom = type === 'RANDOM';
-
-  // Mirrors sendMessage's notification categories. Random matches never
-  // generate a MESSAGE notification server-side (you're always actively in
-  // the session), so there's nothing to chime for here either.
-  const notifyCategory = isGroup
-    ? 'roomMessage'
-    : isRandom
-      ? null
-      : 'directMessage';
 
   // Whether we've already ended this random chat (so unmount doesn't re-fire).
   const endedRef = useRef(initialEnded);
@@ -87,28 +77,13 @@ export function ChatView({
 
   // Beacon end for random chats — survives navigation/tab close.
   const beaconEnd = useCallback(() => {
-    if (!isRandom || endedRef.current) return;
+    if (endedRef.current) return;
     endedRef.current = true;
-    const payload = JSON.stringify({ chatId });
-
-    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-      navigator.sendBeacon(
-        '/api/match/end',
-        new Blob([payload], { type: 'application/json' }),
-      );
-    } else {
-      void fetch('/api/match/end', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-        keepalive: true,
-      });
-    }
-  }, [chatId, isRandom]);
+    postBeacon('/api/match/end', { chatId });
+  }, [chatId]);
 
   // Auto-end the random match when the user closes the tab or unmounts.
   useEffect(() => {
-    if (!isRandom) return;
     stillMountedRef.current = true;
     function handleBeforeUnload() {
       beaconEnd();
@@ -122,7 +97,7 @@ export function ChatView({
         if (!stillMountedRef.current) beaconEnd();
       }, 0);
     };
-  }, [isRandom, beaconEnd]);
+  }, [beaconEnd]);
 
   async function handleEndChat() {
     setLeaving(true);
@@ -141,28 +116,33 @@ export function ChatView({
 
   async function handleReport() {
     if (!partnerId) return;
-    try {
-      await reportUser({ chatId, reportedUserId: partnerId });
-      toast.success('Report submitted. Thanks for keeping Orbit safe.');
-    } catch {
-      toast.error('Could not submit report');
-    }
+    setReportOpen(true);
   }
 
   // When the partner disconnects, the CHAT_ENDED event flips `ended`. If we
   // didn't end it ourselves, it means the partner left.
   function handleEnded(payload?: { by?: string; disconnected?: boolean }) {
     setEnded(true);
+    // A random match ending also tears down any call in progress with them.
+    hangUp();
     // If we already ended it ourselves, endedRef was set first — so a payload
     // arriving while endedRef was false means the *partner* triggered it.
-    if (isRandom && payload) {
+    if (payload) {
       setPartnerLeft(true);
       toast(`${payload.by ?? title} disconnected`);
     }
     endedRef.current = true;
   }
 
-  const canPreview = !isGroup && !!partnerId;
+  const canPreview = !!partnerId;
+  const canCall = !!partnerId && !ended;
+
+  function call(video: boolean) {
+    if (!partnerId) return;
+    startCall(chatId, { id: partnerId, name: title, image: partnerImage }, {
+      video,
+    });
+  }
 
   return (
     <div className='flex h-full flex-col'>
@@ -202,6 +182,27 @@ export function ChatView({
           </div>
         </Button>
 
+        <Button
+          variant='ghost'
+          size='icon-lg'
+          className='shrink-0'
+          onClick={() => call(false)}
+          disabled={!canCall}
+          aria-label='Start voice call'
+        >
+          <Phone className='shrink-0' aria-hidden />
+        </Button>
+        <Button
+          variant='ghost'
+          size='icon-lg'
+          className='shrink-0'
+          onClick={() => call(true)}
+          disabled={!canCall}
+          aria-label='Start video call'
+        >
+          <Video className='shrink-0' aria-hidden />
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant='ghost' size='icon-lg' aria-label='Chat options'>
@@ -215,29 +216,29 @@ export function ChatView({
                 View Profile
               </DropdownMenuItem>
             )}
-            <DropdownMenuItem variant='destructive' onClick={handleReport}>
+            <DropdownMenuItem
+              variant='destructive'
+              onClick={handleReport}
+              disabled={!canPreview}
+            >
               <Flag className='shrink-0' aria-hidden />
               Report User
             </DropdownMenuItem>
-            {isRandom && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleEndChat}
-                  disabled={leaving}
-                  variant='destructive'
-                >
-                  <LogOutIcon className='shrink-0' aria-hidden />
-                  End Chat
-                </DropdownMenuItem>
-              </>
-            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={handleEndChat}
+              disabled={leaving}
+              variant='destructive'
+            >
+              <LogOutIcon className='shrink-0' aria-hidden />
+              End Chat
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </header>
 
-      {/* Partner-disconnected banner for random chats */}
-      {isRandom && ended && (
+      {/* Partner-disconnected banner */}
+      {ended && (
         <div className='border-border bg-secondary/60 text-secondary-foreground border-b px-4 py-2 text-center text-sm sm:px-6'>
           {partnerLeft ? `${title} disconnected. ` : 'This chat has ended. '}
           <Button variant='link' onClick={() => router.push('/app/match')}>
@@ -255,17 +256,23 @@ export function ChatView({
           currentUserName={currentUserName}
           currentUserImage={currentUserImage}
           initialMessages={initialMessages}
-          allowImages={type === 'PRIVATE'}
-          showSenderNames={isGroup}
-          onUserClickAction={isGroup ? setPreviewUserId : undefined}
           onEndedAction={handleEnded}
-          notifyCategory={notifyCategory}
         />
       </div>
 
       <UserPreviewDialog
         userId={previewUserId}
         onCloseAction={() => setPreviewUserId(null)}
+      />
+
+      <ReportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        target={
+          partnerId
+            ? { reportedUserId: partnerId, name: title, chatId }
+            : null
+        }
       />
     </div>
   );

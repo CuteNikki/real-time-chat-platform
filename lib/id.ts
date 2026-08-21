@@ -24,3 +24,19 @@ export function generateUsername() {
   for (const b of bytes) suffix += alphabet[b % alphabet.length];
   return `user_${suffix}`;
 }
+
+// A short, human-friendly report reference like "ORB-7F3K9Q". Shared with the
+// reporter over a System DM so the report can be referred to later (in the
+// review-outcome message) without exposing the raw database id. Uppercase and
+// avoids ambiguous characters (0/O, 1/I) so it's easy to read back.
+export function generateReportReference() {
+  const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let code = '';
+  const bytes =
+    typeof crypto !== 'undefined' &&
+    typeof crypto.getRandomValues === 'function'
+      ? crypto.getRandomValues(new Uint8Array(6))
+      : Array.from({ length: 6 }, () => Math.floor(Math.random() * 256));
+  for (const b of bytes) code += alphabet[b % alphabet.length];
+  return `ORB-${code}`;
+}

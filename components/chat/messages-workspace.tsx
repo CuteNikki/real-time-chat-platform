@@ -8,10 +8,13 @@ import { toast } from 'sonner';
 import {
   ArrowLeft,
   Eraser,
+  Flag,
   MessageCircleIcon,
   MoreVertical,
+  Phone,
   Search,
   UserMinus,
+  Video,
 } from 'lucide-react';
 
 import { clearChat, getMessages } from '@/app/actions/chat';
@@ -21,7 +24,9 @@ import { removeFriend } from '@/app/actions/invites';
 import type { ChatMessage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+import { useCall } from '@/components/call/call-provider';
 import { ChatRoom } from '@/components/chat/chat-room';
+import { ReportDialog } from '@/components/report-dialog';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,6 +35,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { UserAvatar } from '@/components/user/user-avatar';
 import { UserPreviewDialog } from '@/components/user/user-preview';
@@ -49,6 +55,7 @@ export function MessagesWorkspace({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { startCall } = useCall();
 
   // Conversations kept in local state so we can drop one instantly on unfriend.
   const [convos, setConvos] = useState(conversations);
@@ -68,6 +75,7 @@ export function MessagesWorkspace({
   const [query, setQuery] = useState('');
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
   const [menuBusy, setMenuBusy] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   // Keep the URL in sync so refresh/deep-link works.
   useEffect(() => {
@@ -267,33 +275,83 @@ export function MessagesWorkspace({
                 </div>
               </button>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size='icon'
-                    variant='ghost'
-                    className='ml-auto shrink-0'
-                    disabled={menuBusy}
-                    aria-label='Conversation options'
-                  >
-                    <MoreVertical className='shrink-0' aria-hidden />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align='end'>
-                  <DropdownMenuItem onClick={handleClearChat}>
-                    <Eraser className='size-4' aria-hidden />
-                    Clear chat
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    variant='destructive'
-                    onClick={handleUnfriend}
-                  >
-                    <UserMinus className='size-4' aria-hidden />
-                    Unfriend
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className='ml-auto flex shrink-0 items-center gap-0.5'>
+                <Button
+                  size='icon'
+                  variant='ghost'
+                  onClick={() =>
+                    active.partnerId &&
+                    startCall(
+                      active.chatId,
+                      {
+                        id: active.partnerId,
+                        name: active.partnerName,
+                        image: active.partnerImage,
+                      },
+                      { video: false },
+                    )
+                  }
+                  disabled={!active.partnerId}
+                  aria-label='Start voice call'
+                >
+                  <Phone className='shrink-0' aria-hidden />
+                </Button>
+                <Button
+                  size='icon'
+                  variant='ghost'
+                  onClick={() =>
+                    active.partnerId &&
+                    startCall(
+                      active.chatId,
+                      {
+                        id: active.partnerId,
+                        name: active.partnerName,
+                        image: active.partnerImage,
+                      },
+                      { video: true },
+                    )
+                  }
+                  disabled={!active.partnerId}
+                  aria-label='Start video call'
+                >
+                  <Video className='shrink-0' aria-hidden />
+                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size='icon'
+                      variant='ghost'
+                      className='shrink-0'
+                      disabled={menuBusy}
+                      aria-label='Conversation options'
+                    >
+                      <MoreVertical className='shrink-0' aria-hidden />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align='end'>
+                    <DropdownMenuItem onClick={handleClearChat}>
+                      <Eraser className='size-4' aria-hidden />
+                      Clear chat
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setReportOpen(true)}
+                      disabled={!active.partnerId}
+                    >
+                      <Flag className='size-4' aria-hidden />
+                      Report user
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant='destructive'
+                      onClick={handleUnfriend}
+                    >
+                      <UserMinus className='size-4' aria-hidden />
+                      Unfriend
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </header>
 
             <div className='min-h-0 flex-1'>
@@ -325,28 +383,32 @@ export function MessagesWorkspace({
             </div>
           </>
         ) : (
-          <div className='flex h-full flex-col items-center justify-center gap-4 px-6 text-center'>
-            <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
-              <MessageCircleIcon
-                className='text-primary size-12 shrink-0'
-                aria-hidden
-              />
-            </div>
-            <div className='flex flex-col items-center gap-2'>
-              <span className='text-3xl font-semibold tracking-tight text-balance'>
-                Choose a Channel
-              </span>
-              <p className='text-muted-foreground max-w-sm text-balance'>
-                Select a channel from the left to jump into the conversation.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={MessageCircleIcon}
+            title='Choose a conversation'
+            description='Pick a conversation from the left to jump back in, or add friends to start a new one.'
+            className='h-full'
+          />
         )}
       </section>
 
       <UserPreviewDialog
         userId={previewUserId}
         onCloseAction={() => setPreviewUserId(null)}
+      />
+
+      <ReportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        target={
+          active?.partnerId
+            ? {
+                reportedUserId: active.partnerId,
+                name: active.partnerName,
+                chatId: active.chatId,
+              }
+            : null
+        }
       />
     </div>
   );

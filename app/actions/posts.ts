@@ -1,16 +1,18 @@
 'use server';
 
-import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, isNull, notInArray, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
-import { upsertNotification } from '@/app/actions/notifications';
-import { getNotificationPreferencesFor } from '@/app/actions/preferences';
+import { notify } from '@/app/actions/notifications';
 
 import { db } from '@/lib/db';
-import { invite, post, postLike, user } from '@/lib/db/schema';
+import { invite, post, postHashtag, postLike, user } from '@/lib/db/schema';
 import { newId } from '@/lib/id';
+import { extractHashtags, normalizeHashtag } from '@/lib/mentions';
+import { notifyMentions } from '@/lib/mentions-notify';
+import { FEED_LIMIT } from '@/lib/pagination';
 import { getCurrentUser, getUserId } from '@/lib/session';
-import type { PostLiker, PostSummary } from '@/lib/types';
+import type { FeedScope, PostLiker, PostSummary } from '@/lib/types';
 
 // Ids of a user's accepted friends.
 async function friendIds(userId: string): Promise<string[]> {
@@ -75,6 +77,27 @@ async function decoratePosts(
   }));
 }
 
+// Rebuild a post's hashtag rows from its (new) caption. Clears the existing set
+// and re-inserts the distinct tags, so it's safe to call on both create and
+// edit. Best-effort: a hashtag-index hiccup must never fail the post save
+// itself, so failures are swallowed (the caption is still the source of truth).
+async function syncPostHashtags(postId: string, caption: string | null) {
+  try {
+    const tags = extractHashtags(caption);
+    await db.delete(postHashtag).where(eq(postHashtag.postId, postId));
+    if (tags.length === 0) return;
+    await db
+      .insert(postHashtag)
+      .values(tags.map((tag) => ({ id: newId('ptag'), postId, tag })))
+      .onConflictDoNothing();
+  } catch (err) {
+    console.log(
+      '[v0] syncPostHashtags failed:',
+      err instanceof Error ? err.message : err,
+    );
+  }
+}
+
 export async function createPost(input: {
   imageUrl?: string | null;
   caption?: string;
@@ -88,6 +111,15 @@ export async function createPost(input: {
 
   const id = newId('post');
   await db.insert(post).values({ id, userId, imageUrl, caption });
+  // Index any #hashtags in the caption so they're searchable and counted.
+  await syncPostHashtags(id, caption);
+  // Tell anyone @tagged in the caption that they were mentioned.
+  await notifyMentions({
+    actorId: userId,
+    source: 'post',
+    targetId: id,
+    text: caption,
+  });
   revalidatePath('/app/feed');
   revalidatePath('/app/settings/[tab]', 'page');
   return { id };
@@ -95,18 +127,24 @@ export async function createPost(input: {
 
 export async function deletePost(postId: string) {
   const userId = await getUserId();
-  // Scope the delete to the owner so no one can delete another user's post.
+  // Scope the delete to the owner (and a still-live post) so no one can delete
+  // another user's post or re-delete an already-removed one.
   const [owned] = await db
     .select({ id: post.id })
     .from(post)
-    .where(and(eq(post.id, postId), eq(post.userId, userId)))
+    .where(
+      and(eq(post.id, postId), eq(post.userId, userId), isNull(post.deletedAt)),
+    )
     .limit(1);
   if (!owned) throw new Error('You can only delete your own posts');
 
+  // Soft-delete: stamp a tombstone and hide the post everywhere, but keep the
+  // row (and its likes/hashtags) for 30 days so a report against it can still
+  // be verified. A background purge hard-removes it past the window.
   await db
-    .delete(post)
+    .update(post)
+    .set({ deletedAt: new Date() })
     .where(and(eq(post.id, postId), eq(post.userId, userId)));
-  await db.delete(postLike).where(eq(postLike.postId, postId));
   revalidatePath('/app/feed');
   revalidatePath('/app/settings/[tab]', 'page');
   return { ok: true };
@@ -119,9 +157,11 @@ export async function updatePost(postId: string, caption: string) {
   if (next.length > 500) throw new Error('Caption too long');
 
   const [owned] = await db
-    .select({ id: post.id })
+    .select({ id: post.id, caption: post.caption })
     .from(post)
-    .where(and(eq(post.id, postId), eq(post.userId, userId)))
+    .where(
+      and(eq(post.id, postId), eq(post.userId, userId), isNull(post.deletedAt)),
+    )
     .limit(1);
   if (!owned) throw new Error('You can only edit your own posts');
 
@@ -129,6 +169,15 @@ export async function updatePost(postId: string, caption: string) {
     .update(post)
     .set({ caption: next || null })
     .where(and(eq(post.id, postId), eq(post.userId, userId)));
+  // Notify only handles that are newly added by this edit, so re-saving a
+  // caption that already tagged someone doesn't spam them again.
+  await notifyMentions({
+    actorId: userId,
+    source: 'post',
+    targetId: postId,
+    text: next || null,
+    previousText: owned.caption,
+  });
   revalidatePath('/app/feed');
   revalidatePath('/app/settings/[tab]', 'page');
   return { caption: next || null };
@@ -167,32 +216,129 @@ export async function getUserPosts(
     })
     .from(post)
     .innerJoin(user, eq(user.id, post.userId))
-    .where(eq(post.userId, profileUserId))
+    .where(and(eq(post.userId, profileUserId), isNull(post.deletedAt)))
     .orderBy(desc(post.createdAt));
   return decoratePosts(rows, viewer.id);
 }
 
-export async function getFeed(): Promise<PostSummary[]> {
+// Columns every feed/profile post query selects, so decoratePosts gets a
+// consistent row shape.
+const postSelection = {
+  id: post.id,
+  userId: post.userId,
+  imageUrl: post.imageUrl,
+  caption: post.caption,
+  createdAt: post.createdAt,
+  authorName: user.name,
+  authorUsername: user.username,
+  authorImage: user.image,
+};
+
+export async function getFeed(
+  scope: FeedScope = 'for-you',
+): Promise<PostSummary[]> {
   const viewer = await getCurrentUser();
   const friends = await friendIds(viewer.id);
-  // Feed = your own posts + your friends' posts.
+  // Own posts + accepted friends' posts.
   const authorIds = [viewer.id, ...friends];
-  const rows = await db
-    .select({
-      id: post.id,
-      userId: post.userId,
-      imageUrl: post.imageUrl,
-      caption: post.caption,
-      createdAt: post.createdAt,
-      authorName: user.name,
-      authorUsername: user.username,
-      authorImage: user.image,
-    })
+
+  // Own + friends' posts, newest-first. This is the entire "Friends" tab and
+  // the top block of the "For You" tab.
+  const friendsRows = await db
+    .select(postSelection)
     .from(post)
     .innerJoin(user, eq(user.id, post.userId))
-    .where(inArray(post.userId, authorIds))
+    .where(and(inArray(post.userId, authorIds), isNull(post.deletedAt)))
     .orderBy(desc(post.createdAt))
-    .limit(100);
+    .limit(FEED_LIMIT);
+
+  if (scope === 'friends') {
+    return decoratePosts(friendsRows, viewer.id);
+  }
+
+  // "For You": everyone else's posts underneath, newest-first — but never
+  // posts from a non-friend who restricts their posts to friends only.
+  const othersRows = await db
+    .select(postSelection)
+    .from(post)
+    .innerJoin(user, eq(user.id, post.userId))
+    .where(
+      and(
+        notInArray(post.userId, authorIds),
+        eq(user.friendsOnlyPosts, false),
+        isNull(post.deletedAt),
+      ),
+    )
+    .orderBy(desc(post.createdAt))
+    .limit(FEED_LIMIT);
+
+  // Friends first, then everyone else by recency. The two sets are disjoint
+  // (authorIds vs. its complement), so no dedup is needed and decoratePosts
+  // preserves this order.
+  const combined = [...friendsRows, ...othersRows].slice(0, FEED_LIMIT);
+  return decoratePosts(combined, viewer.id);
+}
+
+// Escape the LIKE/ILIKE wildcards so a caption search for literal "%" or "_"
+// matches those characters instead of treating them as pattern metacharacters.
+// Backslash is Postgres' default ILIKE escape char.
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
+// Search posts by caption text and/or hashtags, for the feed's search bar.
+// Always global but privacy-respected: a friends-only author's posts are hidden
+// from non-friends, exactly like getFeed's "For You" scope. Text is a
+// case-insensitive substring match on the caption; tags match if the post
+// carries ANY of them (OR). With both, results must match the text AND carry a
+// matching tag. Newest-first, capped at FEED_LIMIT.
+export async function searchPosts(input: {
+  query?: string;
+  tags?: string[];
+}): Promise<PostSummary[]> {
+  const viewer = await getCurrentUser();
+
+  const q = (input.query ?? '').trim();
+  // Normalize tags the same way they're stored, dropping anything that isn't a
+  // real tag, and dedupe.
+  const tags = [
+    ...new Set((input.tags ?? []).map(normalizeHashtag).filter(Boolean)),
+  ];
+  if (!q && tags.length === 0) return [];
+
+  // Tag pre-filter (OR): resolve the tag set to the distinct posts carrying any
+  // of them, so the main query stays a simple id membership test rather than a
+  // row-multiplying join. No matches → nothing to show.
+  let taggedIds: string[] | null = null;
+  if (tags.length > 0) {
+    const tagRows = await db
+      .selectDistinct({ postId: postHashtag.postId })
+      .from(postHashtag)
+      .where(inArray(postHashtag.tag, tags));
+    taggedIds = tagRows.map((r) => r.postId);
+    if (taggedIds.length === 0) return [];
+  }
+
+  const friends = await friendIds(viewer.id);
+  // Own + friends' posts are always visible; everyone else's only if they don't
+  // restrict posts to friends.
+  const visibleIds = [viewer.id, ...friends];
+
+  const rows = await db
+    .select(postSelection)
+    .from(post)
+    .innerJoin(user, eq(user.id, post.userId))
+    .where(
+      and(
+        or(inArray(post.userId, visibleIds), eq(user.friendsOnlyPosts, false)),
+        q ? ilike(post.caption, `%${escapeLike(q)}%`) : undefined,
+        taggedIds ? inArray(post.id, taggedIds) : undefined,
+        isNull(post.deletedAt),
+      ),
+    )
+    .orderBy(desc(post.createdAt))
+    .limit(FEED_LIMIT);
+
   return decoratePosts(rows, viewer.id);
 }
 
@@ -237,8 +383,10 @@ export async function toggleLike(postId: string) {
     .values({ id: newId('like'), postId, userId })
     .onConflictDoNothing();
 
-  // Notify the post's author that someone liked their post, unless they liked
-  // their own post or have opted out of like popups.
+  // Notify the post's author that someone liked their post (unless they liked
+  // their own). The like always lands in their inbox; whether it also pops a
+  // toast/plays a sound is decided on the recipient's client from their
+  // per-category preferences — the server never suppresses the record.
   try {
     const [p] = await db
       .select({ authorId: post.userId })
@@ -246,21 +394,28 @@ export async function toggleLike(postId: string) {
       .where(eq(post.id, postId))
       .limit(1);
     if (p && p.authorId !== userId) {
-      const prefs = await getNotificationPreferencesFor(p.authorId);
-      if (prefs.categories.like.popup) {
-        const [liker] = await db
-          .select({ name: user.name })
-          .from(user)
-          .where(eq(user.id, userId))
-          .limit(1);
-        await upsertNotification({
-          userId: p.authorId,
-          type: 'LIKE',
-          actorId: userId,
-          postId,
-          body: `${liker?.name ?? 'Someone'} liked your post`,
-        });
-      }
+      const [liker] = await db
+        .select({
+          name: user.name,
+          username: user.username,
+          image: user.image,
+        })
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1);
+      await notify({
+        recipientId: p.authorId,
+        actorId: userId,
+        type: 'LIKE',
+        // The liked post — one like notification per (liker, post) pair.
+        targetId: postId,
+        category: 'like',
+        actor: {
+          name: liker?.name ?? 'Someone',
+          username: liker?.username ?? null,
+          image: liker?.image ?? null,
+        },
+      });
     }
   } catch {
     // Notification failures must never block the like itself.
