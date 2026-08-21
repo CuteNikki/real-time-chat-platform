@@ -442,14 +442,14 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
   // ---- Full-screen (expanded video call) --------------------------------
   if (isFull) {
     return createPortal(
-      <div className='pointer-events-auto fixed inset-0 z-[120] flex flex-col bg-neutral-950 text-white'>
+      <div className='pointer-events-auto fixed inset-0 z-120 flex flex-col bg-neutral-950 text-white'>
         <RemoteAudio stream={remoteStream} volume={volume} />
         <div className='relative flex flex-1 items-center justify-center overflow-hidden'>
           <StreamVideo
             stream={remoteStream}
             className='h-full w-full object-cover'
           />
-          <div className='absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/60 to-transparent p-4'>
+          <div className='absolute inset-x-0 top-0 flex items-center gap-3 bg-linear-to-b from-black/60 to-transparent p-4'>
             <UserAvatar
               name={peer.name}
               image={peer.image}
@@ -501,7 +501,7 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
           : {}),
         ...(size ? { width: size } : {}),
       }}
-      className='pointer-events-auto fixed right-4 bottom-4 z-[120] w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-neutral-900 text-white shadow-2xl'
+      className='pointer-events-auto fixed right-4 bottom-4 z-120 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-neutral-900 text-white shadow-2xl'
     >
       <RemoteAudio stream={remoteStream} volume={volume} />
 
@@ -539,7 +539,7 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
               <Maximize2 className='size-4' aria-hidden />
             </button>
           ) : null}
-          <div className='absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pr-24'>
+          <div className='absolute inset-x-0 bottom-0 bg-linear-to-t from-black/70 to-transparent p-2 pr-24'>
             <p className='truncate text-sm font-semibold'>{peer.name}</p>
             <p className='text-xs text-white/70' suppressHydrationWarning>
               {statusText}

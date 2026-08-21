@@ -45,7 +45,7 @@ export function PostCard({
   canModerate = false,
   onDeletedAction,
   onUpdatedAction,
-  onLightboxOpenChange,
+  onLightboxOpenChangeAction,
 }: {
   post: PostSummary;
   canModerate?: boolean;
@@ -54,7 +54,7 @@ export function PostCard({
   // Notified when the fullscreen viewer opens/closes. A PostCard rendered inside
   // a Radix Dialog (e.g. the profile grid) uses this to keep the dialog from
   // dismissing on clicks that land on the body-portaled lightbox.
-  onLightboxOpenChange?: (open: boolean) => void;
+  onLightboxOpenChangeAction?: (open: boolean) => void;
 }) {
   const router = useRouter();
   const { t } = useTranslation();
@@ -74,7 +74,7 @@ export function PostCard({
   // its own dismiss-on-outside behavior while the viewer is up.
   function setLightbox(open: boolean) {
     setLightboxOpen(open);
-    onLightboxOpenChange?.(open);
+    onLightboxOpenChangeAction?.(open);
   }
 
   const [caption, setCaption] = useState(post.caption);
@@ -467,7 +467,7 @@ export function PostCard({
               ? t('post.card.altWithCaption', { caption })
               : t('post.card.altImage')
           }
-          onClose={() => setLightbox(false)}
+          onCloseAction={() => setLightbox(false)}
         />
       ) : null}
 

@@ -140,7 +140,7 @@ export function PostGrid({
                 key={active.id}
                 post={active}
                 canModerate={canModerate}
-                onLightboxOpenChange={setLightboxOpen}
+                onLightboxOpenChangeAction={setLightboxOpen}
                 onDeletedAction={(id) => {
                   setActiveId(null);
                   setItems((prev) => prev.filter((p) => p.id !== id));

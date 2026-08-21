@@ -11,8 +11,8 @@ import {
   HistoryIcon,
   ImageIcon,
   Loader2Icon,
-  MessagesSquareIcon,
   MessageSquareIcon,
+  MessagesSquareIcon,
   ShieldCheckIcon,
   ShieldXIcon,
   Trash2Icon,
@@ -76,10 +76,7 @@ const TARGET_LABEL: Record<ReportListItem['target'], string> = {
   MESSAGE: 'Message',
 };
 
-const TARGET_ICON: Record<
-  ReportListItem['target'],
-  typeof UserIcon
-> = {
+const TARGET_ICON: Record<ReportListItem['target'], typeof UserIcon> = {
   USER: UserIcon,
   POST: ImageIcon,
   MESSAGE: MessageSquareIcon,
@@ -233,7 +230,7 @@ export function ReportsView({
         open={!!lightboxSrc}
         src={lightboxSrc ?? ''}
         alt='Reported image'
-        onClose={() => setLightboxSrc(null)}
+        onCloseAction={() => setLightboxSrc(null)}
       />
 
       <MessageContextDialog
@@ -647,7 +644,11 @@ function MessageContextDialog({
             </p>
           ) : (
             items.map((m) => (
-              <ContextMessage key={m.id} message={m} onViewImage={onViewImage} />
+              <ContextMessage
+                key={m.id}
+                message={m}
+                onViewImage={onViewImage}
+              />
             ))
           )}
         </div>
@@ -675,9 +676,7 @@ function ContextMessage({
   return (
     <div
       className={`flex gap-2 rounded-lg p-2 ${
-        message.isReported
-          ? 'bg-destructive/10 ring-destructive/40 ring-1'
-          : ''
+        message.isReported ? 'bg-destructive/10 ring-destructive/40 ring-1' : ''
       }`}
     >
       <UserAvatar
@@ -1015,14 +1014,17 @@ function ReportBanDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => (!o && !submitting ? onClose() : undefined)}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => (!o && !submitting ? onClose() : undefined)}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Ban {name}</DialogTitle>
           <DialogDescription>
             A guilty verdict bans the reported account. They&apos;ll immediately
-            lose access and be signed out, the reporter is told action was taken,
-            and this is recorded in the account&apos;s ban history.
+            lose access and be signed out, the reporter is told action was
+            taken, and this is recorded in the account&apos;s ban history.
           </DialogDescription>
         </DialogHeader>
 

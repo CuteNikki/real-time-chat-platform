@@ -19,12 +19,12 @@ export function ImageLightbox({
   src,
   alt,
   open,
-  onClose,
+  onCloseAction,
 }: {
   src: string;
   alt?: string;
   open: boolean;
-  onClose: () => void;
+  onCloseAction: () => void;
 }) {
   const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
@@ -47,7 +47,7 @@ export function ImageLightbox({
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseAction();
     };
     window.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
@@ -56,7 +56,7 @@ export function ImageLightbox({
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [open, onClose]);
+  }, [open, onCloseAction]);
 
   const clampScale = (s: number) => Math.min(MAX_SCALE, Math.max(MIN_SCALE, s));
 
@@ -110,8 +110,8 @@ export function ImageLightbox({
       // pointer-events-auto: when opened over a modal (e.g. Radix Dialog sets
       // `pointer-events: none` on <body>), this body-portaled layer would
       // inherit it and go dead — re-enable so the toolbar/backdrop stay usable.
-      className='pointer-events-auto fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm'
-      onClick={onClose}
+      className='pointer-events-auto fixed inset-0 z-100 flex items-center justify-center bg-black/90 backdrop-blur-sm'
+      onClick={onCloseAction}
     >
       {/* Toolbar */}
       <div
@@ -150,7 +150,7 @@ export function ImageLightbox({
         </button>
         <button
           type='button'
-          onClick={onClose}
+          onClick={onCloseAction}
           className='grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15'
           aria-label={t('chat.lightbox.close')}
         >

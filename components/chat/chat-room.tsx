@@ -960,7 +960,7 @@ export function ChatRoom({
         open={!!lightboxSrc}
         src={lightboxSrc ?? ''}
         alt={t('chat.room.sharedImage')}
-        onClose={() => setLightboxSrc(null)}
+        onCloseAction={() => setLightboxSrc(null)}
       />
 
       <ReportDialog
