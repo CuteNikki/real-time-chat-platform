@@ -15,6 +15,7 @@ const CATEGORIES: NotificationCategory[] = [
   'directMessage',
   'roomMessage',
   'like',
+  'mention',
 ];
 
 // Merge a stored (possibly partial / older) preferences blob with defaults so

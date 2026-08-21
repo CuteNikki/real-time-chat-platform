@@ -1,9 +1,8 @@
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 import { getPrivateConversations } from '@/app/actions/invites';
 
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 
 import { MessagesWorkspace } from '@/components/chat/messages-workspace';
 
@@ -12,7 +11,7 @@ export default async function MessagesPage({
 }: {
   searchParams: Promise<{ c?: string }>;
 }) {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSession();
   if (!session?.user) redirect('/sign-in');
 
   const { c } = await searchParams;

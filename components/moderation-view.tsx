@@ -1,13 +1,19 @@
 'use client';
 
 import { VariantProps } from 'class-variance-authority';
+import type { TFunction } from 'i18next';
+import Link from 'next/link';
 import { useEffect, useRef, useState, useTransition } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
   AlertCircleIcon,
   BanIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   ClockIcon,
+  EraserIcon,
   GlobeIcon,
   HistoryIcon,
   Loader2,
@@ -26,14 +32,16 @@ import {
   deleteUser,
   getBanHistory,
   liftIpBan,
-  listUsersForAdmin,
+  listUsersForModeration,
+  resetUserProfile,
   setUserRole,
   unbanUser,
-  type AdminUserRow,
   type BanHistoryEntry,
-} from '@/app/actions/admin';
+  type ModerationUserRow,
+  type ResetProfileFields,
+} from '@/app/actions/moderation';
 
-import { ROLES, ROLE_LABEL, type Role } from '@/lib/roles';
+import { ROLES, type Role } from '@/lib/roles';
 import { cn } from '@/lib/utils';
 
 import { LocalTime } from '@/components/local-time';
@@ -80,36 +88,59 @@ const ROLE_BADGE: Record<
   MEMBER: 'outline',
 };
 
-const DURATIONS: { key: string; label: string; days: number | null }[] = [
-  { key: '1', label: '1 day', days: 1 },
-  { key: '7', label: '7 days', days: 7 },
-  { key: '30', label: '30 days', days: 30 },
-  { key: 'perm', label: 'Permanent', days: null },
+const DURATIONS: { key: string; labelKey: string; days: number | null }[] = [
+  { key: '1', labelKey: 'moderation.durations.d1', days: 1 },
+  { key: '7', labelKey: 'moderation.durations.d7', days: 7 },
+  { key: '30', labelKey: 'moderation.durations.d30', days: 30 },
+  { key: 'perm', labelKey: 'moderation.durations.perm', days: null },
 ];
 
-export function AdminView({
+// Localized role label helper (replaces the static ROLE_LABEL map at render).
+function roleLabel(t: TFunction, role: Role): string {
+  return t(`moderation.roles.${role}`);
+}
+
+export function ModerationView({
   initialUsers,
+  initialTotal,
+  pageSize,
   viewerRole,
 }: {
-  initialUsers: AdminUserRow[];
+  initialUsers: ModerationUserRow[];
+  initialTotal: number;
+  pageSize: number;
   viewerRole: Role;
 }) {
-  const [users, setUsers] = useState<AdminUserRow[]>(initialUsers);
+  const [users, setUsers] = useState<ModerationUserRow[]>(initialUsers);
+  const [total, setTotal] = useState(initialTotal);
+  const [page, setPage] = useState(1);
   const [query, setQuery] = useState('');
   const [pending, startTransition] = useTransition();
   const [savingId, setSavingId] = useState<string | null>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { t } = useTranslation();
 
   // Dialog targets.
-  const [banTarget, setBanTarget] = useState<AdminUserRow | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
-  const [historyTarget, setHistoryTarget] = useState<AdminUserRow | null>(null);
+  const [banTarget, setBanTarget] = useState<ModerationUserRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ModerationUserRow | null>(
+    null,
+  );
+  const [historyTarget, setHistoryTarget] = useState<ModerationUserRow | null>(
+    null,
+  );
+  const [resetTarget, setResetTarget] = useState<ModerationUserRow | null>(
+    null,
+  );
 
   const canManageRoles = viewerRole === 'ADMIN';
   const canDelete = viewerRole === 'ADMIN';
 
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, total);
+
   // Whether the current viewer may ban/delete this target.
-  function canModerate(u: AdminUserRow): boolean {
+  function canModerate(u: ModerationUserRow): boolean {
     if (u.isSelf) return false;
     if (u.role === 'ADMIN') return false;
     // If the viewer is a moderator, they can only moderate members
@@ -117,22 +148,67 @@ export function AdminView({
     return true;
   }
 
+  // Load a given page for the current query, replacing the visible rows.
+  function fetchPage(nextQuery: string, nextPage: number) {
+    startTransition(async () => {
+      try {
+        const res = await listUsersForModeration(nextQuery, nextPage);
+        setUsers(res.users);
+        setTotal(res.total);
+        setPage(res.page);
+      } catch (err) {
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : t('moderation.couldNotLoadUsers'),
+        );
+      }
+    });
+  }
+
   function onSearch(value: string) {
     setQuery(value);
     if (debounce.current) clearTimeout(debounce.current);
 
-    debounce.current = setTimeout(() => {
-      startTransition(async () => {
-        try {
-          setUsers(await listUsersForAdmin(value));
-        } catch (err) {
-          toast.error(err instanceof Error ? err.message : 'Search failed');
-        }
-      });
-    }, 300);
+    // A new search always restarts at the first page.
+    debounce.current = setTimeout(() => fetchPage(value, 1), 300);
   }
 
-  async function changeRole(target: AdminUserRow, role: Role) {
+  // Drop a deleted user from the current page and keep the total honest. If the
+  // page is now empty (and isn't the first), step back so we never sit on a
+  // blank page.
+  function handleDeleted(id: string) {
+    const next = users.filter((u) => u.id !== id);
+    setUsers(next);
+    setTotal((t) => Math.max(0, t - 1));
+    if (next.length === 0 && page > 1) fetchPage(query, page - 1);
+  }
+
+  // Reflect a profile reset in the visible row (name/username may have changed
+  // to placeholders; avatar may have been cleared).
+  function handleReset(
+    id: string,
+    changes: {
+      name: string | null;
+      username: string | null;
+      clearedImage: boolean;
+    },
+  ) {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === id
+          ? {
+              ...u,
+              name: changes.name ?? u.name,
+              username: changes.username ?? u.username,
+              image: changes.clearedImage ? null : u.image,
+            }
+          : u,
+      ),
+    );
+  }
+
+  async function changeRole(target: ModerationUserRow, role: Role) {
     if (target.role === role) return;
     setSavingId(target.id);
 
@@ -157,16 +233,21 @@ export function AdminView({
         }
       })(),
       {
-        loading: `Updating ${target.name}'s role...`,
-        success: `${target.name} is now ${ROLE_LABEL[role]}`,
+        loading: t('moderation.updatingRole', { name: target.name }),
+        success: t('moderation.roleUpdated', {
+          name: target.name,
+          role: roleLabel(t, role),
+        }),
         error: (err) =>
-          err instanceof Error ? err.message : 'Could not change role',
+          err instanceof Error
+            ? err.message
+            : t('moderation.couldNotChangeRole'),
         finally: () => setSavingId(null),
       },
     );
   }
 
-  async function onUnban(target: AdminUserRow) {
+  async function onUnban(target: ModerationUserRow) {
     setSavingId(target.id);
 
     // Optimistic update
@@ -191,10 +272,10 @@ export function AdminView({
         }
       })(),
       {
-        loading: `Lifting ban for ${target.name}...`,
-        success: `${target.name}'s ban was lifted`,
+        loading: t('moderation.liftingBan', { name: target.name }),
+        success: t('moderation.banLifted', { name: target.name }),
         error: (err) =>
-          err instanceof Error ? err.message : 'Could not lift ban',
+          err instanceof Error ? err.message : t('moderation.couldNotLiftBan'),
         finally: () => setSavingId(null),
       },
     );
@@ -210,9 +291,9 @@ export function AdminView({
         <Input
           value={query}
           onChange={(e) => onSearch(e.target.value)}
-          placeholder='Search by name, username, or email'
+          placeholder={t('moderation.searchUsersPlaceholder')}
           className='pl-8'
-          aria-label='Search users'
+          aria-label={t('moderation.searchUsersAria')}
         />
         {pending && (
           <Loader2
@@ -225,7 +306,7 @@ export function AdminView({
       <ul className='divide-border border-border divide-y overflow-hidden rounded-xl border'>
         {users.length === 0 ? (
           <li className='text-muted-foreground px-4 py-10 text-center text-sm'>
-            No users found.
+            {t('moderation.noUsers')}
           </li>
         ) : (
           users.map((u) => {
@@ -233,36 +314,65 @@ export function AdminView({
             const showMenu = moderatable || canManageRoles;
             return (
               <li key={u.id} className='flex items-center gap-3 px-4 py-3'>
-                <UserAvatar
-                  name={u.name}
-                  image={u.image}
-                  className='size-10 shrink-0'
-                />
-
-                <div className='min-w-0 flex-1 leading-tight'>
-                  <p className='flex items-center gap-1.5 truncate font-medium'>
-                    <span className='truncate'>{u.name}</span>
-                    {u.isSelf ? (
-                      <span className='text-muted-foreground text-xs'>
-                        (you)
-                      </span>
-                    ) : null}
-                  </p>
-                  <p className='text-muted-foreground truncate text-xs'>
-                    {u.username ? `@${u.username}` : u.email}
-                  </p>
-                </div>
+                {u.username ? (
+                  <Link
+                    href={`/app/u/${u.username}`}
+                    className='group flex min-w-0 flex-1 items-center gap-3 rounded-md'
+                  >
+                    <UserAvatar
+                      name={u.name}
+                      image={u.image}
+                      className='size-10 shrink-0'
+                    />
+                    <div className='min-w-0 flex-1 leading-tight'>
+                      <p className='flex items-center gap-1.5 truncate font-medium'>
+                        <span className='truncate group-hover:underline'>
+                          {u.name}
+                        </span>
+                        {u.isSelf ? (
+                          <span className='text-muted-foreground text-xs'>
+                            {t('moderation.you')}
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className='text-muted-foreground truncate text-xs'>
+                        @{u.username}
+                      </p>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className='flex min-w-0 flex-1 items-center gap-3'>
+                    <UserAvatar
+                      name={u.name}
+                      image={u.image}
+                      className='size-10 shrink-0'
+                    />
+                    <div className='min-w-0 flex-1 leading-tight'>
+                      <p className='flex items-center gap-1.5 truncate font-medium'>
+                        <span className='truncate'>{u.name}</span>
+                        {u.isSelf ? (
+                          <span className='text-muted-foreground text-xs'>
+                            {t('moderation.you')}
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className='text-muted-foreground truncate text-xs'>
+                        {u.email}
+                      </p>
+                    </div>
+                  </div>
+                )}
 
                 {/* Right-side metadata & actions container */}
                 <div className='xs:flex-row flex shrink-0 flex-col items-center gap-2'>
                   {u.isBanned && (
                     <Badge variant='destructive'>
                       <BanIcon aria-hidden />
-                      Banned
+                      {t('moderation.banned')}
                     </Badge>
                   )}
                   <Badge variant={ROLE_BADGE[u.role]}>
-                    {ROLE_LABEL[u.role]}
+                    {roleLabel(t, u.role)}
                   </Badge>
                 </div>
 
@@ -270,7 +380,7 @@ export function AdminView({
                   <DropdownMenu>
                     <DropdownMenuTrigger
                       disabled={savingId === u.id}
-                      aria-label={`Manage ${u.name}`}
+                      aria-label={t('moderation.manageUser', { name: u.name })}
                       className={cn(
                         buttonVariants({
                           variant: 'outline',
@@ -294,7 +404,7 @@ export function AdminView({
                           {u.isBanned ? (
                             <DropdownMenuItem onClick={() => onUnban(u)}>
                               <ShieldCheckIcon aria-hidden />
-                              Lift ban
+                              {t('moderation.liftBanItem')}
                             </DropdownMenuItem>
                           ) : (
                             <DropdownMenuItem
@@ -302,12 +412,16 @@ export function AdminView({
                               variant='destructive'
                             >
                               <BanIcon aria-hidden />
-                              Ban user
+                              {t('moderation.banUserItem')}
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem onClick={() => setHistoryTarget(u)}>
                             <HistoryIcon aria-hidden />
-                            Ban history
+                            {t('moderation.banHistoryItem')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setResetTarget(u)}>
+                            <EraserIcon aria-hidden />
+                            {t('moderation.resetProfileItem')}
                           </DropdownMenuItem>
                         </DropdownMenuGroup>
                       )}
@@ -318,10 +432,12 @@ export function AdminView({
                           onValueChange={(r) => changeRole(u, r as Role)}
                         >
                           {moderatable && <DropdownMenuSeparator />}
-                          <DropdownMenuLabel>Change role</DropdownMenuLabel>
+                          <DropdownMenuLabel>
+                            {t('moderation.changeRole')}
+                          </DropdownMenuLabel>
                           {ROLES.map((r) => (
                             <DropdownMenuRadioItem value={r} key={r}>
-                              {ROLE_LABEL[r]}
+                              {roleLabel(t, r)}
                             </DropdownMenuRadioItem>
                           ))}
                         </DropdownMenuRadioGroup>
@@ -335,7 +451,7 @@ export function AdminView({
                             variant='destructive'
                           >
                             <Trash2Icon aria-hidden />
-                            Delete
+                            {t('moderation.deleteItem')}
                           </DropdownMenuItem>
                         </>
                       )}
@@ -349,6 +465,45 @@ export function AdminView({
           })
         )}
       </ul>
+
+      {/* Pager: range summary + prev/next. Hidden when everything fits one page
+          and there's nothing to page through. */}
+      {(total > pageSize || page > 1) && (
+        <div className='flex items-center justify-between gap-2'>
+          <p className='text-muted-foreground text-xs tabular-nums'>
+            {total === 0
+              ? t('moderation.noUsersPager')
+              : t('moderation.range', {
+                  start: rangeStart,
+                  end: rangeEnd,
+                  total,
+                })}
+          </p>
+          <div className='flex items-center gap-2'>
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={page <= 1 || pending}
+              onClick={() => fetchPage(query, page - 1)}
+            >
+              <ChevronLeftIcon aria-hidden />
+              {t('moderation.prev')}
+            </Button>
+            <span className='text-muted-foreground text-xs tabular-nums'>
+              {t('moderation.pageOf', { page, total: totalPages })}
+            </span>
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={page >= totalPages || pending}
+              onClick={() => fetchPage(query, page + 1)}
+            >
+              {t('moderation.next')}
+              <ChevronRightIcon aria-hidden />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <BanDialog
         target={banTarget}
@@ -364,22 +519,199 @@ export function AdminView({
       <DeleteDialog
         target={deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onDeleted={(id) => setUsers((prev) => prev.filter((u) => u.id !== id))}
+        onDeleted={handleDeleted}
       />
       <HistoryDialog
         target={historyTarget}
         onClose={() => setHistoryTarget(null)}
         viewerRole={viewerRole}
       />
+      <ResetDialog
+        target={resetTarget}
+        onClose={() => setResetTarget(null)}
+        onReset={handleReset}
+      />
     </div>
   );
 }
+function ResetDialog({
+  target,
+  onClose,
+  onReset,
+}: {
+  target: ModerationUserRow | null;
+  onClose: () => void;
+  onReset: (
+    id: string,
+    changes: {
+      name: string | null;
+      username: string | null;
+      clearedImage: boolean;
+    },
+  ) => void;
+}) {
+  // Which fields to blank. Default to everything, since a moderator opening this
+  // is usually clearing inappropriate content wholesale.
+  const [fields, setFields] = useState<Required<ResetProfileFields>>({
+    name: true,
+    username: true,
+    image: true,
+    bio: true,
+    interests: true,
+    posts: true,
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const { t } = useTranslation();
+
+  const open = target !== null;
+  const targetId = target?.id ?? null;
+
+  useEffect(() => {
+    if (!targetId) return;
+    setFields({
+      name: true,
+      username: true,
+      image: true,
+      bio: true,
+      interests: true,
+      posts: true,
+    });
+    setSubmitting(false);
+  }, [targetId]);
+
+  const anySelected = Object.values(fields).some(Boolean);
+
+  const TOGGLES: {
+    key: keyof ResetProfileFields;
+    labelKey: string;
+    hintKey: string;
+  }[] = [
+    {
+      key: 'name',
+      labelKey: 'moderation.reset.name',
+      hintKey: 'moderation.reset.nameHint',
+    },
+    {
+      key: 'username',
+      labelKey: 'moderation.reset.username',
+      hintKey: 'moderation.reset.usernameHint',
+    },
+    {
+      key: 'image',
+      labelKey: 'moderation.reset.avatar',
+      hintKey: 'moderation.reset.avatarHint',
+    },
+    {
+      key: 'bio',
+      labelKey: 'moderation.reset.bio',
+      hintKey: 'moderation.reset.bioHint',
+    },
+    {
+      key: 'interests',
+      labelKey: 'moderation.reset.interests',
+      hintKey: 'moderation.reset.interestsHint',
+    },
+    {
+      key: 'posts',
+      labelKey: 'moderation.reset.posts',
+      hintKey: 'moderation.reset.postsHint',
+    },
+  ];
+
+  async function submit() {
+    if (!target || !anySelected) return;
+    setSubmitting(true);
+
+    const clearedImage = fields.image;
+    toast.promise(
+      (async () => {
+        const res = await resetUserProfile(target.id, fields);
+        onReset(target.id, {
+          name: res.name,
+          username: res.username,
+          clearedImage,
+        });
+        onClose();
+        return res.postsDeleted;
+      })(),
+      {
+        loading: t('moderation.reset.resetting', { name: target.name }),
+        success: (postsDeleted) =>
+          postsDeleted > 0
+            ? t('moderation.reset.resetPosts', { count: postsDeleted })
+            : t('moderation.reset.resetDone'),
+        error: (err) =>
+          err instanceof Error
+            ? err.message
+            : t('moderation.reset.couldNotReset'),
+        finally: () => setSubmitting(false),
+      },
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {t('moderation.reset.title', { name: target?.name ?? '' })}
+          </DialogTitle>
+          <DialogDescription>{t('moderation.reset.desc')}</DialogDescription>
+        </DialogHeader>
+
+        <div className='space-y-2'>
+          {TOGGLES.map((toggle) => (
+            <div
+              key={toggle.key}
+              className='border-border flex items-center justify-between gap-4 rounded-lg border p-3'
+            >
+              <div className='min-w-0'>
+                <Label htmlFor={`reset-${toggle.key}`} className='block'>
+                  {t(toggle.labelKey)}
+                </Label>
+                <p className='text-muted-foreground text-xs'>
+                  {t(toggle.hintKey)}
+                </p>
+              </div>
+              <Switch
+                id={`reset-${toggle.key}`}
+                checked={fields[toggle.key]}
+                onCheckedChange={(v) =>
+                  setFields((prev) => ({ ...prev, [toggle.key]: v }))
+                }
+              />
+            </div>
+          ))}
+        </div>
+
+        <DialogFooter>
+          <Button variant='outline' onClick={onClose} disabled={submitting}>
+            {t('moderation.reset.cancel')}
+          </Button>
+          <Button
+            variant='destructive'
+            onClick={submit}
+            disabled={submitting || !anySelected}
+          >
+            {submitting ? (
+              <Loader2Icon className='animate-spin' aria-hidden />
+            ) : (
+              <EraserIcon aria-hidden />
+            )}
+            {t('moderation.reset.resetBtn')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function BanDialog({
   target,
   onClose,
   onBanned,
 }: {
-  target: AdminUserRow | null;
+  target: ModerationUserRow | null;
   onClose: () => void;
   onBanned: (id: string, banExpiresAt: string | null) => void;
 }) {
@@ -387,6 +719,7 @@ function BanDialog({
   const [durationKey, setDurationKey] = useState('7');
   const [banIp, setBanIp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const { t } = useTranslation();
 
   // Reset local state whenever a new target opens the dialog.
   const open = target !== null;
@@ -404,7 +737,7 @@ function BanDialog({
     if (!target) return;
     const trimmed = reason.trim();
     if (!trimmed) {
-      toast.error('A ban reason is required');
+      toast.error(t('moderation.ban.reasonRequired'));
       return;
     }
 
@@ -430,13 +763,13 @@ function BanDialog({
         return res.ipBanned;
       })(),
       {
-        loading: `Banning ${target.name}...`,
+        loading: t('moderation.ban.banning', { name: target.name }),
         success: (ipBanned) =>
           ipBanned
-            ? `${target.name} and their IP were banned`
-            : `${target.name} was banned`,
+            ? t('moderation.ban.bannedWithIp', { name: target.name })
+            : t('moderation.ban.bannedUser', { name: target.name }),
         error: (err) =>
-          err instanceof Error ? err.message : 'Could not ban user',
+          err instanceof Error ? err.message : t('moderation.ban.couldNotBan'),
         finally: () => setSubmitting(false),
       },
     );
@@ -446,28 +779,27 @@ function BanDialog({
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Ban {target?.name}</DialogTitle>
-          <DialogDescription>
-            They will immediately lose access and be signed out. This action is
-            recorded in their ban history.
-          </DialogDescription>
+          <DialogTitle>
+            {t('moderation.ban.title', { name: target?.name ?? '' })}
+          </DialogTitle>
+          <DialogDescription>{t('moderation.ban.desc')}</DialogDescription>
         </DialogHeader>
 
         <div className='min-w-0 space-y-4'>
           <div className='space-y-2'>
-            <Label htmlFor='ban-reason'>Reason</Label>
+            <Label htmlFor='ban-reason'>{t('moderation.ban.reason')}</Label>
             <Textarea
               id='ban-reason'
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder='Explain why this account is being banned'
+              placeholder={t('moderation.ban.reasonPlaceholder')}
               className='resize-y wrap-break-word'
               rows={2}
             />
           </div>
 
           <div className='space-y-2'>
-            <Label>Duration</Label>
+            <Label>{t('moderation.ban.duration')}</Label>
             <div className='flex flex-wrap gap-2'>
               {DURATIONS.map((d) => (
                 <Button
@@ -475,7 +807,7 @@ function BanDialog({
                   onClick={() => setDurationKey(d.key)}
                   variant={durationKey === d.key ? 'default' : 'outline'}
                 >
-                  {d.label}
+                  {t(d.labelKey)}
                 </Button>
               ))}
             </div>
@@ -483,13 +815,12 @@ function BanDialog({
 
           <div className='space-y-2'>
             <Label htmlFor='ban-ip' className='block'>
-              Also ban their IP address
+              {t('moderation.ban.alsoBanIp')}
             </Label>
             <div className='border-border xs:flex-row xs:items-center flex flex-col justify-between gap-4 rounded-lg border p-3'>
               <div className='min-w-0'>
                 <p className='text-muted-foreground xs:whitespace-pre-wrap text-xs text-pretty'>
-                  Blocks the last known IP from this account.{'\n'}IPs can be
-                  shared, so this may affect other users.
+                  {t('moderation.ban.ipHint')}
                 </p>
               </div>
               <Switch id='ban-ip' checked={banIp} onCheckedChange={setBanIp} />
@@ -499,7 +830,7 @@ function BanDialog({
 
         <DialogFooter>
           <Button variant='outline' onClick={onClose} disabled={submitting}>
-            Cancel
+            {t('moderation.ban.cancel')}
           </Button>
           <Button variant='destructive' onClick={submit} disabled={submitting}>
             {submitting ? (
@@ -507,7 +838,7 @@ function BanDialog({
             ) : (
               <BanIcon aria-hidden />
             )}
-            Ban User
+            {t('moderation.ban.banBtn')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -520,12 +851,13 @@ function DeleteDialog({
   onClose,
   onDeleted,
 }: {
-  target: AdminUserRow | null;
+  target: ModerationUserRow | null;
   onClose: () => void;
   onDeleted: (id: string) => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
   const open = target !== null;
+  const { t } = useTranslation();
 
   async function confirm() {
     if (!target) return;
@@ -538,10 +870,12 @@ function DeleteDialog({
         onClose();
       })(),
       {
-        loading: `Deleting ${target.name}...`,
-        success: `${target.name}'s account was deleted`,
+        loading: t('moderation.deleteDialog.deleting', { name: target.name }),
+        success: t('moderation.deleteDialog.deleted', { name: target.name }),
         error: (err) =>
-          err instanceof Error ? err.message : 'Could not delete account',
+          err instanceof Error
+            ? err.message
+            : t('moderation.deleteDialog.couldNotDelete'),
         finally: () => setSubmitting(false),
       },
     );
@@ -551,15 +885,16 @@ function DeleteDialog({
     <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete {target?.name}?</DialogTitle>
+          <DialogTitle>
+            {t('moderation.deleteDialog.title', { name: target?.name ?? '' })}
+          </DialogTitle>
           <DialogDescription>
-            This permanently removes the account and all of their posts, likes,
-            messages, and other data. This cannot be undone.
+            {t('moderation.deleteDialog.desc')}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant='outline' onClick={onClose} disabled={submitting}>
-            Cancel
+            {t('moderation.deleteDialog.cancel')}
           </Button>
           <Button variant='destructive' onClick={confirm} disabled={submitting}>
             {submitting ? (
@@ -567,7 +902,7 @@ function DeleteDialog({
             ) : (
               <Trash2Icon aria-hidden />
             )}
-            Delete
+            {t('moderation.deleteDialog.deleteBtn')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -580,7 +915,7 @@ function HistoryDialog({
   onClose,
   viewerRole,
 }: {
-  target: AdminUserRow | null;
+  target: ModerationUserRow | null;
   onClose: () => void;
   viewerRole: Role;
 }) {
@@ -603,6 +938,7 @@ function HistoryDialog({
   const [isScrolledBottom, setIsScrolledBottom] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   const open = target !== null;
   const targetId = target?.id ?? null;
@@ -630,7 +966,9 @@ function HistoryDialog({
       .catch((err) => {
         if (!cancelled)
           toast.error(
-            err instanceof Error ? err.message : 'Could not load history',
+            err instanceof Error
+              ? err.message
+              : t('moderation.history.couldNotLoad'),
           );
       })
       .finally(() => {
@@ -695,10 +1033,12 @@ function HistoryDialog({
         }
       })(),
       {
-        loading: 'Lifting ban...',
-        success: 'Ban lifted',
+        loading: t('moderation.history.liftingBan'),
+        success: t('moderation.history.banLifted'),
         error: (err) =>
-          err instanceof Error ? err.message : 'Could not lift ban',
+          err instanceof Error
+            ? err.message
+            : t('moderation.history.couldNotLift'),
         finally: () => {
           setLiftingId(null);
           setSubmittingLift(false);
@@ -724,10 +1064,12 @@ function HistoryDialog({
         }
       })(),
       {
-        loading: 'Deleting ban history entry...',
-        success: 'Ban history entry deleted',
+        loading: t('moderation.history.deletingEntry'),
+        success: t('moderation.history.entryDeleted'),
         error: (err) =>
-          err instanceof Error ? err.message : 'Could not delete entry',
+          err instanceof Error
+            ? err.message
+            : t('moderation.history.couldNotDeleteEntry'),
         finally: () => setDeletingId(null),
       },
     );
@@ -806,15 +1148,17 @@ function HistoryDialog({
       <Dialog open={open} onOpenChange={(o) => (!o ? onClose() : undefined)}>
         <DialogContent className='min-w-0 sm:max-w-xl'>
           <DialogHeader>
-            <DialogTitle>{target?.name}'s Ban History</DialogTitle>
+            <DialogTitle>
+              {t('moderation.history.title', { name: target?.name ?? '' })}
+            </DialogTitle>
             <DialogDescription>
-              Every ban issued against this account, newest first.
+              {t('moderation.history.desc')}
             </DialogDescription>
           </DialogHeader>
 
           <div className='flex items-center gap-2'>
             <Input
-              placeholder='Search reason, IP, issuer...'
+              placeholder={t('moderation.history.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -825,13 +1169,21 @@ function HistoryDialog({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder='Sort by' />
+                <SelectValue placeholder={t('moderation.history.sortBy')} />
               </SelectTrigger>
               <SelectContent position='popper' align='center' side='bottom'>
-                <SelectItem value='newest'>Newest first</SelectItem>
-                <SelectItem value='oldest'>Oldest first</SelectItem>
-                <SelectItem value='issuer'>Sort by Issuer</SelectItem>
-                <SelectItem value='lifter'>Sort by Lifter</SelectItem>
+                <SelectItem value='newest'>
+                  {t('moderation.history.newest')}
+                </SelectItem>
+                <SelectItem value='oldest'>
+                  {t('moderation.history.oldest')}
+                </SelectItem>
+                <SelectItem value='issuer'>
+                  {t('moderation.history.byIssuer')}
+                </SelectItem>
+                <SelectItem value='lifter'>
+                  {t('moderation.history.byLifter')}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -852,8 +1204,8 @@ function HistoryDialog({
               ) : sortedEntries.length === 0 ? (
                 <p className='text-muted-foreground py-8 text-center text-sm'>
                   {searchQuery
-                    ? 'No matching ban history entries found.'
-                    : 'No ban history entries found.'}
+                    ? t('moderation.history.noMatching')
+                    : t('moderation.history.noEntries')}
                 </p>
               ) : (
                 sortedEntries.map((e) => (
@@ -861,10 +1213,14 @@ function HistoryDialog({
                     <div className='flex flex-wrap items-center justify-between gap-2 px-1'>
                       <div className='flex items-center gap-2'>
                         <Badge variant='secondary'>
-                          {e.scope === 'IP' ? 'IP' : 'Account'}
+                          {e.scope === 'IP'
+                            ? t('moderation.history.ip')
+                            : t('moderation.history.account')}
                         </Badge>
                         <Badge variant={e.active ? 'destructive' : 'secondary'}>
-                          {e.active ? 'Active' : 'Lifted'}
+                          {e.active
+                            ? t('moderation.history.active')
+                            : t('moderation.history.lifted')}
                         </Badge>
                       </div>
                       <div className='flex items-center gap-2'>
@@ -884,7 +1240,7 @@ function HistoryDialog({
                                 aria-hidden
                               />
                             ) : null}
-                            Unban
+                            {t('moderation.history.unban')}
                           </Button>
                         )}
                         {viewerRole === 'ADMIN' && !e.active && (
@@ -902,7 +1258,7 @@ function HistoryDialog({
                             ) : (
                               <Trash2Icon aria-hidden />
                             )}
-                            Delete
+                            {t('moderation.history.delete')}
                           </Button>
                         )}
                       </div>
@@ -918,7 +1274,7 @@ function HistoryDialog({
                         />
                         <div className='min-w-0 flex-1'>
                           <div className='text-muted-foreground text-[10px] font-medium tracking-wider uppercase'>
-                            Reason
+                            {t('moderation.history.reason')}
                           </div>
                           <div className='text-sm wrap-break-word whitespace-pre-wrap'>
                             {e.reason}
@@ -935,7 +1291,7 @@ function HistoryDialog({
                           />
                           <div className='min-w-0 flex-1'>
                             <div className='text-muted-foreground text-[10px] font-medium tracking-wider uppercase'>
-                              IP Address
+                              {t('moderation.history.ipAddress')}
                             </div>
                             <div className='font-mono text-xs break-all'>
                               {e.ipAddress}
@@ -952,15 +1308,16 @@ function HistoryDialog({
                         />
                         <div className='min-w-0 flex-1'>
                           <div className='text-muted-foreground text-[10px] font-medium tracking-wider uppercase'>
-                            Duration
+                            {t('moderation.history.duration')}
                           </div>
                           <div className='text-sm'>
                             {e.expiresAt ? (
                               <>
-                                Expires <LocalTime iso={e.expiresAt} />
+                                {t('moderation.history.expires')}{' '}
+                                <LocalTime iso={e.expiresAt} />
                               </>
                             ) : (
-                              'Permanent'
+                              t('moderation.history.permanent')
                             )}
                           </div>
                         </div>
@@ -974,7 +1331,7 @@ function HistoryDialog({
                         />
                         <div className='min-w-0 flex-1'>
                           <div className='text-muted-foreground text-[10px] font-medium tracking-wider uppercase'>
-                            Issued
+                            {t('moderation.history.issued')}
                           </div>
                           <div className='flex min-w-0 flex-col gap-1 text-sm'>
                             <LocalTime iso={e.createdAt} />
@@ -1005,7 +1362,7 @@ function HistoryDialog({
                           />
                           <div className='min-w-0 flex-1'>
                             <div className='text-muted-foreground text-[10px] font-medium tracking-wider uppercase'>
-                              Lifted
+                              {t('moderation.history.liftedLabel')}
                             </div>
                             <div className='flex min-w-0 flex-col gap-1 text-sm'>
                               <LocalTime iso={e.liftedAt} />
@@ -1025,7 +1382,9 @@ function HistoryDialog({
                               )}
                               {e.liftReason && (
                                 <span className='text-muted-foreground wrap-break-word whitespace-pre-wrap'>
-                                  Reason: {e.liftReason}
+                                  {t('moderation.history.reasonPrefix', {
+                                    reason: e.liftReason,
+                                  })}
                                 </span>
                               )}
                             </div>
@@ -1063,21 +1422,22 @@ function HistoryDialog({
       >
         <DialogContent className='min-w-0 sm:max-w-md'>
           <DialogHeader>
-            <DialogTitle>Lift Ban</DialogTitle>
+            <DialogTitle>{t('moderation.history.liftTitle')}</DialogTitle>
             <DialogDescription>
-              Provide an optional reason for lifting this{' '}
-              {liftTarget?.scope.toLowerCase()} ban.
+              {t('moderation.history.liftDesc')}
             </DialogDescription>
           </DialogHeader>
 
           <div className='min-w-0 space-y-4'>
             <div className='min-w-0 space-y-2'>
-              <Label htmlFor='lift-reason'>Reason</Label>
+              <Label htmlFor='lift-reason'>
+                {t('moderation.history.liftReasonLabel')}
+              </Label>
               <Textarea
                 id='lift-reason'
                 value={liftReason}
                 onChange={(e) => setLiftReason(e.target.value)}
-                placeholder='e.g., Appealed via support ticket, misunderstanding resolved'
+                placeholder={t('moderation.history.liftReasonPlaceholder')}
                 className='resize-y wrap-break-word'
                 rows={3}
               />
@@ -1090,13 +1450,13 @@ function HistoryDialog({
               onClick={() => setLiftTarget(null)}
               disabled={submittingLift}
             >
-              Cancel
+              {t('moderation.history.liftCancel')}
             </Button>
             <Button onClick={handleLiftSubmit} disabled={submittingLift}>
               {submittingLift ? (
                 <Loader2Icon className='size-4 animate-spin' aria-hidden />
               ) : null}
-              Confirm Lift
+              {t('moderation.history.confirmLift')}
             </Button>
           </DialogFooter>
         </DialogContent>

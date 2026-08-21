@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
@@ -18,9 +19,10 @@ import {
 } from 'lucide-react';
 
 import { getMessages } from '@/app/actions/chat';
-import { createRoom, deleteRoom, joinRoom } from '@/app/actions/rooms';
+import { createRoom, deleteRoom } from '@/app/actions/rooms';
 
 import { RoomMember, useRoomMembers } from '@/hooks/use-room-members';
+import { useScrollFade } from '@/hooks/use-scroll-fade';
 
 import type { ChatMessage, RoomSummary } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -37,6 +39,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { UserAvatar } from '@/components/user/user-avatar';
@@ -74,19 +77,48 @@ function MembersList({
   );
 }
 
+// Gradient that fades a scroll container's top or bottom edge, shown only when
+// there's hidden content in that direction. `from` picks the surface colour to
+// fade from (the pane background vs. a card/dialog).
+function EdgeFade({
+  side,
+  from,
+  show,
+}: {
+  side: 'top' | 'bottom';
+  from: 'background' | 'card';
+  show: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'pointer-events-none absolute inset-x-0 z-10 h-12 to-transparent transition-opacity duration-200',
+        side === 'top' ? '-top-1 bg-linear-to-b' : '-bottom-1 bg-linear-to-t',
+        from === 'background' ? 'from-background' : 'from-card',
+        show ? 'opacity-100' : 'opacity-0',
+      )}
+      aria-hidden
+    />
+  );
+}
+
 export function RoomsWorkspace({
   initialRooms,
   me,
   canCreate = false,
   canDelete = false,
+  canModerate = false,
 }: {
   initialRooms: RoomSummary[];
   me: { id: string; name: string; image: string | null };
   canCreate?: boolean;
   canDelete?: boolean;
+  // Moderator/admin viewer: enables removing other users' messages in channels.
+  canModerate?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const urlChatId = searchParams.get('c');
 
   const { data: rooms = initialRooms, mutate } = useSWR<RoomSummary[]>(
@@ -100,7 +132,12 @@ export function RoomsWorkspace({
 
   const [activeChatId, setActiveChatId] = useState<string | null>(urlChatId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Start in the loading state when the URL already points at a channel (e.g. a
+  // page reload inside a room) so the chat pane shows a spinner instead of
+  // mounting ChatRoom with empty history and immediately unmounting it once the
+  // fetch flips loading on — that churn used to tear the shared presence
+  // channel down under the member list.
+  const [loading, setLoading] = useState(!!urlChatId);
 
   // The user whose profile preview popup is open (null = closed).
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
@@ -118,21 +155,11 @@ export function RoomsWorkspace({
   // a channel is open on small screens).
   const [membersOpen, setMembersOpen] = useState(false);
 
-  const [isChannelScrollable, setIsChannelScrollable] = useState(false);
-  const [isChannelScrolledTop, setIsChannelScrolledTop] = useState(true);
-  const [isChannelScrolledBottom, setIsChannelScrolledBottom] = useState(false);
-  const channelScrollRef = useRef<HTMLDivElement>(null);
-
-  const [isUserScrollable, setIsUserScrollable] = useState(false);
-  const [isUserScrolledTop, setIsUserScrolledTop] = useState(true);
-  const [isUserScrolledBottom, setIsUserScrolledBottom] = useState(false);
-  const userScrollRef = useRef<HTMLDivElement>(null);
-
-  const [isMobileUserScrollable, setIsUserMobileScrollable] = useState(false);
-  const [isMobileUserScrolledTop, setIsMobileUserScrolledTop] = useState(true);
-  const [isMobileUserScrolledBottom, setIsMobileUserScrolledBottom] =
-    useState(false);
-  const mobileUserScrollRef = useRef<HTMLDivElement>(null);
+  // Edge-fade tracking for the three independently-scrolling panes: the channel
+  // list, the desktop member list, and the mobile members dialog.
+  const channelFade = useScrollFade<HTMLDivElement>();
+  const userFade = useScrollFade<HTMLDivElement>();
+  const mobileUserFade = useScrollFade<HTMLDivElement>();
 
   const members = useRoomMembers(activeChatId);
   const activeRoom = rooms.find((r) => r.id === activeChatId) ?? null;
@@ -140,77 +167,23 @@ export function RoomsWorkspace({
   // Track the last channel we loaded so re-renders don't refetch endlessly.
   const loadedFor = useRef<string | null>(null);
 
-  // Fire-and-forget leave that survives page unloads (uses sendBeacon).
-  const beaconLeave = useCallback((chatId: string) => {
-    if (!chatId) return;
-    const payload = JSON.stringify({ chatId });
-    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
-      navigator.sendBeacon(
-        '/api/rooms/leave',
-        new Blob([payload], { type: 'application/json' }),
-      );
-    } else {
-      void fetch('/api/rooms/leave', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-        keepalive: true,
-      });
-    }
-  }, []);
-
-  const checkUserScroll = () => {
-    const el = userScrollRef.current;
-    if (!el) return;
-    const scrollable = el.scrollHeight > el.clientHeight;
-    setIsUserScrollable(scrollable);
-    setIsUserScrolledTop(el.scrollTop <= 10);
-    setIsUserScrolledBottom(
-      el.scrollHeight - el.scrollTop - el.clientHeight <= 10,
-    );
-  };
-
-  const checkMobileUserScroll = () => {
-    const el = mobileUserScrollRef.current;
-    if (!el) return;
-    const scrollable = el.scrollHeight > el.clientHeight;
-    setIsUserMobileScrollable(scrollable);
-    setIsMobileUserScrolledTop(el.scrollTop <= 10);
-    setIsMobileUserScrolledBottom(
-      el.scrollHeight - el.scrollTop - el.clientHeight <= 10,
-    );
-  };
-
-  const checkChannelScroll = () => {
-    const el = channelScrollRef.current;
-    if (!el) return;
-    const scrollable = el.scrollHeight > el.clientHeight;
-    setIsChannelScrollable(scrollable);
-    setIsChannelScrolledTop(el.scrollTop <= 10);
-    setIsChannelScrolledBottom(
-      el.scrollHeight - el.scrollTop - el.clientHeight <= 10,
-    );
-  };
-
+  // Rooms are public drop-in channels — occupancy is tracked purely by Pusher
+  // presence (see useRoomMembers / listRooms), so opening one just loads its
+  // history and syncs the URL. No join/leave bookkeeping to race on reload.
   const openChannel = useCallback(
     async (chatId: string) => {
       if (loadedFor.current === chatId) return;
-      // Leave the previously active channel before switching.
-      if (loadedFor.current && loadedFor.current !== chatId) {
-        beaconLeave(loadedFor.current);
-      }
       loadedFor.current = chatId;
       setActiveChatId(chatId);
       setLoading(true);
       router.replace(`/app/rooms?c=${chatId}`, { scroll: false });
       try {
-        await joinRoom(chatId);
         const msgs = await getMessages(chatId);
         setMessages(msgs);
         mutate();
       } catch (err) {
         toast.error(
-          err instanceof Error ? err.message : 'Could not open channel',
+          err instanceof Error ? err.message : t('rooms.couldNotOpen'),
         );
         loadedFor.current = null;
         setActiveChatId(null);
@@ -218,21 +191,8 @@ export function RoomsWorkspace({
         setLoading(false);
       }
     },
-    [router, mutate, beaconLeave],
+    [router, mutate],
   );
-
-  // Auto-leave the active channel when the user navigates away, closes the tab,
-  // or this workspace unmounts — no explicit "Leave" button needed.
-  useEffect(() => {
-    function handlePageHide() {
-      if (loadedFor.current) beaconLeave(loadedFor.current);
-    }
-    window.addEventListener('pagehide', handlePageHide);
-    return () => {
-      window.removeEventListener('pagehide', handlePageHide);
-      if (loadedFor.current) beaconLeave(loadedFor.current);
-    };
-  }, [beaconLeave]);
 
   // Open the channel referenced in the URL on first load / back-forward nav.
   useEffect(() => {
@@ -246,10 +206,16 @@ export function RoomsWorkspace({
   }, [urlChatId, openChannel]);
 
   useEffect(() => {
-    checkChannelScroll();
-    checkUserScroll();
-    checkMobileUserScroll();
-  }, [rooms.length, members.length]);
+    channelFade.check();
+    userFade.check();
+    mobileUserFade.check();
+  }, [
+    rooms.length,
+    members.length,
+    channelFade.check,
+    userFade.check,
+    mobileUserFade.check,
+  ]);
 
   async function handleCreate(e: React.SubmitEvent) {
     e.preventDefault();
@@ -267,10 +233,10 @@ export function RoomsWorkspace({
         void openChannel(chatId);
       })(),
       {
-        loading: `Creating #${trimmedName}...`,
-        success: `Created #${trimmedName}`,
+        loading: t('rooms.creating', { name: trimmedName }),
+        success: t('rooms.created', { name: trimmedName }),
         error: (err) =>
-          err instanceof Error ? err.message : 'Could not create room',
+          err instanceof Error ? err.message : t('rooms.couldNotCreate'),
       },
     );
 
@@ -279,7 +245,7 @@ export function RoomsWorkspace({
 
   async function handleDelete() {
     if (!activeChatId || deleting) return;
-    const roomName = activeRoom?.name ?? 'channel';
+    const roomName = activeRoom?.name ?? t('rooms.channelFallback');
     setDeleting(true);
 
     const targetChatId = activeChatId;
@@ -287,17 +253,17 @@ export function RoomsWorkspace({
     setDeleteOpen(false);
 
     toast.promise(deleteRoom(targetChatId), {
-      loading: `Deleting #${roomName}...`,
+      loading: t('rooms.deleting', { name: roomName }),
       success: () => {
         loadedFor.current = null;
         setActiveChatId(null);
         setMessages([]);
         router.replace('/app/rooms', { scroll: false });
         mutate();
-        return `Deleted #${roomName}`;
+        return t('rooms.deleted', { name: roomName });
       },
       error: (err) =>
-        err instanceof Error ? err.message : 'Could not delete room',
+        err instanceof Error ? err.message : t('rooms.couldNotDelete'),
     });
 
     setDeleting(false);
@@ -317,12 +283,12 @@ export function RoomsWorkspace({
           <div className='relative min-h-0 flex-1'>
             <nav
               className='xs:p-4 h-full overflow-y-auto p-2'
-              ref={channelScrollRef}
-              onScroll={checkChannelScroll}
+              ref={channelFade.ref}
+              onScroll={channelFade.check}
             >
               {rooms.length === 0 ? (
                 <p className='text-muted-foreground px-2 py-6 text-center text-sm'>
-                  No channels yet. Create the first one.
+                  {t('rooms.noChannels')}
                 </p>
               ) : (
                 <ul className='flex flex-col gap-1'>
@@ -365,23 +331,15 @@ export function RoomsWorkspace({
                 </ul>
               )}
             </nav>
-            {/* Top Fade */}
-            <div
-              className={`from-background pointer-events-none absolute inset-x-0 -top-1 z-10 h-12 bg-linear-to-b to-transparent transition-opacity duration-200 ${
-                isChannelScrollable && !isChannelScrolledTop
-                  ? 'opacity-100'
-                  : 'opacity-0'
-              }`}
-              aria-hidden
+            <EdgeFade
+              side='top'
+              from='background'
+              show={channelFade.scrollable && !channelFade.atTop}
             />
-            {/* Bottom Fade */}
-            <div
-              className={`from-background pointer-events-none absolute inset-x-0 -bottom-1 z-10 h-12 bg-linear-to-t to-transparent transition-opacity duration-200 ${
-                isChannelScrollable && !isChannelScrolledBottom
-                  ? 'opacity-100'
-                  : 'opacity-0'
-              }`}
-              aria-hidden
+            <EdgeFade
+              side='bottom'
+              from='background'
+              show={channelFade.scrollable && !channelFade.atBottom}
             />
           </div>
 
@@ -391,31 +349,35 @@ export function RoomsWorkspace({
                 <DialogTrigger asChild>
                   <Button variant='secondary' size='lg' className='w-full'>
                     <Plus aria-hidden />
-                    Create Channel
+                    {t('rooms.createChannel')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <form onSubmit={handleCreate}>
                     <DialogHeader>
-                      <DialogTitle>Create a Channel</DialogTitle>
+                      <DialogTitle>{t('rooms.createDialogTitle')}</DialogTitle>
                       <DialogDescription>
-                        Give it a name. Anyone can find and join it.
+                        {t('rooms.createDialogDesc')}
                       </DialogDescription>
                     </DialogHeader>
                     <div className='flex flex-col gap-2 py-4'>
-                      <Label htmlFor='room-name'>Channel Name</Label>
+                      <Label htmlFor='room-name'>
+                        {t('rooms.channelName')}
+                      </Label>
                       <Input
                         id='room-name'
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder='e.g. late night talks'
+                        placeholder={t('rooms.channelPlaceholder')}
                         maxLength={60}
                         autoFocus
                       />
                     </div>
                     <DialogFooter>
                       <Button type='submit' disabled={creating || !name.trim()}>
-                        {creating ? 'Creating…' : 'Create'}
+                        {creating
+                          ? t('rooms.creatingBtn')
+                          : t('rooms.createBtn')}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -428,15 +390,15 @@ export function RoomsWorkspace({
           <div className='border-border hidden min-h-0 flex-1 flex-col border-t md:flex'>
             <div className='p-4 pb-2'>
               <span className='text-muted-foreground text-xs font-semibold tracking-wider uppercase'>
-                {`${members.length} online in this chat`}
+                {t('rooms.onlineInChat', { count: members.length })}
               </span>
             </div>
 
             <div className='relative min-h-0 flex-1'>
               <div
                 className='xs:p-4 h-full scrollbar-none overflow-y-auto p-2 pt-0!'
-                ref={userScrollRef}
-                onScroll={checkUserScroll}
+                ref={userFade.ref}
+                onScroll={userFade.check}
               >
                 {members.length === 0 ? (
                   <div className='flex h-full items-center justify-center py-4'>
@@ -446,21 +408,15 @@ export function RoomsWorkspace({
                   <MembersList members={members} onSelect={setPreviewUserId} />
                 )}
               </div>
-              <div
-                className={`from-background pointer-events-none absolute inset-x-0 -top-1 z-10 h-12 bg-linear-to-b to-transparent transition-opacity duration-200 ${
-                  isUserScrollable && !isUserScrolledTop
-                    ? 'opacity-100'
-                    : 'opacity-0'
-                }`}
-                aria-hidden
+              <EdgeFade
+                side='top'
+                from='background'
+                show={userFade.scrollable && !userFade.atTop}
               />
-              <div
-                className={`from-background pointer-events-none absolute inset-x-0 -bottom-1 z-10 h-12 bg-linear-to-t to-transparent transition-opacity duration-200 ${
-                  isUserScrollable && !isUserScrolledBottom
-                    ? 'opacity-100'
-                    : 'opacity-0'
-                }`}
-                aria-hidden
+              <EdgeFade
+                side='bottom'
+                from='background'
+                show={userFade.scrollable && !userFade.atBottom}
               />
             </div>
           </div>
@@ -475,23 +431,12 @@ export function RoomsWorkspace({
         )}
       >
         {!activeChatId ? (
-          <div className='flex h-full flex-col items-center justify-center gap-4 px-6 text-center'>
-            <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
-              <MessagesSquareIcon
-                className='text-primary size-12 shrink-0'
-                aria-hidden
-              />
-            </div>
-            <div className='flex flex-col items-center gap-2'>
-              <span className='text-3xl font-semibold tracking-tight text-balance'>
-                Choose a Channel
-              </span>
-              <p className='text-muted-foreground max-w-sm text-pretty'>
-                Select a channel from the left to jump into the conversation, or
-                create your own.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={MessagesSquareIcon}
+            title={t('rooms.chooseTitle')}
+            description={t('rooms.chooseDesc')}
+            className='h-full'
+          />
         ) : (
           <>
             <header className='border-border xs:p-4 flex items-center gap-2 border-b p-2'>
@@ -500,13 +445,12 @@ export function RoomsWorkspace({
                 size='icon-lg'
                 className='shrink-0 md:hidden'
                 onClick={() => {
-                  if (loadedFor.current) beaconLeave(loadedFor.current);
                   loadedFor.current = null;
                   setActiveChatId(null);
                   setMessages([]);
                   router.replace('/app/rooms', { scroll: false });
                 }}
-                aria-label='Back to channels'
+                aria-label={t('rooms.back')}
               >
                 <ArrowLeftIcon aria-hidden />
               </Button>
@@ -516,7 +460,7 @@ export function RoomsWorkspace({
                   aria-hidden
                 />
                 <span className='truncate font-semibold'>
-                  {activeRoom?.name ?? 'Channel'}
+                  {activeRoom?.name ?? t('rooms.channelTitleFallback')}
                 </span>
               </div>
               <div className='text-muted-foreground flex items-center gap-2 text-sm md:hidden'>
@@ -532,17 +476,19 @@ export function RoomsWorkspace({
               </div>
               {canDelete && (
                 <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-                  <DialogTrigger asChild aria-label='Delete channel'>
+                  <DialogTrigger
+                    asChild
+                    aria-label={t('rooms.deleteChannelAria')}
+                  >
                     <Button variant='destructive' size='icon-lg'>
                       <Trash2Icon aria-hidden />
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Delete Channel?</DialogTitle>
+                      <DialogTitle>{t('rooms.deleteTitle')}</DialogTitle>
                       <DialogDescription>
-                        This permanently deletes the channel and all of its
-                        messages for everyone. This action cannot be undone.
+                        {t('rooms.deleteDesc')}
                       </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -551,14 +497,16 @@ export function RoomsWorkspace({
                         onClick={() => setDeleteOpen(false)}
                         disabled={deleting}
                       >
-                        Cancel
+                        {t('rooms.cancel')}
                       </Button>
                       <Button
                         variant='destructive'
                         onClick={handleDelete}
                         disabled={deleting}
                       >
-                        {deleting ? 'Deleting…' : 'Delete'}
+                        {deleting
+                          ? t('rooms.deletingBtn')
+                          : t('rooms.deleteBtn')}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -585,23 +533,14 @@ export function RoomsWorkspace({
                   showSenderNames
                   onUserClickAction={setPreviewUserId}
                   notifyCategory='roomMessage'
+                  canModerate={canModerate}
                   emptyState={
-                    <div className='flex h-full flex-col items-center justify-center gap-4 px-6 text-center'>
-                      <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
-                        <MessageCircleQuestionMarkIcon
-                          className='text-primary size-12 shrink-0'
-                          aria-hidden
-                        />
-                      </div>
-                      <div className='flex flex-col items-center gap-2'>
-                        <span className='text-3xl font-semibold tracking-tight text-balance'>
-                          No messages yet
-                        </span>
-                        <p className='text-muted-foreground max-w-sm text-pretty'>
-                          Be the first to say something.
-                        </p>
-                      </div>
-                    </div>
+                    <EmptyState
+                      icon={MessageCircleQuestionMarkIcon}
+                      title={t('rooms.noMessagesTitle')}
+                      description={t('rooms.noMessagesDesc')}
+                      className='h-full'
+                    />
                   }
                 />
               )}
@@ -613,18 +552,21 @@ export function RoomsWorkspace({
       <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
         <DialogContent className='max-h-[70vh] gap-4 overflow-hidden'>
           <DialogHeader>
-            <DialogTitle>Members in this Channel</DialogTitle>
+            <DialogTitle>{t('rooms.membersTitle')}</DialogTitle>
             <DialogDescription>
               {activeRoom
-                ? `There's currently ${members.length} member(s) in ${activeRoom.name}.`
-                : `There's currently no active room.`}
+                ? t('rooms.membersDesc', {
+                    count: members.length,
+                    name: activeRoom.name,
+                  })
+                : t('rooms.membersDescNone')}
             </DialogDescription>
           </DialogHeader>
           <div className='relative min-w-0'>
             <div
               className='max-h-[60vh] min-w-0 overflow-y-auto'
-              ref={mobileUserScrollRef}
-              onScroll={checkMobileUserScroll}
+              ref={mobileUserFade.ref}
+              onScroll={mobileUserFade.check}
             >
               {members.length === 0 ? (
                 <div className='flex h-full items-center justify-center py-4'>
@@ -640,22 +582,16 @@ export function RoomsWorkspace({
                 />
               )}
               {/* Top Fade */}
-              <div
-                className={`from-card pointer-events-none absolute inset-x-0 -top-1 z-10 h-12 bg-linear-to-b to-transparent transition-opacity duration-200 ${
-                  isMobileUserScrollable && !isMobileUserScrolledTop
-                    ? 'opacity-100'
-                    : 'opacity-0'
-                }`}
-                aria-hidden
+              <EdgeFade
+                side='top'
+                from='card'
+                show={mobileUserFade.scrollable && !mobileUserFade.atTop}
               />
               {/* Bottom Fade */}
-              <div
-                className={`from-card pointer-events-none absolute inset-x-0 -bottom-1 z-10 h-12 bg-linear-to-t to-transparent transition-opacity duration-200 ${
-                  isMobileUserScrollable && !isMobileUserScrolledBottom
-                    ? 'opacity-100'
-                    : 'opacity-0'
-                }`}
-                aria-hidden
+              <EdgeFade
+                side='bottom'
+                from='card'
+                show={mobileUserFade.scrollable && !mobileUserFade.atBottom}
               />
             </div>
           </div>

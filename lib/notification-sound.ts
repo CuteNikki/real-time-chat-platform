@@ -25,6 +25,12 @@ const TONES: Record<NotificationCategory, Note[]> = {
   ],
   // Gentle high tick for a like.
   like: [{ freq: 1046.5, start: 0, dur: 0.1 }],
+  // Two-note upward "ping" for an @mention, so being tagged stands apart from
+  // a like or a message.
+  mention: [
+    { freq: 830.61, start: 0, dur: 0.1 },
+    { freq: 1244.51, start: 0.09, dur: 0.16 },
+  ],
 };
 
 let ctx: AudioContext | null = null;

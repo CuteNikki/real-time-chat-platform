@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
@@ -26,7 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { MentionTextarea } from '@/components/user/mention-textarea';
 import { UserAvatar } from '@/components/user/user-avatar';
 
 type Profile = {
@@ -51,6 +52,7 @@ function normalizeTag(raw: string) {
 
 export function ProfileSettings({ profile }: { profile: Profile }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(profile.name);
@@ -65,17 +67,17 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
   const [available, setAvailable] = useState<boolean | null>(null);
 
   function addTag(raw: string) {
-    const t = normalizeTag(raw);
-    if (!t) return;
-    if (interests.includes(t)) {
+    const normalized = normalizeTag(raw);
+    if (!normalized) return;
+    if (interests.includes(normalized)) {
       setTagDraft('');
       return;
     }
     if (interests.length >= MAX_INTERESTS) {
-      toast.error(`You can add up to ${MAX_INTERESTS} interests`);
+      toast.error(t('settings.profile.maxInterests', { max: MAX_INTERESTS }));
       return;
     }
-    setInterests((prev) => [...prev, t]);
+    setInterests((prev) => [...prev, normalized]);
     setTagDraft('');
   }
 
@@ -120,7 +122,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast.error('Please choose an image file');
+      toast.error(t('settings.profile.chooseImage'));
       return;
     }
     setUploading(true);
@@ -132,7 +134,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
       const data = await res.json();
       setImage(data.url);
     } catch {
-      toast.error('Could not upload image');
+      toast.error(t('settings.profile.uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -141,13 +143,11 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
   async function save() {
     // Username is required and always present — never let it be cleared.
     if (!/^[a-z0-9_]{3,20}$/.test(username.trim().toLowerCase())) {
-      toast.error(
-        'Username must be 3–20 characters: letters, numbers, underscores',
-      );
+      toast.error(t('settings.profile.usernameRule'));
       return;
     }
     if (usernameChanged && available === false) {
-      toast.error("That username isn't available");
+      toast.error(t('settings.profile.usernameUnavailable'));
       return;
     }
     setSaving(true);
@@ -164,10 +164,12 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
       });
       await updateInterests(finalInterests);
       setTagDraft('');
-      toast.success('Profile updated');
+      toast.success(t('settings.profile.updated'));
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not save');
+      toast.error(
+        err instanceof Error ? err.message : t('settings.profile.couldNotSave'),
+      );
     } finally {
       setSaving(false);
     }
@@ -236,7 +238,9 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
             onClick={() => fileRef.current?.click()}
           >
             <CameraIcon className='shrink-0' aria-hidden />
-            {image ? 'Change' : 'Upload'}
+            {image
+              ? t('settings.profile.change')
+              : t('settings.profile.upload')}
           </Button>
           {image ? (
             <Button
@@ -248,7 +252,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
               }}
             >
               <Trash2 className='shrink-0' aria-hidden />
-              Remove
+              {t('settings.profile.remove')}
             </Button>
           ) : null}
         </div>
@@ -256,7 +260,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
 
       {/* Display name */}
       <div className='space-y-2'>
-        <Label htmlFor='name'>Display Name</Label>
+        <Label htmlFor='name'>{t('settings.profile.displayName')}</Label>
         <Input
           id='name'
           value={name}
@@ -267,7 +271,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
 
       {/* Username */}
       <div className='space-y-2'>
-        <Label htmlFor='username'>Username</Label>
+        <Label htmlFor='username'>{t('settings.profile.username')}</Label>
         <div className='relative'>
           <span className='text-muted-foreground pointer-events-none absolute top-1/2 left-2 -translate-y-1/2'>
             @
@@ -309,19 +313,19 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
           )}
         >
           {available === false
-            ? 'That username is invalid or taken!'
-            : '3–20 characters. Letters, numbers, and underscores only.'}
+            ? t('settings.profile.usernameInvalid')
+            : t('settings.profile.usernameHint')}
         </p>
       </div>
 
       {/* Bio */}
       <div className='space-y-2'>
-        <Label htmlFor='bio'>Bio</Label>
-        <Textarea
+        <Label htmlFor='bio'>{t('settings.profile.bio')}</Label>
+        <MentionTextarea
           id='bio'
           value={bio}
-          onChange={(e) => setBio(e.target.value)}
-          placeholder='Tell people a bit about yourself'
+          onValueChange={setBio}
+          placeholder={t('settings.profile.bioPlaceholder')}
           className='max-h-24 resize-none'
           maxLength={300}
         />
@@ -332,7 +336,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
 
       {/* Interests */}
       <div className='space-y-2'>
-        <Label htmlFor='interests'>Interests</Label>
+        <Label htmlFor='interests'>{t('settings.profile.interests')}</Label>
         <div className='border-input focus-within:border-ring focus-within:ring-ring/50 flex flex-wrap items-center gap-1.5 rounded-lg border bg-transparent p-2 focus-within:ring-3'>
           {interests.map((tag) => (
             <Badge
@@ -347,7 +351,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
                 size='icon-xs'
                 className='cursor-pointer'
                 onClick={() => removeTag(tag)}
-                aria-label={`Remove ${tag}`}
+                aria-label={t('settings.profile.removeTag', { tag })}
               >
                 <XIcon className='shrink-0' aria-hidden />
               </Button>
@@ -360,7 +364,9 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
             onKeyDown={onTagKeyDown}
             onBlur={() => tagDraft.trim() && addTag(tagDraft)}
             placeholder={
-              interests.length ? 'Add another…' : 'e.g. music, hiking, gaming'
+              interests.length
+                ? t('settings.profile.addAnother')
+                : t('settings.profile.interestsPlaceholder')
             }
             className='placeholder:text-muted-foreground min-w-32 flex-1 bg-transparent text-sm outline-none'
             maxLength={30}
@@ -369,8 +375,7 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
           />
         </div>
         <p className='text-muted-foreground text-xs'>
-          Press Enter or comma to add. Up to {MAX_INTERESTS}. Shared interests
-          help us match you.
+          {t('settings.profile.interestsHint', { max: MAX_INTERESTS })}
         </p>
       </div>
 
@@ -379,12 +384,12 @@ export function ProfileSettings({ profile }: { profile: Profile }) {
           {saving ? (
             <>
               <Loader2 className='shrink-0 animate-spin' aria-hidden />
-              Saving...
+              {t('settings.profile.saving')}
             </>
           ) : (
             <>
               <SaveIcon className='shrink-0' aria-hidden />
-              Save
+              {t('settings.profile.save')}
             </>
           )}
         </Button>

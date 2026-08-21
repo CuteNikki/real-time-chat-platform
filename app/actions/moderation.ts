@@ -8,33 +8,41 @@ import {
   eq,
   inArray,
   isNull,
+  lt,
+  ne,
   or,
   sql,
 } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
+import { tombstoneMessage } from '@/app/actions/chat';
 import { db } from '@/lib/db';
 import {
   ban,
   bannedIp,
+  chat,
   chatParticipant,
   interest,
   invite,
   message,
   notification,
   post,
+  postHashtag,
   postLike,
   randomQueue,
   report,
   session,
   user,
 } from '@/lib/db/schema';
-import { newId } from '@/lib/id';
-import { normalizeRole, type Role } from '@/lib/roles';
+import { generateUsername, newId } from '@/lib/id';
+import { MODERATION_USERS_PAGE_SIZE } from '@/lib/pagination';
+import { atLeast, normalizeRole, type Role } from '@/lib/roles';
 import { requireRole } from '@/lib/roles-server';
 import { getCurrentUser } from '@/lib/session';
+import { sendSystemDM } from '@/lib/system-messages';
+import { SYSTEM_USER_ID } from '@/lib/system-user';
 
-export type AdminUserRow = {
+export type ModerationUserRow = {
   id: string;
   name: string;
   username: string | null;
@@ -44,6 +52,16 @@ export type AdminUserRow = {
   isSelf: boolean;
   isBanned: boolean;
   banExpiresAt: string | null;
+};
+
+// How many users a single moderation page shows. The dashboard pages through
+// the full list rather than loading everyone at once (see
+// MODERATION_USERS_PAGE_SIZE).
+export type ModerationUserPage = {
+  users: ModerationUserRow[];
+  total: number;
+  page: number;
+  pageSize: number;
 };
 
 export type BanHistoryEntry = {
@@ -65,19 +83,39 @@ export type BanHistoryEntry = {
   active: boolean;
 };
 
-// List users for the admin panel, optionally filtered by a search query.
-export async function listUsersForAdmin(query = ''): Promise<AdminUserRow[]> {
+// List users for the moderation panel, optionally filtered by a search query
+// and paged (MODERATION_USERS_PAGE_SIZE per page). Returns the page's rows plus
+// the total matching count so the UI can render pager controls.
+export async function listUsersForModeration(
+  query = '',
+  page = 1,
+): Promise<ModerationUserPage> {
   await requireRole('MODERATOR');
   const me = await getCurrentUser();
 
   const q = query.trim().toLowerCase();
+  // Always hide the built-in System account — it's an automated actor, not a
+  // moderatable person.
+  const notSystem = ne(user.id, SYSTEM_USER_ID);
   const where = q
-    ? or(
-        sql`lower(${user.name}) like ${'%' + q + '%'}`,
-        sql`lower(${user.username}) like ${'%' + q + '%'}`,
-        sql`lower(${user.email}) like ${'%' + q + '%'}`,
+    ? and(
+        notSystem,
+        or(
+          sql`lower(${user.name}) like ${'%' + q + '%'}`,
+          sql`lower(${user.username}) like ${'%' + q + '%'}`,
+          sql`lower(${user.email}) like ${'%' + q + '%'}`,
+        ),
       )
-    : undefined;
+    : notSystem;
+
+  const pageSize = MODERATION_USERS_PAGE_SIZE;
+  const safePage = Math.max(1, Math.floor(page) || 1);
+  const offset = (safePage - 1) * pageSize;
+
+  const [{ value: total }] = await db
+    .select({ value: count() })
+    .from(user)
+    .where(where);
 
   const rows = await db
     .select({
@@ -93,19 +131,25 @@ export async function listUsersForAdmin(query = ''): Promise<AdminUserRow[]> {
     .from(user)
     .where(where)
     .orderBy(desc(user.createdAt))
-    .limit(100);
+    .limit(pageSize)
+    .offset(offset);
 
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    username: r.username,
-    email: r.email,
-    image: r.image,
-    role: normalizeRole(r.role),
-    isSelf: r.id === me.id,
-    isBanned: r.isBanned,
-    banExpiresAt: r.banExpiresAt ? r.banExpiresAt.toISOString() : null,
-  }));
+  return {
+    users: rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      username: r.username,
+      email: r.email,
+      image: r.image,
+      role: normalizeRole(r.role),
+      isSelf: r.id === me.id,
+      isBanned: r.isBanned,
+      banExpiresAt: r.banExpiresAt ? r.banExpiresAt.toISOString() : null,
+    })),
+    total: Number(total),
+    page: safePage,
+    pageSize,
+  };
 }
 
 // Change a user's role. Admin-only. Prevents demoting the last remaining admin.
@@ -136,7 +180,7 @@ export async function setUserRole(targetUserId: string, role: Role) {
   }
 
   await db.update(user).set({ role }).where(eq(user.id, targetUserId));
-  revalidatePath('/app/admin');
+  revalidatePath('/app/dashboard');
   return { ok: true, role, self: targetUserId === me.id };
 }
 
@@ -145,7 +189,7 @@ export async function setUserRole(targetUserId: string, role: Role) {
 // (prevents lockout), and no one may act on themselves.
 async function loadModerationTarget(
   targetUserId: string,
-  action: 'ban' | 'delete',
+  action: 'ban' | 'delete' | 'reset',
 ) {
   const actorRole = await requireRole(
     action === 'delete' ? 'ADMIN' : 'MODERATOR',
@@ -165,7 +209,7 @@ async function loadModerationTarget(
 
   const targetRole = normalizeRole(target.role);
   if (targetRole === 'ADMIN') {
-    throw new Error('Admins cannot be banned or deleted');
+    throw new Error('Admins cannot be moderated');
   }
   if (actorRole !== 'ADMIN' && targetRole !== 'MEMBER') {
     throw new Error('Moderators can only moderate members');
@@ -250,7 +294,7 @@ export async function banUser(
   // Force immediate logout by clearing the target's sessions.
   await db.delete(session).where(eq(session.userId, targetUserId));
 
-  revalidatePath('/app/admin');
+  revalidatePath('/app/dashboard');
   return { ok: true, ipBanned: Boolean(opts.banIp && capturedIp) };
 }
 
@@ -288,7 +332,7 @@ export async function unbanUser(
     .set({ isBanned: false, banExpiresAt: null })
     .where(eq(user.id, targetUserId));
 
-  revalidatePath('/app/admin');
+  revalidatePath('/app/dashboard');
   return { ok: true };
 }
 
@@ -303,7 +347,7 @@ export async function liftIpBan(
     .update(bannedIp)
     .set({ liftedAt: new Date(), liftedById: me.id, liftReason: reason })
     .where(eq(bannedIp.id, ipBanId));
-  revalidatePath('/app/admin');
+  revalidatePath('/app/dashboard');
   return { ok: true };
 }
 
@@ -341,7 +385,7 @@ export async function deleteUser(targetUserId: string) {
     .delete(notification)
     .where(
       or(
-        eq(notification.userId, targetUserId),
+        eq(notification.recipientId, targetUserId),
         eq(notification.actorId, targetUserId),
       ),
     );
@@ -362,11 +406,262 @@ export async function deleteUser(targetUserId: string) {
   // Finally the user; session + account cascade on FK.
   await db.delete(user).where(eq(user.id, targetUserId));
 
-  revalidatePath('/app/admin');
+  revalidatePath('/app/dashboard');
   return { ok: true };
 }
 
-// Full ban history for a user: account bans + IP bans, newest first. Moderators+ only.
+// Which profile fields a moderator may blank out. `name` and `username` are
+// NOT NULL in the schema, so they're reset to safe placeholders rather than
+// cleared; `image` and `bio` are nullable and set to null; `interests` clears
+// the tag rows; `posts` deletes every post the user has made (and its likes).
+export type ResetProfileFields = {
+  name?: boolean;
+  username?: boolean;
+  image?: boolean;
+  bio?: boolean;
+  interests?: boolean;
+  posts?: boolean;
+};
+
+// Blank a target user's inappropriate profile content. Moderators may reset
+// members; admins may also reset moderators. Admins are never resettable and no
+// one may reset themselves (guarded in loadModerationTarget). Returns the new
+// name/username so the client can reflect the change without a refetch.
+export async function resetUserProfile(
+  targetUserId: string,
+  fields: ResetProfileFields,
+) {
+  await loadModerationTarget(targetUserId, 'reset');
+
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  let newName: string | null = null;
+  let newUsername: string | null = null;
+
+  if (fields.name) {
+    newName = 'Removed User';
+    updates.name = newName;
+  }
+  if (fields.username) {
+    // Generate a fresh placeholder handle and make sure it isn't already taken.
+    let candidate = generateUsername();
+    for (let i = 0; i < 5; i++) {
+      const [taken] = await db
+        .select({ id: user.id })
+        .from(user)
+        .where(eq(user.username, candidate))
+        .limit(1);
+      if (!taken) break;
+      candidate = generateUsername();
+    }
+    newUsername = candidate;
+    updates.username = candidate;
+  }
+  if (fields.image) updates.image = null;
+  if (fields.bio) updates.bio = null;
+
+  // Nothing to do if no fields were selected (interests handled separately).
+  const hasColumnUpdates = Object.keys(updates).length > 1;
+  if (hasColumnUpdates) {
+    await db.update(user).set(updates).where(eq(user.id, targetUserId));
+  }
+
+  if (fields.interests) {
+    await db.delete(interest).where(eq(interest.userId, targetUserId));
+  }
+
+  // Soft-delete every post they've made. Mirrors moderatorDeletePost: the rows
+  // (and their likes) are retained for 30 days for moderation, then purged.
+  let postsDeleted = 0;
+  if (fields.posts) {
+    const ownPosts = await db
+      .select({ id: post.id })
+      .from(post)
+      .where(and(eq(post.userId, targetUserId), isNull(post.deletedAt)));
+    const ownPostIds = ownPosts.map((p) => p.id);
+    if (ownPostIds.length > 0) {
+      await db
+        .update(post)
+        .set({ deletedAt: new Date() })
+        .where(inArray(post.id, ownPostIds));
+      revalidatePath('/app/feed');
+    }
+    postsDeleted = ownPostIds.length;
+  }
+
+  revalidatePath('/app/dashboard');
+  revalidatePath('/app/u/[username]', 'page');
+
+  // Let the user know their profile was moderated (via the System account,
+  // which also raises the normal message notification).
+  void sendSystemDM(
+    targetUserId,
+    { kind: 'PROFILE_RESET' },
+    'A moderator reset parts of your profile for violating our community guidelines.',
+  );
+
+  return { ok: true, name: newName, username: newUsername, postsDeleted };
+}
+
+// Delete any user's post as a moderator. You can remove posts from users at or
+// below your own role: moderators cover members + moderators, admins cover
+// everyone (including other admins). A moderator can never delete an admin's
+// post. Owners delete their own posts through the normal deletePost action.
+export async function moderatorDeletePost(postId: string) {
+  const actorRole = await requireRole('MODERATOR');
+  const me = await getCurrentUser();
+
+  const [row] = await db
+    .select({ authorId: post.userId, authorRole: user.role })
+    .from(post)
+    .innerJoin(user, eq(user.id, post.userId))
+    .where(and(eq(post.id, postId), isNull(post.deletedAt)))
+    .limit(1);
+  if (!row) throw new Error('Post not found');
+
+  // Own posts are always removable here; otherwise the author must not outrank
+  // the actor. The only rank above a moderator is admin, so this reads as
+  // "moderators can't delete an admin's post".
+  if (
+    row.authorId !== me.id &&
+    !atLeast(actorRole, normalizeRole(row.authorRole))
+  ) {
+    throw new Error("Only an admin can delete an admin's post");
+  }
+
+  // Soft-delete: hide the post but retain the row (and its likes/hashtags) for
+  // 30 days so a report against it stays verifiable. A background purge
+  // (purgeExpiredContent) hard-removes it past the window.
+  await db
+    .update(post)
+    .set({ deletedAt: new Date() })
+    .where(eq(post.id, postId));
+
+  // Notify the author their post was removed (unless a moderator removed their
+  // own post). Fires via the System account, which also raises the normal
+  // message notification.
+  if (row.authorId !== me.id) {
+    void sendSystemDM(
+      row.authorId,
+      { kind: 'POST_REMOVED' },
+      'A moderator removed one of your posts for violating our community guidelines.',
+    );
+  }
+
+  revalidatePath('/app/feed');
+  revalidatePath('/app/u/[username]', 'page');
+  return { ok: true };
+}
+
+// Delete any user's chat message as a moderator, mirroring moderatorDeletePost's
+// rank rules: you can remove messages from users at or below your own role, and
+// a moderator can never delete an admin's message. The message is soft-deleted
+// (content retained for the 30-day window) and the tombstone is broadcast so it
+// vanishes from open clients. Returns the message's chatId for the caller.
+export async function moderatorDeleteMessage(messageId: string) {
+  const actorRole = await requireRole('MODERATOR');
+  const me = await getCurrentUser();
+
+  const [row] = await db
+    .select({
+      chatId: message.chatId,
+      authorId: message.senderId,
+      authorRole: user.role,
+      deletedAt: message.deletedAt,
+    })
+    .from(message)
+    .innerJoin(user, eq(user.id, message.senderId))
+    .where(eq(message.id, messageId))
+    .limit(1);
+  if (!row) throw new Error('Message not found');
+
+  // Own messages are always removable here; otherwise the author must not
+  // outrank the actor ("moderators can't delete an admin's message").
+  if (
+    row.authorId !== me.id &&
+    !atLeast(actorRole, normalizeRole(row.authorRole))
+  ) {
+    throw new Error("Only an admin can delete an admin's message");
+  }
+
+  // Soft-delete + broadcast the masked tombstone via the chat presenter.
+  await tombstoneMessage(row.chatId, messageId);
+
+  // Notify the author their message was removed (unless it was their own).
+  if (row.authorId !== me.id) {
+    void sendSystemDM(
+      row.authorId,
+      { kind: 'MESSAGE_REMOVED' },
+      'A moderator removed one of your messages for violating our community guidelines.',
+    );
+  }
+
+  return { ok: true, chatId: row.chatId };
+}
+
+// How long removed content is retained for moderation before it's hard-purged.
+const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Hard-remove content that has been soft-deleted longer than the 30-day
+// retention window. Admin-only. This is the back half of the retention policy:
+// deletePost / moderatorDeletePost / deleteMessage / removeFriend only stamp a
+// tombstone; this permanently erases anything past the cutoff. Safe to run
+// repeatedly (e.g. from a cron) — it only ever touches already-expired rows.
+export async function purgeExpiredContent() {
+  await requireRole('ADMIN');
+  const cutoff = new Date(Date.now() - RETENTION_MS);
+
+  // --- Posts past the window: drop the post + its likes + its hashtags. ---
+  const expiredPosts = await db
+    .select({ id: post.id })
+    .from(post)
+    .where(and(sql`${post.deletedAt} is not null`, lt(post.deletedAt, cutoff)));
+  const expiredPostIds = expiredPosts.map((p) => p.id);
+  if (expiredPostIds.length > 0) {
+    await db.delete(postLike).where(inArray(postLike.postId, expiredPostIds));
+    await db
+      .delete(postHashtag)
+      .where(inArray(postHashtag.postId, expiredPostIds));
+    await db.delete(post).where(inArray(post.id, expiredPostIds));
+  }
+
+  // --- Whole chats past the window (set when two people unfriend): drop every
+  // message, participant row, and notification tied to the chat, then the chat. ---
+  const expiredChats = await db
+    .select({ id: chat.id })
+    .from(chat)
+    .where(and(sql`${chat.deletedAt} is not null`, lt(chat.deletedAt, cutoff)));
+  const expiredChatIds = expiredChats.map((c) => c.id);
+  if (expiredChatIds.length > 0) {
+    await db.delete(message).where(inArray(message.chatId, expiredChatIds));
+    await db
+      .delete(chatParticipant)
+      .where(inArray(chatParticipant.chatId, expiredChatIds));
+    await db
+      .delete(notification)
+      .where(inArray(notification.targetId, expiredChatIds));
+    await db.delete(chat).where(inArray(chat.id, expiredChatIds));
+  }
+
+  // --- Individual soft-deleted messages in still-live chats: the row stays
+  // (ordering/replies depend on it) but its retained content is finally erased.
+  // Messages in the chats purged above are already gone, so this only reaches
+  // tombstoned messages whose chat is still active. ---
+  await db
+    .update(message)
+    .set({ content: null, imageUrl: null })
+    .where(
+      and(
+        sql`${message.deletedAt} is not null`,
+        lt(message.deletedAt, cutoff),
+      ),
+    );
+
+  return {
+    ok: true,
+    postsPurged: expiredPostIds.length,
+    chatsPurged: expiredChatIds.length,
+  };
+}
 export async function getBanHistory(
   targetUserId: string,
 ): Promise<BanHistoryEntry[]> {
@@ -474,6 +769,6 @@ export async function deleteBanHistoryEntry(
     await db.delete(ban).where(eq(ban.id, entryID));
   }
 
-  revalidatePath('/app/admin');
+  revalidatePath('/app/dashboard');
   return { ok: true };
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { chatChannel } from '@/lib/pusher/channels';
-import { getPusherClient } from '@/lib/pusher/client';
+import { acquireChannel, releaseChannel } from '@/lib/pusher/client';
 import { useEffect, useState } from 'react';
 
 export type RoomMember = {
@@ -12,9 +12,10 @@ export type RoomMember = {
 };
 
 // Reads the live presence roster for a room's channel. Names come from the
-// `user_info` payload set in the Pusher auth route. This hook binds to the
-// shared channel but never unsubscribes — the message subscription in
-// useChat owns the channel lifecycle for the active room.
+// `user_info` payload set in the Pusher auth route. The channel is shared with
+// useChat's message stream via reference-counted acquire/release, so it stays
+// alive as long as either hook holds it — no consumer can tear it down from
+// under the other.
 export function useRoomMembers(chatId: string | null): RoomMember[] {
   const [members, setMembers] = useState<RoomMember[]>([]);
 
@@ -23,8 +24,7 @@ export function useRoomMembers(chatId: string | null): RoomMember[] {
       setMembers([]);
       return;
     }
-    const pusher = getPusherClient();
-    const channel = pusher.subscribe(chatChannel(chatId));
+    const channel = acquireChannel(chatChannel(chatId));
 
     const read = () => {
       // @ts-expect-error `members` only exists on presence channels
@@ -61,6 +61,7 @@ export function useRoomMembers(chatId: string | null): RoomMember[] {
       channel.unbind('pusher:subscription_succeeded', read);
       channel.unbind('pusher:member_added', read);
       channel.unbind('pusher:member_removed', read);
+      releaseChannel(chatChannel(chatId));
     };
   }, [chatId]);
 

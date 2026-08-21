@@ -1,9 +1,13 @@
+import { cache } from 'react';
+
 import { auth } from '@/lib/auth';
 import { headers } from 'next/headers';
 
-export async function getSession() {
+// Memoized per request so the several getCurrentUser/getUserId callers in one
+// render or action share a single session lookup instead of repeating it.
+export const getSession = cache(async () => {
   return auth.api.getSession({ headers: await headers() });
-}
+});
 
 export async function getUserId() {
   const session = await getSession();

@@ -1,3 +1,7 @@
+'use client';
+
+import { useTranslation } from 'react-i18next';
+
 import { cn } from '@/lib/utils';
 
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +15,7 @@ export function InterestTags({
   className?: string;
   max?: number;
 }) {
+  const { t } = useTranslation();
   if (!interests.length) return null;
   const shown = max ? interests.slice(0, max) : interests;
   const extra = max ? interests.length - shown.length : 0;
@@ -26,7 +31,9 @@ export function InterestTags({
       ))}
       {extra > 0 ? (
         <li>
-          <Badge variant='outline'>+{extra} more</Badge>
+          <Badge variant='outline'>
+            {t('profile.moreInterests', { count: extra })}
+          </Badge>
         </li>
       ) : null}
     </ul>

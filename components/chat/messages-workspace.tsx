@@ -3,15 +3,19 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
   ArrowLeft,
   Eraser,
+  Flag,
   MessageCircleIcon,
   MoreVertical,
+  Phone,
   Search,
   UserMinus,
+  Video,
 } from 'lucide-react';
 
 import { clearChat, getMessages } from '@/app/actions/chat';
@@ -21,7 +25,9 @@ import { removeFriend } from '@/app/actions/invites';
 import type { ChatMessage } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
+import { useCall } from '@/components/call/call-provider';
 import { ChatRoom } from '@/components/chat/chat-room';
+import { ReportDialog } from '@/components/report-dialog';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -30,6 +36,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { UserAvatar } from '@/components/user/user-avatar';
 import { UserPreviewDialog } from '@/components/user/user-preview';
@@ -49,6 +56,8 @@ export function MessagesWorkspace({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { startCall } = useCall();
+  const { t } = useTranslation();
 
   // Conversations kept in local state so we can drop one instantly on unfriend.
   const [convos, setConvos] = useState(conversations);
@@ -68,6 +77,7 @@ export function MessagesWorkspace({
   const [query, setQuery] = useState('');
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
   const [menuBusy, setMenuBusy] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   // Keep the URL in sync so refresh/deep-link works.
   useEffect(() => {
@@ -125,9 +135,11 @@ export function MessagesWorkspace({
             : c,
         ),
       );
-      toast.success('Chat cleared');
+      toast.success(t('messages.chatCleared'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not clear chat');
+      toast.error(
+        err instanceof Error ? err.message : t('messages.couldNotClear'),
+      );
     } finally {
       setMenuBusy(false);
     }
@@ -142,10 +154,10 @@ export function MessagesWorkspace({
       setConvos((cs) => cs.filter((c) => c.chatId !== active.chatId));
       setActiveId(null);
       router.replace('/app/messages', { scroll: false });
-      toast.success(`Removed ${removedName} and deleted your chat`);
+      toast.success(t('messages.removedFriend', { name: removedName }));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Could not remove friend',
+        err instanceof Error ? err.message : t('messages.couldNotRemoveFriend'),
       );
     } finally {
       setMenuBusy(false);
@@ -170,7 +182,7 @@ export function MessagesWorkspace({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder='Search conversations'
+              placeholder={t('messages.searchPlaceholder')}
               className='pl-9'
             />
           </div>
@@ -180,13 +192,13 @@ export function MessagesWorkspace({
           {filtered.length === 0 ? (
             <div className='p-6 text-center'>
               <p className='text-muted-foreground text-sm text-balance'>
-                No conversations yet. Add friends and start chatting.
+                {t('messages.noConversations')}
               </p>
               <Link
                 href='/app/friends'
                 className='text-primary mt-2 inline-block text-sm font-medium hover:underline'
               >
-                Find friends
+                {t('messages.findFriends')}
               </Link>
             </div>
           ) : (
@@ -214,8 +226,8 @@ export function MessagesWorkspace({
                         </p>
                         <p className='text-muted-foreground truncate text-xs'>
                           {c.lastMessage
-                            ? `${c.lastFromMe ? 'You: ' : ''}${c.lastMessage}`
-                            : 'No messages yet'}
+                            ? `${c.lastFromMe ? t('messages.youPrefix') : ''}${c.lastMessage}`
+                            : t('messages.noMessages')}
                         </p>
                       </div>
                     </button>
@@ -241,7 +253,7 @@ export function MessagesWorkspace({
                 type='button'
                 onClick={() => setActiveId(null)}
                 className='text-muted-foreground hover:text-foreground -ml-1 shrink-0 rounded-md p-1 sm:hidden'
-                aria-label='Back to conversations'
+                aria-label={t('messages.back')}
               >
                 <ArrowLeft className='size-5' aria-hidden />
               </button>
@@ -267,40 +279,90 @@ export function MessagesWorkspace({
                 </div>
               </button>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size='icon'
-                    variant='ghost'
-                    className='ml-auto shrink-0'
-                    disabled={menuBusy}
-                    aria-label='Conversation options'
-                  >
-                    <MoreVertical className='shrink-0' aria-hidden />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align='end'>
-                  <DropdownMenuItem onClick={handleClearChat}>
-                    <Eraser className='size-4' aria-hidden />
-                    Clear chat
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    variant='destructive'
-                    onClick={handleUnfriend}
-                  >
-                    <UserMinus className='size-4' aria-hidden />
-                    Unfriend
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className='ml-auto flex shrink-0 items-center gap-0.5'>
+                <Button
+                  size='icon'
+                  variant='ghost'
+                  onClick={() =>
+                    active.partnerId &&
+                    startCall(
+                      active.chatId,
+                      {
+                        id: active.partnerId,
+                        name: active.partnerName,
+                        image: active.partnerImage,
+                      },
+                      { video: false },
+                    )
+                  }
+                  disabled={!active.partnerId}
+                  aria-label={t('messages.startVoice')}
+                >
+                  <Phone className='shrink-0' aria-hidden />
+                </Button>
+                <Button
+                  size='icon'
+                  variant='ghost'
+                  onClick={() =>
+                    active.partnerId &&
+                    startCall(
+                      active.chatId,
+                      {
+                        id: active.partnerId,
+                        name: active.partnerName,
+                        image: active.partnerImage,
+                      },
+                      { video: true },
+                    )
+                  }
+                  disabled={!active.partnerId}
+                  aria-label={t('messages.startVideo')}
+                >
+                  <Video className='shrink-0' aria-hidden />
+                </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      size='icon'
+                      variant='ghost'
+                      className='shrink-0'
+                      disabled={menuBusy}
+                      aria-label={t('messages.options')}
+                    >
+                      <MoreVertical className='shrink-0' aria-hidden />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align='end'>
+                    <DropdownMenuItem onClick={handleClearChat}>
+                      <Eraser className='size-4' aria-hidden />
+                      {t('messages.clearChat')}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setReportOpen(true)}
+                      disabled={!active.partnerId}
+                    >
+                      <Flag className='size-4' aria-hidden />
+                      {t('messages.reportUser')}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      variant='destructive'
+                      onClick={handleUnfriend}
+                    >
+                      <UserMinus className='size-4' aria-hidden />
+                      {t('messages.unfriend')}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </header>
 
             <div className='min-h-0 flex-1'>
               {loading ? (
                 <div className='flex h-full items-center justify-center'>
                   <p className='text-muted-foreground text-sm'>
-                    Loading messages…
+                    {t('messages.loadingMessages')}
                   </p>
                 </div>
               ) : (
@@ -316,8 +378,9 @@ export function MessagesWorkspace({
                   notifyCategory='directMessage'
                   emptyState={
                     <p className='text-muted-foreground text-sm text-balance'>
-                      This is the start of your conversation with{' '}
-                      {active.partnerName}. Say hello!
+                      {t('messages.conversationStart', {
+                        name: active.partnerName,
+                      })}
                     </p>
                   }
                 />
@@ -325,28 +388,32 @@ export function MessagesWorkspace({
             </div>
           </>
         ) : (
-          <div className='flex h-full flex-col items-center justify-center gap-4 px-6 text-center'>
-            <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
-              <MessageCircleIcon
-                className='text-primary size-12 shrink-0'
-                aria-hidden
-              />
-            </div>
-            <div className='flex flex-col items-center gap-2'>
-              <span className='text-3xl font-semibold tracking-tight text-balance'>
-                Choose a Channel
-              </span>
-              <p className='text-muted-foreground max-w-sm text-balance'>
-                Select a channel from the left to jump into the conversation.
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={MessageCircleIcon}
+            title={t('messages.chooseTitle')}
+            description={t('messages.chooseDesc')}
+            className='h-full'
+          />
         )}
       </section>
 
       <UserPreviewDialog
         userId={previewUserId}
         onCloseAction={() => setPreviewUserId(null)}
+      />
+
+      <ReportDialog
+        open={reportOpen}
+        onOpenChange={setReportOpen}
+        target={
+          active?.partnerId
+            ? {
+                reportedUserId: active.partnerId,
+                name: active.partnerName,
+                chatId: active.chatId,
+              }
+            : null
+        }
       />
     </div>
   );

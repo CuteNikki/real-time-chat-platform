@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
 
 import { OrbitIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function AuthShell({
   title,
@@ -11,6 +14,8 @@ export function AuthShell({
   subtitle: string;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
+
   return (
     <main className='flex min-h-svh flex-col lg:flex-row'>
       {/* Brand panel */}
@@ -22,11 +27,10 @@ export function AuthShell({
 
         <div className='xs:px-4 relative z-10 hidden max-w-md lg:block'>
           <h2 className='text-3xl leading-tight font-semibold tracking-tight text-balance'>
-            Someone new is always one tap away.
+            {t('auth.brand.heading')}
           </h2>
           <p className='text-primary-foreground/80 mt-4 text-base leading-relaxed text-pretty'>
-            Get matched with a stranger, drop into a group room, or start a
-            private chat with a friend. Conversations happen in real time.
+            {t('auth.brand.body')}
           </p>
         </div>
 
@@ -40,7 +44,7 @@ export function AuthShell({
         />
 
         <p className='relative z-10 hidden text-sm lg:block'>
-          Real-time chat, powered by presence.
+          {t('auth.brand.tagline')}
         </p>
       </section>
 

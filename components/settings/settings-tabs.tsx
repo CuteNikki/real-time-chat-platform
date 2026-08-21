@@ -1,8 +1,15 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, type ReactNode } from 'react';
 
-import type { SettingsTab } from '@/lib/settings-tabs';
+import { motion, useReducedMotion } from 'motion/react';
+import { useTranslation } from 'react-i18next';
+
+import {
+  isSettingsTab,
+  normalizeSettingsTab,
+  type SettingsTab,
+} from '@/lib/settings-tabs';
 
 import { AccountSettings } from '@/components/settings/account';
 import { PreferenceSettings } from '@/components/settings/preferences';
@@ -27,55 +34,106 @@ export function SettingsTabs({
   profile: SettingsProfile;
   tab: SettingsTab;
 }) {
-  const router = useRouter();
+  const [active, setActive] = useState<SettingsTab>(tab);
+  const reduce = useReducedMotion();
+  const { t } = useTranslation();
+
+  // A real navigation (e.g. the nav's Settings link, or a shared ?tab= URL)
+  // re-renders the server component with a new tab; client switches use
+  // pushState below and leave this prop untouched, so they don't fight it.
+  useEffect(() => setActive(tab), [tab]);
+
+  // Browser back/forward: pushState URLs don't re-run the server component, so
+  // read the active tab straight off the URL when the history entry changes.
+  useEffect(() => {
+    function sync() {
+      setActive(
+        normalizeSettingsTab(
+          new URLSearchParams(window.location.search).get('tab'),
+        ),
+      );
+    }
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, []);
+
+  function selectTab(value: string) {
+    if (!isSettingsTab(value) || value === active) return;
+    setActive(value);
+    // Sync the URL without a server round-trip, so switching stays instant and
+    // animates entirely on the client.
+    window.history.pushState(null, '', `/app/settings?tab=${value}`);
+  }
 
   return (
-    <Tabs
-      value={tab}
-      onValueChange={(v) => {
-        router.push(`/app/settings/${v}`, { scroll: false });
-      }}
-      className='w-full'
-    >
-      <div className='relative sm:mx-0 pb-4'>
-        <div className='overflow-x-auto overflow-y-hidden scrollbar-none px-4 sm:overflow-visible sm:px-0'>
+    <Tabs value={active} onValueChange={selectTab} className='w-full'>
+      <div className='relative pb-4 sm:mx-0'>
+        <div className='scrollbar-none overflow-x-auto overflow-y-hidden px-4 sm:overflow-visible sm:px-0'>
           <TabsList className='w-max sm:w-fit'>
             <TabsTrigger value='profile' className='flex-none px-2'>
-              Profile
+              {t('settings.tabs.profile')}
             </TabsTrigger>
             <TabsTrigger value='account' className='flex-none px-2'>
-              Account
+              {t('settings.tabs.account')}
             </TabsTrigger>
             <TabsTrigger value='privacy' className='flex-none px-2'>
-              Privacy
+              {t('settings.tabs.privacy')}
             </TabsTrigger>
             <TabsTrigger value='preferences' className='flex-none px-2'>
-              Preferences
+              {t('settings.tabs.preferences')}
             </TabsTrigger>
           </TabsList>
         </div>
         <div
-          className='pointer-events-none absolute inset-y-0 left-0 w-4 bg-linear-to-r from-background to-transparent sm:hidden'
+          className='from-background pointer-events-none absolute inset-y-0 left-0 w-4 bg-linear-to-r to-transparent sm:hidden'
           aria-hidden
         />
         <div
-          className='pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l from-background to-transparent sm:hidden'
+          className='from-background pointer-events-none absolute inset-y-0 right-0 w-8 bg-linear-to-l to-transparent sm:hidden'
           aria-hidden
         />
       </div>
 
       <TabsContent value='profile'>
-        <ProfileSettings profile={profile} />
+        <SettingsPanel reduce={reduce}>
+          <ProfileSettings profile={profile} />
+        </SettingsPanel>
       </TabsContent>
       <TabsContent value='account'>
-        <AccountSettings />
+        <SettingsPanel reduce={reduce}>
+          <AccountSettings />
+        </SettingsPanel>
       </TabsContent>
       <TabsContent value='privacy'>
-        <PrivacySettings initialFriendsOnlyPosts={profile.friendsOnlyPosts} />
+        <SettingsPanel reduce={reduce}>
+          <PrivacySettings initialFriendsOnlyPosts={profile.friendsOnlyPosts} />
+        </SettingsPanel>
       </TabsContent>
       <TabsContent value='preferences'>
-        <PreferenceSettings />
+        <SettingsPanel reduce={reduce}>
+          <PreferenceSettings />
+        </SettingsPanel>
       </TabsContent>
     </Tabs>
+  );
+}
+
+// Fades + lifts each tab panel in as it mounts. Radix unmounts inactive panels,
+// so this replays on every switch. Inert under prefers-reduced-motion.
+function SettingsPanel({
+  children,
+  reduce,
+}: {
+  children: ReactNode;
+  reduce: boolean | null;
+}) {
+  return (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {children}
+    </motion.div>
   );
 }

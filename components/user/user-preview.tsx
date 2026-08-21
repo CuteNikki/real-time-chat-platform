@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { Loader2Icon } from 'lucide-react';
@@ -12,6 +13,8 @@ import type { UserProfile } from '@/lib/types';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { FriendshipButtons } from '@/components/user/friendship-buttons';
 import { InterestTags } from '@/components/user/interest-tags';
+import { MentionText } from '@/components/user/mention-text';
+import { ReportUserButton } from '@/components/user/report-user-button';
 import { UserAvatar } from '@/components/user/user-avatar';
 
 export function UserPreviewDialog({
@@ -21,6 +24,7 @@ export function UserPreviewDialog({
   userId: string | null;
   onCloseAction: () => void;
 }) {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -36,7 +40,7 @@ export function UserPreviewDialog({
         if (active) setProfile(p);
       })
       .catch(() => {
-        if (active) toast.error('Could not load profile');
+        if (active) toast.error(t('profile.couldNotLoad'));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -52,7 +56,9 @@ export function UserPreviewDialog({
       onOpenChange={(open) => !open && onCloseAction()}
     >
       <DialogContent className='max-w-xs'>
-        <DialogTitle className='sr-only'>Profile Preview</DialogTitle>
+        <DialogTitle className='sr-only'>
+          {t('profile.previewTitle')}
+        </DialogTitle>
         {loading || !profile ? (
           <div className='flex h-44 items-center justify-center'>
             <Loader2Icon
@@ -77,7 +83,7 @@ export function UserPreviewDialog({
             </div>
             {profile.bio ? (
               <p className='text-muted-foreground line-clamp-4 text-sm whitespace-pre-wrap'>
-                {profile.bio}
+                <MentionText text={profile.bio} />
               </p>
             ) : null}
             <InterestTags
@@ -91,13 +97,17 @@ export function UserPreviewDialog({
                 <strong className='font-semibold tabular-nums'>
                   {profile.postCount}
                 </strong>{' '}
-                <span className='text-muted-foreground'>post(s)</span>
+                <span className='text-muted-foreground'>
+                  {t('profile.postsLabel', { count: profile.postCount })}
+                </span>
               </span>
               <span>
                 <strong className='font-semibold tabular-nums'>
                   {profile.friendCount}
                 </strong>{' '}
-                <span className='text-muted-foreground'>friend(s)</span>
+                <span className='text-muted-foreground'>
+                  {t('profile.friendsLabel', { count: profile.friendCount })}
+                </span>
               </span>
             </div>
 
@@ -106,6 +116,15 @@ export function UserPreviewDialog({
               onCloseAction={onCloseAction}
               showFullProfileButton
             />
+            {!profile.isSelf ? (
+              <ReportUserButton
+                reportedUserId={profile.id}
+                name={profile.name}
+                variant='ghost'
+                size='sm'
+                className='text-muted-foreground'
+              />
+            ) : null}
           </div>
         )}
       </DialogContent>

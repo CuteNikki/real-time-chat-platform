@@ -1,0 +1,872 @@
+{
+  "common": {
+    "appName": "Orbit",
+    "tagline": "Real-time chat, powered by presence.",
+    "loading": "Loading…",
+    "postCount_one": "{{count}} post",
+    "postCount_other": "{{count}} posts",
+    "actions": {
+      "save": "Save",
+      "saveChanges": "Save changes",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "confirm": "Confirm",
+      "back": "Back",
+      "backToHome": "Back to home",
+      "backToTop": "Back to top",
+      "openApp": "Open app",
+      "startNow": "Start Now",
+      "getStarted": "Get Started",
+      "signIn": "Sign in",
+      "retry": "Try again"
+    }
+  },
+  "language": {
+    "label": "Language",
+    "description": "Choose the language used across Orbit.",
+    "english": "English",
+    "german": "Deutsch"
+  },
+  "nav": {
+    "feed": "Feed",
+    "match": "Match",
+    "rooms": "Rooms",
+    "messages": "Messages",
+    "friends": "Friends",
+    "settings": "Settings",
+    "profile": "Profile",
+    "moderation": "Moderation",
+    "dashboard": "Dashboard",
+    "primary": "Primary",
+    "signOut": "Sign out"
+  },
+  "notFound": {
+    "badge": "Lost in orbit",
+    "title": "This page drifted off course",
+    "description": "The page you're looking for doesn't exist, moved, or never made it into orbit. Let's get you back to something real.",
+    "backHome": "Back to home",
+    "openApp": "Open Orbit"
+  },
+  "authNav": {
+    "signIn": "Sign in",
+    "getStarted": "Get Started",
+    "openApp": "Open app",
+    "loading": "Loading…"
+  },
+  "landing": {
+    "hero": {
+      "badge": "Live conversations, right now",
+      "titleBefore": "Talk to ",
+      "titleHighlight": "someone new",
+      "titleAfter": " in seconds",
+      "subtitle": "Orbit matches you with strangers, spins up group rooms and lets you chat with friends in private — all in real time, no profile required.",
+      "primaryCta": "Start Now",
+      "secondaryCta": "I have an account",
+      "free": "Free forever · no card, no catch",
+      "preview": {
+        "live": "3 people live in this room",
+        "msgMaya": "wait you're into film photography too?? 🎞️",
+        "msgYou": "no way, what do you shoot on",
+        "msgJon": "found my people in here lol"
+      }
+    },
+    "features": {
+      "eyebrow": "One app, three ways to talk",
+      "title": "Every kind of conversation, in real time",
+      "match": {
+        "title": "Random match",
+        "blurb": "Tap once and get paired one-on-one with someone who's up to talk right now. Skip anytime — nothing's saved when a random chat ends."
+      },
+      "rooms": {
+        "title": "Group rooms",
+        "blurb": "Drop into open rooms and chat with everyone at once. Live presence shows exactly who is in the room as it happens."
+      },
+      "private": {
+        "title": "Private chats",
+        "blurb": "Message friends one-on-one, share images, and keep the conversation just between the two of you."
+      },
+      "visuals": {
+        "matched": "matched",
+        "you": "You",
+        "stranger": "Stranger",
+        "matchMsg1": "hey! random question — cats or dogs 🐱🐶",
+        "matchMsg2": "cats, obviously. this is a test",
+        "roomName": "# late-night-talks",
+        "roomLive": "{{count}} live",
+        "roomMsgPriya": "anyone up for a movie rec?",
+        "roomMsgLeo": "the whole room is awake somehow 😅",
+        "roomMsgYou": "this is the best room fr",
+        "privateLabel": "Private · just the two of you",
+        "privateMsgSam": "sending the sunset from earlier 🌇",
+        "privateMsgYou": "okay that's unreal 😍"
+      }
+    },
+    "proof": {
+      "eyebrow": "Why Orbit",
+      "title": "Built to feel effortless",
+      "setup": {
+        "title": "Set up in seconds",
+        "body": "No lengthy profile, no swiping. Make an account and you are talking to someone new almost immediately."
+      },
+      "nothingSaved": {
+        "title": "Nothing saved",
+        "body": "When a random chat ends, it is gone for good — nothing from it is stored or resurfaced later."
+      },
+      "live": {
+        "title": "See who is live",
+        "body": "Real presence, not stale counters. Every room shows exactly who is connected as it changes."
+      },
+      "free": {
+        "title": "Free, no catch",
+        "body": "Matching, rooms and private messaging are all completely free. No card, no trial, no paywall."
+      }
+    },
+    "faq": {
+      "eyebrow": "Good to know",
+      "title": "Frequently asked questions",
+      "matching": {
+        "q": "How does random matching work?",
+        "a": "Hit \"Find a match\" and we pair you one-on-one with someone else looking to chat right now, prioritizing people who share your interests.\nYou can end the chat and find a new match anytime! Nothing from a random chat is saved once it ends."
+      },
+      "free": {
+        "q": "Is Orbit free to use?",
+        "a": "Yes! Creating an account, matching with strangers, joining rooms and messaging friends are all completely free features."
+      },
+      "notifications": {
+        "q": "Can I control which notifications I get?",
+        "a": "Yes. In 'Settings' > 'Preferences' you can turn popups and sounds on or off individually for friend requests, accepted requests, direct messages, room messages, and post likes. Plus set a master volume."
+      },
+      "reports": {
+        "q": "What happens if someone reports me or I report someone?",
+        "a": "Reports go to our moderation team for review. Accounts that violate our guidelines can be suspended for a set period or permanently.\nIf this happens to your account, you'll see the reason and duration.\nIf someone's made you uncomfortable, please use the report option!"
+      },
+      "delete": {
+        "q": "Can I delete my account and data?",
+        "a": "Yes, anytime! From 'Settings' > 'Account'. Deleting your account permanently removes your profile, posts, messages and friend connections - beware this can't be undone!"
+      }
+    },
+    "cta": {
+      "title": "Someone new is one tap away",
+      "subtitle": "No lengthy profile, no swiping. Just real-time conversation whenever you want it.",
+      "button": "Start Now"
+    },
+    "footer": {
+      "tagline": "Real-time chat, powered by presence.",
+      "groups": {
+        "company": "Company",
+        "socials": "Socials",
+        "legal": "Legal"
+      },
+      "links": {
+        "about": "About",
+        "careers": "Careers",
+        "discord": "Discord",
+        "instagram": "Instagram",
+        "twitter": "Twitter",
+        "privacy": "Privacy Policy",
+        "terms": "Terms & Conditions",
+        "imprint": "Imprint"
+      },
+      "rights": "© {{year}} Orbit · All rights reserved.",
+      "backToTop": "Back to top"
+    }
+  },
+  "auth": {
+    "brand": {
+      "heading": "Someone new is always one tap away.",
+      "body": "Get matched with a stranger, drop into a group room, or start a private chat with a friend. Conversations happen in real time.",
+      "tagline": "Real-time chat, powered by presence."
+    },
+    "signInPage": {
+      "title": "Welcome Back!",
+      "subtitle": "Sign in to jump back into the conversation."
+    },
+    "signUpPage": {
+      "title": "Create Your Account",
+      "subtitle": "Set up a profile and start meeting people in seconds."
+    },
+    "forgotPage": {
+      "title": "Reset Your Password",
+      "subtitle": "Enter your email and we'll send you a link to set a new password."
+    },
+    "resetPage": {
+      "title": "Set Your Password",
+      "subtitle": "Choose a strong password you don't use elsewhere."
+    },
+    "form": {
+      "displayName": "Display Name",
+      "displayNamePlaceholder": "What should people call you?",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "At least 8 characters",
+      "forgotPassword": "Forgot password?",
+      "pleaseWait": "Please wait…",
+      "createAccount": "Create account",
+      "signInButton": "Sign in",
+      "haveAccount": "Already have an account?",
+      "newHere": "New here?",
+      "signInLink": "Sign in",
+      "createLink": "Create an account",
+      "errCreate": "Could not create account",
+      "errInvalid": "Invalid email or password",
+      "errGeneric": "Something went wrong"
+    },
+    "forgot": {
+      "checkTitle": "Check your email",
+      "checkBody": "If an account exists for that address, a reset link is on its way.",
+      "backToSignIn": "Back to sign in",
+      "submit": "Reset Password",
+      "remembered": "Remembered it?",
+      "signInLink": "Sign in",
+      "error": "An error occurred"
+    },
+    "reset": {
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "confirmPlaceholder": "Re-enter your password",
+      "passwordPlaceholder": "At least 8 characters",
+      "mismatch": "Passwords do not match",
+      "invalidToken": "This reset link is invalid or has expired. Request a new one.",
+      "requestNew": "Request New Link",
+      "saving": "Saving…",
+      "submit": "Update Password",
+      "errReset": "Could not reset password",
+      "errGeneric": "Something went wrong"
+    },
+    "signOut": "Sign out"
+  },
+  "settings": {
+    "pageTitle": "Settings",
+    "pageDescription": "Manage your profile, account and preferences.",
+    "tabs": {
+      "profile": "Profile",
+      "account": "Account",
+      "privacy": "Privacy",
+      "preferences": "Preferences"
+    },
+    "profile": {
+      "change": "Change",
+      "upload": "Upload",
+      "remove": "Remove",
+      "displayName": "Display Name",
+      "username": "Username",
+      "usernameInvalid": "That username is invalid or taken!",
+      "usernameHint": "3–20 characters. Letters, numbers, and underscores only.",
+      "bio": "Bio",
+      "bioPlaceholder": "Tell people a bit about yourself",
+      "interests": "Interests",
+      "addAnother": "Add another…",
+      "interestsPlaceholder": "e.g. music, hiking, gaming",
+      "interestsHint": "Press Enter or comma to add. Up to {{max}}. Shared interests help us match you.",
+      "removeTag": "Remove {{tag}}",
+      "save": "Save",
+      "saving": "Saving…",
+      "maxInterests": "You can add up to {{max}} interests",
+      "chooseImage": "Please choose an image file",
+      "uploadFailed": "Could not upload image",
+      "usernameRule": "Username must be 3–20 characters: letters, numbers, underscores",
+      "usernameUnavailable": "That username isn't available",
+      "updated": "Profile updated",
+      "couldNotSave": "Could not save"
+    },
+    "account": {
+      "email": "Email",
+      "verifiedText": "has been verified",
+      "notVerifiedText": "not verified yet",
+      "sending": "Sending…",
+      "verifiedBtn": "Verified",
+      "resend": "Resend",
+      "sendingEmail": "Sending verification email…",
+      "emailSent": "Verification email sent! Check your inbox.",
+      "couldNotSendEmail": "Could not send email",
+      "somethingWrong": "Something went wrong",
+      "changePassword": "Change Password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmNewPassword": "Confirm new password",
+      "updating": "Updating…",
+      "update": "Update",
+      "pwMismatch": "New passwords do not match",
+      "updatingPassword": "Updating password…",
+      "passwordUpdated": "Password updated",
+      "couldNotChangePassword": "Could not change password",
+      "deleteTitle": "Delete Account",
+      "deleteDesc": "Permanently delete your account, profile, posts, and messages. This cannot be undone.",
+      "continue": "Continue",
+      "deleteDialogTitle": "Delete your account?",
+      "deleteConfirmPrefix": "This permanently removes your account and all associated data. Type",
+      "deleteConfirmSuffix": "in uppercase to confirm.",
+      "typeDeleteAria": "Type DELETE to confirm",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleting": "Deleting…",
+      "deletingAccount": "Deleting account…",
+      "accountDeleted": "Your account has been deleted!",
+      "couldNotDelete": "Could not delete account",
+      "couldNotDeleteBang": "Could not delete account!"
+    },
+    "privacy": {
+      "postsTitle": "Posts",
+      "onlyFriendsTitle": "Only friends can see your posts",
+      "onlyFriendsDesc": "When on, only accepted friends can view your profile posts. Everyone else sees a private notice instead.",
+      "friendsOnlyOn": "Only friends can see your posts now",
+      "friendsOnlyOff": "Your posts are public again",
+      "couldNotSave": "Could not save"
+    },
+    "preferences": {
+      "appearance": "Appearance",
+      "themePreference": "Theme Preference",
+      "themeDesc": "Select how Orbit appears to you",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System",
+      "loading": "Loading…",
+      "sound": "Sound",
+      "playSounds": "Play Notification Sounds",
+      "playSoundsDesc": "A short chime plays for enabled events",
+      "masterVolume": "Master Volume",
+      "events": "Events",
+      "configureTitle": "Configure Notification Settings",
+      "configureDesc": "Choose which events show a popup and which play a sound",
+      "popup": "Popup",
+      "soundLabel": "Sound",
+      "popupAria": "{{label}} popup",
+      "soundAria": "{{label}} sound",
+      "previewAria": "Preview {{label}} sound",
+      "test": "Test",
+      "language": "Language",
+      "languageDesc": "Choose the language used across Orbit.",
+      "categories": {
+        "friendRequest": {
+          "label": "Friend Requests",
+          "description": "When someone sends you a request"
+        },
+        "friendAccept": {
+          "label": "Request Accepted",
+          "description": "When someone accepts your request"
+        },
+        "directMessage": {
+          "label": "Direct Messages",
+          "description": "New messages in a private chat"
+        },
+        "roomMessage": {
+          "label": "Room Messages",
+          "description": "New messages in a group room"
+        },
+        "like": {
+          "label": "Post Likes",
+          "description": "When someone likes your post"
+        },
+        "mention": {
+          "label": "Mentions",
+          "description": "When someone @tags you in a post or bio"
+        }
+      }
+    }
+  },
+  "app": {
+    "feed": {
+      "title": "Feed",
+      "results_one": "{{count}} result",
+      "results_other": "{{count}} results",
+      "for": "for",
+      "in": "in",
+      "noMatchTitle": "No posts match your search",
+      "noMatchDesc": "Try different words or remove a tag to widen the search.",
+      "friendsEmptyTitle": "No posts from friends yet",
+      "friendsEmptyDesc": "Add friends to see their posts here, or share your first post above.",
+      "findFriends": "Find Friends",
+      "quietTitle": "Your feed is quiet",
+      "quietDesc": "No posts yet — be the first to share something above.",
+      "controls": {
+        "forYou": "For You",
+        "friends": "Friends",
+        "placeholderWithTags": "Add a tag or search…",
+        "placeholder": "Search posts or #tags…",
+        "searchAria": "Search posts and tags",
+        "removeTag": "Remove #{{tag}}"
+      }
+    },
+    "friends": {
+      "title": "Friends",
+      "description": "Find people by name, username, or shared interests, then send a request. Once accepted, you can DM each other.",
+      "searchPlaceholder": "Search by name, @username, or #interest",
+      "noUsersFound": "No users found for \"{{query}}\"",
+      "incoming": "Incoming requests ({{count}})",
+      "noIncoming": "You have no incoming requests.",
+      "outgoing": "Outgoing Requests ({{count}})",
+      "noOutgoing": "You have no outgoing friend requests. Search above to find people and send a request.",
+      "yourFriends": "Your friends ({{count}})",
+      "noFriends": "You have no friends yet. Search above to find people and send a request."
+    }
+  },
+  "banned": {
+    "metaTitle": "Account suspended",
+    "metaDescription": "Your access to this app has been restricted.",
+    "accessBlocked": "Access blocked",
+    "accountSuspended": "Your account is suspended",
+    "permanentNote": "This restriction is permanent.",
+    "tempNote": "Access will be restored automatically when the suspension ends.",
+    "reason": "Reason",
+    "duration": "Duration",
+    "suspendedUntil": "Suspended until",
+    "permanent": "Permanent",
+    "issued": "Issued",
+    "by": "by {{name}}",
+    "appeal": "If you believe this is a mistake, please contact support to appeal.",
+    "returnToSignIn": "Return to sign in"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "ariaCount": "Notifications, {{count}} unread",
+    "aria": "Notifications",
+    "clearAll": "Clear all",
+    "tabs": {
+      "requests": "Requests",
+      "messages": "Messages",
+      "likes": "Likes",
+      "mentions": "Mentions"
+    },
+    "empty": {
+      "requests": "No friend requests right now.",
+      "messages": "No new message notifications.",
+      "likes": "No likes on your posts yet.",
+      "mentions": "No mentions yet. You'll see @tags here."
+    },
+    "accept": "Accept",
+    "decline": "Decline",
+    "someone": "Someone",
+    "newMessage": "New message",
+    "deleteAria": "Delete notification",
+    "viewPost": "View post",
+    "postAlt": "Post",
+    "userFallback": "User",
+    "justNow": "just now",
+    "toastView": "View",
+    "toastOpen": "Open",
+    "nowFriends": "You're now friends with {{name}}",
+    "them": "them",
+    "requestDeclined": "Request declined",
+    "couldNotRespond": "Could not respond",
+    "actions": {
+      "friendRequest": "sent you a friend request",
+      "friendAccept": "accepted your friend request",
+      "like": "liked your post",
+      "mentionProfile": "tagged you in their profile",
+      "mentionPost": "tagged you in their post",
+      "roomMessage": "messaged {{room}}",
+      "directMessage": "sent you a message"
+    }
+  },
+  "post": {
+    "composer": {
+      "captionPlaceholder": "Write a caption...",
+      "chooseImage": "Please choose an image file",
+      "uploadFailed": "Could not upload image",
+      "needContent": "Add a photo or write something",
+      "posted": "Posted!",
+      "couldNotPost": "Could not post",
+      "selectedPreview": "Selected preview",
+      "removeImage": "Remove image",
+      "photo": "Photo",
+      "posting": "Posting...",
+      "post": "Post"
+    },
+    "card": {
+      "updated": "Post updated",
+      "couldNotUpdate": "Could not update post",
+      "deleted": "Post deleted",
+      "couldNotDelete": "Could not delete post",
+      "unknown": "Unknown",
+      "options": "Post options",
+      "editCaption": "Edit caption",
+      "reportPost": "Report post",
+      "deletePost": "Delete post",
+      "altWithCaption": "Post: {{caption}}",
+      "altImage": "Post image",
+      "cancel": "Cancel",
+      "save": "Save",
+      "like": "Like",
+      "unlike": "Unlike",
+      "seeWhoLiked": "See who liked this post ({{count}})",
+      "likes_one": "{{count}} like",
+      "likes_other": "{{count}} likes",
+      "noLikes": "No likes yet",
+      "deleteTitle": "Delete this post?",
+      "deleteDesc": "This permanently removes the post and its likes. This can't be undone.",
+      "delete": "Delete"
+    },
+    "grid": {
+      "lookingEmpty": "Looking empty",
+      "lookingEmptyDesc": "This user hasn't posted anything yet. Check back later!",
+      "newPost": "New Post",
+      "postAlt": "Post",
+      "postByAuthor": "Post by {{name}}"
+    },
+    "likers": {
+      "empty": "No likes yet."
+    }
+  },
+  "friendship": {
+    "unfriended": "Unfriended successfully",
+    "couldNotUnfriend": "Could not unfriend",
+    "requestCanceled": "Request canceled",
+    "couldNotCancel": "Could not cancel",
+    "nowFriends": "You and {{name}} are now friends",
+    "requestSent": "Friend request sent",
+    "couldNotSend": "Could not send request",
+    "requestDeclined": "Request declined",
+    "couldNotDecline": "Could not decline",
+    "viewFullProfile": "View Full Profile",
+    "message": "Message",
+    "removing": "Removing...",
+    "remove": "Remove",
+    "cancelling": "Cancelling...",
+    "pending": "Pending",
+    "cancel": "Cancel",
+    "loading": "Loading...",
+    "accept": "Accept",
+    "decline": "Decline",
+    "adding": "Adding...",
+    "addFriend": "Add Friend"
+  },
+  "report": {
+    "titleUser": "Report {{who}}",
+    "titlePost": "Report this post",
+    "titleMessage": "Report this message",
+    "descUser": "Flag {{who}} for our moderators to review.",
+    "descPostFrom": "Flag this post from {{who}} for our moderators to review.",
+    "descPost": "Flag this post for our moderators to review.",
+    "descMessageFrom": "Flag this message from {{who}} for our moderators to review.",
+    "descMessage": "Flag this message for our moderators to review.",
+    "outcome": "You'll get a reference code and a message with the outcome.",
+    "defaultUser": "user",
+    "defaultAccount": "this account",
+    "reasonLabel": "Reason (optional)",
+    "reasonPlaceholder": "Add any context that will help us review this report",
+    "cancel": "Cancel",
+    "submit": "Submit report",
+    "submitted": "Report submitted",
+    "reference": "Reference {{reference}} — our team will review it.",
+    "couldNotSubmit": "Could not submit report",
+    "button": "Report"
+  },
+  "profile": {
+    "admin": "Admin",
+    "moderator": "Moderator",
+    "postsLabel_one": "post",
+    "postsLabel_other": "posts",
+    "friendsLabel_one": "friend",
+    "friendsLabel_other": "friends",
+    "unauthorizedTitle": "Unauthorized",
+    "unauthorizedDesc": "You need to be friends with this user to view their posts.",
+    "moreInterests": "+{{count}} more",
+    "previewTitle": "Profile Preview",
+    "couldNotLoad": "Could not load profile"
+  },
+  "chat": {
+    "lightbox": {
+      "zoomOut": "Zoom out",
+      "zoomIn": "Zoom in",
+      "resetZoom": "Reset zoom",
+      "close": "Close"
+    },
+    "view": {
+      "chatEnded": "Chat ended",
+      "somethingWrong": "Something went wrong",
+      "disconnectedToast": "{{name}} disconnected",
+      "back": "Back",
+      "startVoice": "Start voice call",
+      "startVideo": "Start video call",
+      "options": "Chat options",
+      "ended": "Ended",
+      "viewProfile": "View Profile",
+      "reportUser": "Report User",
+      "endChat": "End Chat",
+      "disconnectedBanner": "{{name}} disconnected.",
+      "endedBanner": "This chat has ended.",
+      "findNewMatch": "Find a new match"
+    },
+    "room": {
+      "messageEmpty": "Message is empty",
+      "couldNotEdit": "Could not edit message",
+      "couldNotDelete": "Could not delete message",
+      "messageRemovedToast": "Message removed — the author was notified",
+      "couldNotRemove": "Could not remove message",
+      "onlyImages": "Only image files are allowed",
+      "imageTooLarge": "Image must be under 8MB",
+      "couldNotUpload": "Could not upload image",
+      "deleted": "This message was deleted",
+      "cancel": "Cancel",
+      "save": "Save",
+      "openImage": "Open image",
+      "sharedImage": "Shared image",
+      "edited": "(edited)",
+      "messageActions": "Message actions",
+      "reply": "Reply",
+      "edit": "Edit",
+      "delete": "Delete",
+      "report": "Report",
+      "removeMessage": "Remove message",
+      "viewProfileAria": "View {{name}}'s profile",
+      "replyingTo": "Replying to {{name}}",
+      "yourself": "yourself",
+      "cancelReply": "Cancel reply",
+      "pendingPreview": "Pending upload preview",
+      "removeImage": "Remove image",
+      "conversationEnded": "This conversation has ended.",
+      "attachImage": "Attach image",
+      "typePlaceholder": "Type a message…",
+      "sendMessage": "Send message",
+      "deletedMessage": "Deleted message",
+      "photo": "Photo",
+      "messageLabel": "Message",
+      "you": "You"
+    },
+    "system": {
+      "videoCall": "Video call",
+      "voiceCall": "Voice call",
+      "callCompleted": "{{noun}} · {{duration}}",
+      "callDeclined": "{{noun}} declined",
+      "missedVideo": "Missed video call",
+      "missedVoice": "Missed voice call",
+      "reportReceived": "Report received · {{reference}}",
+      "reportGuilty": "Report {{reference}} reviewed — action was taken",
+      "reportNoViolation": "Report {{reference}} reviewed — no violation found",
+      "profileReset": "A moderator reset your profile",
+      "postRemoved": "A moderator removed one of your posts",
+      "messageRemoved": "A moderator removed one of your messages"
+    }
+  },
+  "match": {
+    "matchedWith": "Matched with {{name}}!",
+    "couldNotStart": "Could not start matching. Try again.",
+    "findingTitle": "Finding Someone…",
+    "findingDesc": "Hang tight - we'll drop you into a chat the moment we find a match.",
+    "cancel": "Cancel",
+    "meetTitle": "Meet Someone New",
+    "meetDesc": "Tap below and we'll pair you one-on-one with another person who's ready to chat right now.",
+    "searching": "Searching…",
+    "findMatch": "Find a Match"
+  },
+  "call": {
+    "ringing": "Ringing…",
+    "incomingVideo": "Incoming video call",
+    "incoming": "Incoming call",
+    "connecting": "Connecting…",
+    "ended": "Call ended",
+    "muteMic": "Mute microphone",
+    "unmuteMic": "Unmute microphone",
+    "cameraOff": "Turn camera off",
+    "cameraOn": "Turn camera on",
+    "stopScreen": "Stop sharing screen",
+    "shareScreen": "Share screen",
+    "hangUp": "Hang up",
+    "unmuteSpeaker": "Unmute speaker",
+    "muteSpeaker": "Mute speaker",
+    "speakerVolume": "Speaker volume",
+    "collapse": "Collapse to picture-in-picture",
+    "expand": "Expand to full screen",
+    "decline": "Decline",
+    "accept": "Accept",
+    "close": "Close",
+    "reasons": {
+      "declined": "Call declined",
+      "unavailable": "Unavailable",
+      "connectionLost": "Connection lost",
+      "noAnswer": "No answer",
+      "connectionFailed": "Connection failed",
+      "missed": "Missed call",
+      "couldNotConnect": "Could not connect"
+    }
+  },
+  "messages": {
+    "chatCleared": "Chat cleared",
+    "couldNotClear": "Could not clear chat",
+    "removedFriend": "Removed {{name}} and deleted your chat",
+    "couldNotRemoveFriend": "Could not remove friend",
+    "searchPlaceholder": "Search conversations",
+    "noConversations": "No conversations yet. Add friends and start chatting.",
+    "findFriends": "Find friends",
+    "youPrefix": "You: ",
+    "noMessages": "No messages yet",
+    "back": "Back to conversations",
+    "startVoice": "Start voice call",
+    "startVideo": "Start video call",
+    "options": "Conversation options",
+    "clearChat": "Clear chat",
+    "reportUser": "Report user",
+    "unfriend": "Unfriend",
+    "loadingMessages": "Loading messages…",
+    "conversationStart": "This is the start of your conversation with {{name}}. Say hello!",
+    "chooseTitle": "Choose a conversation",
+    "chooseDesc": "Pick a conversation from the left to jump back in, or add friends to start a new one."
+  },
+  "rooms": {
+    "couldNotOpen": "Could not open channel",
+    "creating": "Creating #{{name}}…",
+    "created": "Created #{{name}}",
+    "couldNotCreate": "Could not create room",
+    "deleting": "Deleting #{{name}}…",
+    "deleted": "Deleted #{{name}}",
+    "couldNotDelete": "Could not delete room",
+    "channelFallback": "channel",
+    "channelTitleFallback": "Channel",
+    "noChannels": "No channels yet. Create the first one.",
+    "createChannel": "Create Channel",
+    "createDialogTitle": "Create a Channel",
+    "createDialogDesc": "Give it a name. Anyone can find and join it.",
+    "channelName": "Channel Name",
+    "channelPlaceholder": "e.g. late night talks",
+    "creatingBtn": "Creating…",
+    "createBtn": "Create",
+    "onlineInChat": "{{count}} online in this chat",
+    "chooseTitle": "Choose a channel",
+    "chooseDesc": "Select a channel from the left to jump into the conversation, or create your own.",
+    "back": "Back to channels",
+    "deleteChannelAria": "Delete channel",
+    "deleteTitle": "Delete Channel?",
+    "deleteDesc": "This permanently deletes the channel and all of its messages for everyone. This action cannot be undone.",
+    "cancel": "Cancel",
+    "deletingBtn": "Deleting…",
+    "deleteBtn": "Delete",
+    "noMessagesTitle": "No messages yet",
+    "noMessagesDesc": "Be the first to say something.",
+    "membersTitle": "Members in this Channel",
+    "membersDesc_one": "There's currently {{count}} member in {{name}}.",
+    "membersDesc_other": "There's currently {{count}} members in {{name}}.",
+    "membersDescNone": "There's currently no active room."
+  },
+  "moderation": {
+    "title": "Moderation",
+    "descAdmin": "Manage roles, ban or delete accounts, reset profiles, review reports, and moderation history.",
+    "descMod": "Ban members, reset profiles, review reports, and moderation history.",
+    "tabUsers": "Users",
+    "tabReports": "Reports",
+    "roles": {
+      "ADMIN": "Admin",
+      "MODERATOR": "Moderator",
+      "MEMBER": "Member"
+    },
+    "durations": {
+      "d1": "1 day",
+      "d7": "7 days",
+      "d30": "30 days",
+      "perm": "Permanent"
+    },
+    "couldNotLoadUsers": "Could not load users",
+    "updatingRole": "Updating {{name}}'s role…",
+    "roleUpdated": "{{name}} is now {{role}}",
+    "couldNotChangeRole": "Could not change role",
+    "liftingBan": "Lifting ban for {{name}}…",
+    "banLifted": "{{name}}'s ban was lifted",
+    "couldNotLiftBan": "Could not lift ban",
+    "searchUsersPlaceholder": "Search by name, username, or email",
+    "searchUsersAria": "Search users",
+    "noUsers": "No users found.",
+    "you": "(you)",
+    "banned": "Banned",
+    "manageUser": "Manage {{name}}",
+    "liftBanItem": "Lift ban",
+    "banUserItem": "Ban user",
+    "banHistoryItem": "Ban history",
+    "resetProfileItem": "Reset profile",
+    "changeRole": "Change role",
+    "deleteItem": "Delete",
+    "noUsersPager": "No users",
+    "range": "{{start}}–{{end}} of {{total}}",
+    "prev": "Prev",
+    "pageOf": "Page {{page}} of {{total}}",
+    "next": "Next",
+    "reset": {
+      "name": "Display name",
+      "nameHint": "Reset to “Removed User”",
+      "username": "Username",
+      "usernameHint": "Reset to a random handle",
+      "avatar": "Avatar",
+      "avatarHint": "Remove profile picture",
+      "bio": "Bio",
+      "bioHint": "Clear the bio text",
+      "interests": "Interests",
+      "interestsHint": "Remove all interest tags",
+      "posts": "All posts",
+      "postsHint": "Delete every post they’ve made",
+      "resetting": "Resetting {{name}}'s profile…",
+      "resetPosts_one": "Profile reset · {{count}} post deleted",
+      "resetPosts_other": "Profile reset · {{count}} posts deleted",
+      "resetDone": "Profile reset",
+      "couldNotReset": "Could not reset profile",
+      "title": "Reset {{name}}'s profile",
+      "desc": "Blank the selected profile fields and optionally delete their posts. Non-nullable fields are replaced with neutral placeholders. This cannot be undone.",
+      "cancel": "Cancel",
+      "resetBtn": "Reset Profile"
+    },
+    "ban": {
+      "reasonRequired": "A ban reason is required",
+      "banning": "Banning {{name}}…",
+      "bannedWithIp": "{{name}} and their IP were banned",
+      "bannedUser": "{{name}} was banned",
+      "couldNotBan": "Could not ban user",
+      "title": "Ban {{name}}",
+      "desc": "They will immediately lose access and be signed out. This action is recorded in their ban history.",
+      "reason": "Reason",
+      "reasonPlaceholder": "Explain why this account is being banned",
+      "duration": "Duration",
+      "alsoBanIp": "Also ban their IP address",
+      "ipHint": "Blocks the last known IP from this account.\nIPs can be shared, so this may affect other users.",
+      "cancel": "Cancel",
+      "banBtn": "Ban User"
+    },
+    "deleteDialog": {
+      "deleting": "Deleting {{name}}…",
+      "deleted": "{{name}}'s account was deleted",
+      "couldNotDelete": "Could not delete account",
+      "title": "Delete {{name}}?",
+      "desc": "This permanently removes the account and all of their posts, likes, messages, and other data. This cannot be undone.",
+      "cancel": "Cancel",
+      "deleteBtn": "Delete"
+    },
+    "history": {
+      "couldNotLoad": "Could not load history",
+      "liftingBan": "Lifting ban…",
+      "banLifted": "Ban lifted",
+      "couldNotLift": "Could not lift ban",
+      "deletingEntry": "Deleting ban history entry…",
+      "entryDeleted": "Ban history entry deleted",
+      "couldNotDeleteEntry": "Could not delete entry",
+      "title": "{{name}}'s Ban History",
+      "desc": "Every ban issued against this account, newest first.",
+      "searchPlaceholder": "Search reason, IP, issuer...",
+      "sortBy": "Sort by",
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "byIssuer": "Sort by Issuer",
+      "byLifter": "Sort by Lifter",
+      "noMatching": "No matching ban history entries found.",
+      "noEntries": "No ban history entries found.",
+      "ip": "IP",
+      "account": "Account",
+      "active": "Active",
+      "lifted": "Lifted",
+      "unban": "Unban",
+      "delete": "Delete",
+      "reason": "Reason",
+      "ipAddress": "IP Address",
+      "duration": "Duration",
+      "expires": "Expires",
+      "permanent": "Permanent",
+      "issued": "Issued",
+      "liftedLabel": "Lifted",
+      "reasonPrefix": "Reason: {{reason}}",
+      "liftTitle": "Lift Ban",
+      "liftDesc": "Provide an optional reason for lifting this ban.",
+      "liftReasonLabel": "Reason",
+      "liftReasonPlaceholder": "e.g., Appealed via support ticket, misunderstanding resolved",
+      "scopeAccount": "account",
+      "scopeIp": "IP",
+      "liftCancel": "Cancel",
+      "confirmLift": "Confirm Lift"
+    }
+  }
+}

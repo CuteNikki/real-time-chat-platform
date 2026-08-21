@@ -2,6 +2,7 @@
 
 import { Loader2Icon, Search } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { searchUsers } from '@/app/actions/profile';
 
@@ -38,6 +39,7 @@ export function FriendsView({
   const [friends, setFriends] = useState(initialFriends);
 
   const [previewUserId, setPreviewUserId] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   // Sync server data to local state on refresh
   useEffect(() => setIncoming(initialIncoming), [initialIncoming]);
@@ -138,7 +140,7 @@ export function FriendsView({
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder='Search by name, @username, or #interest'
+            placeholder={t('app.friends.searchPlaceholder')}
             className='pl-8'
             autoCapitalize='none'
             spellCheck={false}
@@ -171,7 +173,9 @@ export function FriendsView({
             />
           ))}
           {query.trim().length >= 2 && !searching && results.length === 0 && (
-            <EmptyRequests text={`No users found for "${query.trim()}"`} />
+            <EmptyRequests
+              text={t('app.friends.noUsersFound', { query: query.trim() })}
+            />
           )}
         </ul>
       </section>
@@ -179,10 +183,10 @@ export function FriendsView({
       {/* Incoming requests */}
       <section className='space-y-2'>
         <span className='text-muted-foreground text-sm font-semibold tracking-wide uppercase'>
-          Incoming requests ({incoming.length})
+          {t('app.friends.incoming', { count: incoming.length })}
         </span>
         {incoming.length === 0 ? (
-          <EmptyRequests text='You have no incoming requests.' />
+          <EmptyRequests text={t('app.friends.noIncoming')} />
         ) : (
           <ul className='space-y-1'>
             {incoming.map((inv) => (
@@ -214,10 +218,10 @@ export function FriendsView({
       {/* Outgoing requests */}
       <section className='space-y-2'>
         <span className='text-muted-foreground text-sm font-semibold tracking-wide uppercase'>
-          Outgoing Requests ({outgoing.length})
+          {t('app.friends.outgoing', { count: outgoing.length })}
         </span>
         {outgoing.length === 0 ? (
-          <EmptyRequests text='You have no outgoing friend requests. Search above to find people and send a request.' />
+          <EmptyRequests text={t('app.friends.noOutgoing')} />
         ) : (
           <ul className='space-y-1'>
             {outgoing.map((inv) => (
@@ -249,10 +253,10 @@ export function FriendsView({
       {/* Current friends */}
       <section className='space-y-2'>
         <span className='text-muted-foreground text-sm font-semibold tracking-wide uppercase'>
-          Your friends ({friends.length})
+          {t('app.friends.yourFriends', { count: friends.length })}
         </span>
         {friends.length === 0 ? (
-          <EmptyRequests text='You have no friends yet. Search above to find people and send a request.' />
+          <EmptyRequests text={t('app.friends.noFriends')} />
         ) : (
           <ul className='space-y-1'>
             {friends.map((f) => (
@@ -298,7 +302,7 @@ export function UserListItem({
   ) => void;
 }) {
   return (
-    <li className='border-border bg-card flex items-center gap-2 rounded-lg border p-2'>
+    <li className='border-border bg-card flex items-center gap-2 rounded-xl border p-2'>
       <button
         type='button'
         onClick={onClickAction}
@@ -334,7 +338,7 @@ export function UserListItem({
 
 export function EmptyRequests({ text }: { text: string }) {
   return (
-    <p className='border-border bg-card text-muted-foreground rounded-lg border border-dashed p-4 text-center text-sm text-balance'>
+    <p className='border-border bg-card text-muted-foreground rounded-xl border border-dashed p-4 text-center text-sm text-balance'>
       {text}
     </p>
   );

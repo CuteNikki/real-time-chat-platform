@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { chatParticipant } from '@/lib/db/schema';
+import { chat, chatParticipant } from '@/lib/db/schema';
 import { pusherServer } from '@/lib/pusher/server';
 import { getSession } from '@/lib/session';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -20,24 +20,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 });
   }
 
-  // Presence channels are named "presence-chat-<chatId>". Verify the user is an
-  // active participant of that chat before authorizing.
+  // Presence channels are named "presence-chat-<chatId>".
   if (channelName.startsWith('presence-chat-')) {
     const chatId = channelName.replace('presence-chat-', '');
-    const [membership] = await db
-      .select()
-      .from(chatParticipant)
-      .where(
-        and(
-          eq(chatParticipant.chatId, chatId),
-          eq(chatParticipant.userId, session.user.id),
-          isNull(chatParticipant.leftAt),
-        ),
-      )
-      .limit(1);
 
-    if (!membership) {
+    const [c] = await db
+      .select({ type: chat.type, endedAt: chat.endedAt })
+      .from(chat)
+      .where(eq(chat.id, chatId))
+      .limit(1);
+    if (!c || c.endedAt) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Group rooms are public drop-in channels: any signed-in user may join, and
+    // Pusher presence is the sole record of who's actually there (no durable
+    // membership rows). DMs and random matches are private 1-on-1s, so those
+    // still require an active participant row.
+    if (c.type !== 'GROUP') {
+      const [membership] = await db
+        .select()
+        .from(chatParticipant)
+        .where(
+          and(
+            eq(chatParticipant.chatId, chatId),
+            eq(chatParticipant.userId, session.user.id),
+            isNull(chatParticipant.leftAt),
+          ),
+        )
+        .limit(1);
+
+      if (!membership) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     const authResponse = pusherServer.authorizeChannel(socketId, channelName, {

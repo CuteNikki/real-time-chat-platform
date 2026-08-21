@@ -2,6 +2,8 @@
 
 import { redirect } from 'next/navigation';
 
+import { useTranslation } from 'react-i18next';
+
 import { useSession } from '@/lib/auth-client';
 
 import { AuthShell } from '@/components/auth/auth-shell';
@@ -9,6 +11,7 @@ import { ForgotPasswordForm } from '@/components/auth/forgot-password-form';
 
 export default function ForgotPasswordPage() {
   const { data: session, isPending } = useSession();
+  const { t } = useTranslation();
 
   if (isPending) return null;
 
@@ -16,8 +19,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell
-      title='Reset Your Password'
-      subtitle="Enter your email and we'll send you a link to set a new password."
+      title={t('auth.forgotPage.title')}
+      subtitle={t('auth.forgotPage.subtitle')}
     >
       <ForgotPasswordForm />
     </AuthShell>

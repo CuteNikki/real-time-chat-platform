@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 import { CheckCircle2Icon, Loader2Icon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { requestPasswordReset } from '@/lib/auth-client';
 
@@ -12,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export function ForgotPasswordForm() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -28,7 +30,7 @@ export function ForgotPasswordForm() {
       setSent(true);
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : t('auth.forgot.error'));
       setSent(true);
     } finally {
       setLoading(false);
@@ -44,17 +46,17 @@ export function ForgotPasswordForm() {
               className='text-primary size-6 shrink-0'
               aria-hidden
             />
-            <p className='font-semibold'>Check your email</p>
+            <p className='font-semibold'>{t('auth.forgot.checkTitle')}</p>
           </div>
           <p className='text-muted-foreground text-sm text-balance'>
-            If an account exists for that address, a reset link is on its way.
+            {t('auth.forgot.checkBody')}
           </p>
         </div>
         <Link
           href='/sign-in'
           className='text-foreground text-center text-sm font-medium underline'
         >
-          Back to sign in
+          {t('auth.forgot.backToSignIn')}
         </Link>
       </div>
     );
@@ -63,13 +65,13 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
       <div className='flex flex-col gap-2'>
-        <Label htmlFor='email'>Email</Label>
+        <Label htmlFor='email'>{t('auth.form.email')}</Label>
         <Input
           id='email'
           type='email'
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder='you@example.com'
+          placeholder={t('auth.form.emailPlaceholder')}
           required
           autoComplete='email'
         />
@@ -83,13 +85,13 @@ export function ForgotPasswordForm() {
 
       <Button type='submit' disabled={loading} size='lg'>
         {loading && <Loader2Icon className='animate-spin' aria-hidden />}
-        {loading ? 'Please wait…' : 'Reset Password'}
+        {loading ? t('auth.form.pleaseWait') : t('auth.forgot.submit')}
       </Button>
 
       <p className='text-muted-foreground text-center text-sm'>
-        Remembered it?{' '}
+        {t('auth.forgot.remembered')}{' '}
         <Link href='/sign-in' className='text-foreground font-medium underline'>
-          Sign in
+          {t('auth.forgot.signInLink')}
         </Link>
       </p>
     </form>

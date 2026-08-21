@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { Lock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { updatePostsVisibility } from '@/app/actions/profile';
 
@@ -16,6 +17,7 @@ export function PrivacySettings({
 }) {
   const [friendsOnly, setFriendsOnly] = useState(initialFriendsOnlyPosts);
   const [saving, setSaving] = useState(false);
+  const { t } = useTranslation();
 
   async function toggle(next: boolean) {
     setFriendsOnly(next);
@@ -24,12 +26,14 @@ export function PrivacySettings({
       await updatePostsVisibility(next);
       toast.success(
         next
-          ? 'Only friends can see your posts now'
-          : 'Your posts are public again',
+          ? t('settings.privacy.friendsOnlyOn')
+          : t('settings.privacy.friendsOnlyOff'),
       );
     } catch (err) {
       setFriendsOnly(!next);
-      toast.error(err instanceof Error ? err.message : 'Could not save');
+      toast.error(
+        err instanceof Error ? err.message : t('settings.privacy.couldNotSave'),
+      );
     } finally {
       setSaving(false);
     }
@@ -39,22 +43,25 @@ export function PrivacySettings({
     <div className='space-y-2'>
       <div className='flex items-center gap-2'>
         <Lock className='text-muted-foreground size-4' aria-hidden />
-        <h2 className='text-lg font-semibold tracking-tight'>Posts</h2>
+        <h2 className='text-lg font-semibold tracking-tight'>
+          {t('settings.privacy.postsTitle')}
+        </h2>
       </div>
 
       <div className='border-border bg-card flex items-center justify-between gap-4 rounded-xl border p-4'>
         <div className='min-w-0'>
-          <p className='text-sm font-medium'>Only friends can see your posts</p>
+          <p className='text-sm font-medium'>
+            {t('settings.privacy.onlyFriendsTitle')}
+          </p>
           <p className='text-muted-foreground text-sm'>
-            When on, only accepted friends can view your profile posts. Everyone
-            else sees a private notice instead.
+            {t('settings.privacy.onlyFriendsDesc')}
           </p>
         </div>
         <Switch
           checked={friendsOnly}
           disabled={saving}
           onCheckedChange={toggle}
-          aria-label='Only friends can see your posts'
+          aria-label={t('settings.privacy.onlyFriendsTitle')}
         />
       </div>
     </div>

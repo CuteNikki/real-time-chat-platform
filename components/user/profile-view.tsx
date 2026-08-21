@@ -3,14 +3,18 @@
 import { Suspense } from 'react';
 
 import { LockIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-import { Role } from '@/lib/roles';
+import { atLeast, Role } from '@/lib/roles';
 import type { PostSummary, UserProfile } from '@/lib/types';
 
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/ui/empty-state';
 import { FriendshipButtons } from '@/components/user/friendship-buttons';
 import { InterestTags } from '@/components/user/interest-tags';
+import { MentionText } from '@/components/user/mention-text';
 import { PostGrid } from '@/components/user/post-grid';
+import { ReportUserButton } from '@/components/user/report-user-button';
 import { UserAvatar } from '@/components/user/user-avatar';
 
 export function ProfileView({
@@ -22,8 +26,18 @@ export function ProfileView({
   initialPosts: PostSummary[];
   role: Role;
 }) {
+  const { t } = useTranslation();
+  // A moderator/admin may delete this profile owner's posts, mirroring the
+  // server guard in moderatorDeletePost: never your own posts here (those use
+  // the normal owner controls), and only users at or below your own role —
+  // moderators cover members + moderators, admins cover everyone.
+  const canModerate =
+    !profile.isSelf &&
+    atLeast(role, 'MODERATOR') &&
+    atLeast(role, profile.role);
+
   return (
-    <div className='h-full w-full overflow-y-auto'>
+    <div className='w-full'>
       <div className='mx-auto w-full max-w-4xl px-4 py-8 sm:px-6'>
         <header className='flex flex-col gap-6 sm:flex-row'>
           <UserAvatar
@@ -44,13 +58,15 @@ export function ProfileView({
                 </div>
                 {profile.role !== 'MEMBER' ? (
                   <Badge variant='destructive'>
-                    {profile.role === 'ADMIN' ? 'Admin' : 'Moderator'}
+                    {profile.role === 'ADMIN'
+                      ? t('profile.admin')
+                      : t('profile.moderator')}
                   </Badge>
                 ) : null}
               </div>
               {profile.bio ? (
                 <p className='text-muted-foreground line-clamp-4 max-w-prose text-sm whitespace-pre-wrap'>
-                  {profile.bio}
+                  <MentionText text={profile.bio} />
                 </p>
               ) : null}
               <InterestTags interests={profile.interests} />
@@ -61,18 +77,28 @@ export function ProfileView({
                 <strong className='font-semibold tabular-nums'>
                   {profile.postCount}
                 </strong>{' '}
-                <span className='text-muted-foreground'>post(s)</span>
+                <span className='text-muted-foreground'>
+                  {t('profile.postsLabel', { count: profile.postCount })}
+                </span>
               </span>
               <span>
                 <strong className='font-semibold tabular-nums'>
                   {profile.friendCount}
                 </strong>{' '}
-                <span className='text-muted-foreground'>friend(s)</span>
+                <span className='text-muted-foreground'>
+                  {t('profile.friendsLabel', { count: profile.friendCount })}
+                </span>
               </span>
             </div>
 
             <div className='flex flex-wrap items-center gap-2'>
               <FriendshipButtons initialProfile={profile} />
+              {!profile.isSelf ? (
+                <ReportUserButton
+                  reportedUserId={profile.id}
+                  name={profile.name}
+                />
+              ) : null}
             </div>
           </div>
         </header>
@@ -80,25 +106,19 @@ export function ProfileView({
         <div className='border-border mt-8 border-t pt-6'>
           {profile.postsVisible || role === 'ADMIN' || role === 'MODERATOR' ? (
             <Suspense fallback={null}>
-              <PostGrid posts={initialPosts} isOwnProfile={profile.isSelf} />
+              <PostGrid
+                posts={initialPosts}
+                isOwnProfile={profile.isSelf}
+                canModerate={canModerate}
+              />
             </Suspense>
           ) : (
-            <div className='flex h-full flex-col items-center justify-center gap-4 p-6 text-center'>
-              <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
-                <LockIcon
-                  className='text-primary size-12 shrink-0'
-                  aria-hidden
-                />
-              </div>
-              <div className='flex flex-col items-center gap-2'>
-                <span className='text-3xl font-semibold tracking-tight text-balance'>
-                  Unauthorized
-                </span>
-                <p className='text-muted-foreground max-w-sm text-balance'>
-                  You need to be friends with this user to view their posts.
-                </p>
-              </div>
-            </div>
+            <EmptyState
+              icon={LockIcon}
+              title={t('profile.unauthorizedTitle')}
+              description={t('profile.unauthorizedDesc')}
+              className='h-full'
+            />
           )}
         </div>
       </div>

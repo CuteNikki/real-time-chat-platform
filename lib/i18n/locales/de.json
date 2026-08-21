@@ -1,0 +1,872 @@
+{
+  "common": {
+    "appName": "Orbit",
+    "tagline": "Echtzeit-Chat, angetrieben von Präsenz.",
+    "loading": "Wird geladen…",
+    "postCount_one": "{{count}} Beitrag",
+    "postCount_other": "{{count}} Beiträge",
+    "actions": {
+      "save": "Speichern",
+      "saveChanges": "Änderungen speichern",
+      "cancel": "Abbrechen",
+      "delete": "Löschen",
+      "confirm": "Bestätigen",
+      "back": "Zurück",
+      "backToHome": "Zurück zur Startseite",
+      "backToTop": "Nach oben",
+      "openApp": "App öffnen",
+      "startNow": "Jetzt starten",
+      "getStarted": "Loslegen",
+      "signIn": "Anmelden",
+      "retry": "Erneut versuchen"
+    }
+  },
+  "language": {
+    "label": "Sprache",
+    "description": "Wähle die Sprache für Orbit.",
+    "english": "English",
+    "german": "Deutsch"
+  },
+  "nav": {
+    "feed": "Feed",
+    "match": "Match",
+    "rooms": "Räume",
+    "messages": "Nachrichten",
+    "friends": "Freunde",
+    "settings": "Einstellungen",
+    "profile": "Profil",
+    "moderation": "Moderation",
+    "dashboard": "Dashboard",
+    "primary": "Primär",
+    "signOut": "Abmelden"
+  },
+  "notFound": {
+    "badge": "Verloren im Orbit",
+    "title": "Diese Seite ist vom Kurs abgekommen",
+    "description": "Die gesuchte Seite existiert nicht, wurde verschoben oder hat es nie in den Orbit geschafft. Bringen wir dich zurück zu etwas Echtem.",
+    "backHome": "Zurück zur Startseite",
+    "openApp": "Orbit öffnen"
+  },
+  "authNav": {
+    "signIn": "Anmelden",
+    "getStarted": "Loslegen",
+    "openApp": "App öffnen",
+    "loading": "Wird geladen…"
+  },
+  "landing": {
+    "hero": {
+      "badge": "Live-Gespräche, genau jetzt",
+      "titleBefore": "Sprich in Sekunden mit ",
+      "titleHighlight": "jemandem Neuen",
+      "titleAfter": "",
+      "subtitle": "Orbit matcht dich mit Fremden, öffnet Gruppenräume und lässt dich privat mit Freunden chatten — alles in Echtzeit, ganz ohne Profil.",
+      "primaryCta": "Jetzt starten",
+      "secondaryCta": "Ich habe ein Konto",
+      "free": "Für immer kostenlos · keine Karte, kein Haken",
+      "preview": {
+        "live": "3 Personen live in diesem Raum",
+        "msgMaya": "warte, du bist auch in Analogfotografie?? 🎞️",
+        "msgYou": "krass, womit fotografierst du",
+        "msgJon": "hab hier meine Leute gefunden lol"
+      }
+    },
+    "features": {
+      "eyebrow": "Eine App, drei Arten zu reden",
+      "title": "Jede Art von Gespräch, in Echtzeit",
+      "match": {
+        "title": "Zufalls-Match",
+        "blurb": "Einmal tippen und du wirst eins zu eins mit jemandem verbunden, der genau jetzt reden möchte. Überspringe jederzeit — nichts wird gespeichert, wenn ein Zufalls-Chat endet."
+      },
+      "rooms": {
+        "title": "Gruppenräume",
+        "blurb": "Betritt offene Räume und chatte mit allen gleichzeitig. Live-Präsenz zeigt genau, wer gerade im Raum ist."
+      },
+      "private": {
+        "title": "Private Chats",
+        "blurb": "Schreibe Freunden eins zu eins, teile Bilder und behalte das Gespräch nur unter euch beiden."
+      },
+      "visuals": {
+        "matched": "verbunden",
+        "you": "Du",
+        "stranger": "Fremde:r",
+        "matchMsg1": "hey! zufällige Frage — Katzen oder Hunde 🐱🐶",
+        "matchMsg2": "Katzen, na klar. das ist ein Test",
+        "roomName": "# late-night-talks",
+        "roomLive": "{{count}} live",
+        "roomMsgPriya": "hat jemand Lust auf eine Film-Empfehlung?",
+        "roomMsgLeo": "der ganze Raum ist irgendwie wach 😅",
+        "roomMsgYou": "das ist echt der beste Raum",
+        "privateLabel": "Privat · nur ihr beide",
+        "privateMsgSam": "schicke dir den Sonnenuntergang von vorhin 🌇",
+        "privateMsgYou": "okay das ist unwirklich 😍"
+      }
+    },
+    "proof": {
+      "eyebrow": "Warum Orbit",
+      "title": "Gemacht, um mühelos zu wirken",
+      "setup": {
+        "title": "In Sekunden eingerichtet",
+        "body": "Kein langes Profil, kein Swipen. Erstelle ein Konto und du redest fast sofort mit jemandem Neuen."
+      },
+      "nothingSaved": {
+        "title": "Nichts gespeichert",
+        "body": "Wenn ein Zufalls-Chat endet, ist er für immer weg — nichts davon wird gespeichert oder später wieder angezeigt."
+      },
+      "live": {
+        "title": "Sieh, wer live ist",
+        "body": "Echte Präsenz, keine veralteten Zähler. Jeder Raum zeigt genau, wer verbunden ist, sobald es sich ändert."
+      },
+      "free": {
+        "title": "Kostenlos, kein Haken",
+        "body": "Matching, Räume und private Nachrichten sind völlig kostenlos. Keine Karte, keine Testphase, keine Paywall."
+      }
+    },
+    "faq": {
+      "eyebrow": "Gut zu wissen",
+      "title": "Häufig gestellte Fragen",
+      "matching": {
+        "q": "Wie funktioniert das Zufalls-Matching?",
+        "a": "Tippe auf \"Match finden\" und wir verbinden dich eins zu eins mit jemandem, der genau jetzt chatten möchte — bevorzugt mit Leuten, die deine Interessen teilen.\nDu kannst den Chat jederzeit beenden und ein neues Match finden! Nichts aus einem Zufalls-Chat wird gespeichert, sobald er endet."
+      },
+      "free": {
+        "q": "Ist Orbit kostenlos?",
+        "a": "Ja! Ein Konto erstellen, sich mit Fremden matchen, Räumen beitreten und Freunden schreiben sind alles völlig kostenlose Funktionen."
+      },
+      "notifications": {
+        "q": "Kann ich steuern, welche Benachrichtigungen ich erhalte?",
+        "a": "Ja. Unter 'Einstellungen' > 'Präferenzen' kannst du Popups und Töne einzeln ein- oder ausschalten — für Freundschaftsanfragen, angenommene Anfragen, Direktnachrichten, Raumnachrichten und Beitrags-Likes. Außerdem kannst du eine Gesamtlautstärke festlegen."
+      },
+      "reports": {
+        "q": "Was passiert, wenn mich jemand meldet oder ich jemanden melde?",
+        "a": "Meldungen gehen zur Prüfung an unser Moderationsteam. Konten, die gegen unsere Richtlinien verstoßen, können für einen festgelegten Zeitraum oder dauerhaft gesperrt werden.\nWenn das deinem Konto passiert, siehst du den Grund und die Dauer.\nWenn dir jemand ein ungutes Gefühl gegeben hat, nutze bitte die Melde-Option!"
+      },
+      "delete": {
+        "q": "Kann ich mein Konto und meine Daten löschen?",
+        "a": "Ja, jederzeit! Unter 'Einstellungen' > 'Konto'. Das Löschen deines Kontos entfernt dauerhaft dein Profil, deine Beiträge, Nachrichten und Freundschaften — Achtung, das lässt sich nicht rückgängig machen!"
+      }
+    },
+    "cta": {
+      "title": "Jemand Neues ist nur einen Tipp entfernt",
+      "subtitle": "Kein langes Profil, kein Swipen. Einfach Echtzeit-Gespräche, wann immer du willst.",
+      "button": "Jetzt starten"
+    },
+    "footer": {
+      "tagline": "Echtzeit-Chat, angetrieben von Präsenz.",
+      "groups": {
+        "company": "Unternehmen",
+        "socials": "Soziale Medien",
+        "legal": "Rechtliches"
+      },
+      "links": {
+        "about": "Über uns",
+        "careers": "Karriere",
+        "discord": "Discord",
+        "instagram": "Instagram",
+        "twitter": "Twitter",
+        "privacy": "Datenschutz",
+        "terms": "AGB",
+        "imprint": "Impressum"
+      },
+      "rights": "© {{year}} Orbit · Alle Rechte vorbehalten.",
+      "backToTop": "Nach oben"
+    }
+  },
+  "auth": {
+    "brand": {
+      "heading": "Jemand Neues ist immer nur einen Tipp entfernt.",
+      "body": "Werde mit einer fremden Person gematcht, betritt einen Gruppenraum oder starte einen privaten Chat mit einem Freund. Gespräche passieren in Echtzeit.",
+      "tagline": "Echtzeit-Chat, angetrieben von Präsenz."
+    },
+    "signInPage": {
+      "title": "Willkommen zurück!",
+      "subtitle": "Melde dich an, um wieder ins Gespräch einzusteigen."
+    },
+    "signUpPage": {
+      "title": "Erstelle dein Konto",
+      "subtitle": "Richte ein Profil ein und lerne in Sekunden Leute kennen."
+    },
+    "forgotPage": {
+      "title": "Passwort zurücksetzen",
+      "subtitle": "Gib deine E-Mail ein und wir senden dir einen Link, um ein neues Passwort zu setzen."
+    },
+    "resetPage": {
+      "title": "Passwort festlegen",
+      "subtitle": "Wähle ein sicheres Passwort, das du sonst nirgends verwendest."
+    },
+    "form": {
+      "displayName": "Anzeigename",
+      "displayNamePlaceholder": "Wie sollen dich andere nennen?",
+      "email": "E-Mail",
+      "emailPlaceholder": "du@beispiel.de",
+      "password": "Passwort",
+      "passwordPlaceholder": "Mindestens 8 Zeichen",
+      "forgotPassword": "Passwort vergessen?",
+      "pleaseWait": "Bitte warten…",
+      "createAccount": "Konto erstellen",
+      "signInButton": "Anmelden",
+      "haveAccount": "Hast du bereits ein Konto?",
+      "newHere": "Neu hier?",
+      "signInLink": "Anmelden",
+      "createLink": "Konto erstellen",
+      "errCreate": "Konto konnte nicht erstellt werden",
+      "errInvalid": "Ungültige E-Mail oder ungültiges Passwort",
+      "errGeneric": "Etwas ist schiefgelaufen"
+    },
+    "forgot": {
+      "checkTitle": "Prüfe deine E-Mails",
+      "checkBody": "Falls ein Konto für diese Adresse existiert, ist ein Link zum Zurücksetzen unterwegs.",
+      "backToSignIn": "Zurück zur Anmeldung",
+      "submit": "Passwort zurücksetzen",
+      "remembered": "Wieder eingefallen?",
+      "signInLink": "Anmelden",
+      "error": "Ein Fehler ist aufgetreten"
+    },
+    "reset": {
+      "newPassword": "Neues Passwort",
+      "confirmPassword": "Passwort bestätigen",
+      "confirmPlaceholder": "Passwort erneut eingeben",
+      "passwordPlaceholder": "Mindestens 8 Zeichen",
+      "mismatch": "Passwörter stimmen nicht überein",
+      "invalidToken": "Dieser Link ist ungültig oder abgelaufen. Fordere einen neuen an.",
+      "requestNew": "Neuen Link anfordern",
+      "saving": "Wird gespeichert…",
+      "submit": "Passwort aktualisieren",
+      "errReset": "Passwort konnte nicht zurückgesetzt werden",
+      "errGeneric": "Etwas ist schiefgelaufen"
+    },
+    "signOut": "Abmelden"
+  },
+  "settings": {
+    "pageTitle": "Einstellungen",
+    "pageDescription": "Verwalte dein Profil, Konto und deine Präferenzen.",
+    "tabs": {
+      "profile": "Profil",
+      "account": "Konto",
+      "privacy": "Privatsphäre",
+      "preferences": "Präferenzen"
+    },
+    "profile": {
+      "change": "Ändern",
+      "upload": "Hochladen",
+      "remove": "Entfernen",
+      "displayName": "Anzeigename",
+      "username": "Benutzername",
+      "usernameInvalid": "Dieser Benutzername ist ungültig oder vergeben!",
+      "usernameHint": "3–20 Zeichen. Nur Buchstaben, Zahlen und Unterstriche.",
+      "bio": "Bio",
+      "bioPlaceholder": "Erzähle anderen ein wenig über dich",
+      "interests": "Interessen",
+      "addAnother": "Weiteres hinzufügen…",
+      "interestsPlaceholder": "z. B. Musik, Wandern, Gaming",
+      "interestsHint": "Enter oder Komma zum Hinzufügen. Bis zu {{max}}. Gemeinsame Interessen helfen beim Matchen.",
+      "removeTag": "{{tag}} entfernen",
+      "save": "Speichern",
+      "saving": "Wird gespeichert…",
+      "maxInterests": "Du kannst bis zu {{max}} Interessen hinzufügen",
+      "chooseImage": "Bitte wähle eine Bilddatei",
+      "uploadFailed": "Bild konnte nicht hochgeladen werden",
+      "usernameRule": "Benutzername muss 3–20 Zeichen lang sein: Buchstaben, Zahlen, Unterstriche",
+      "usernameUnavailable": "Dieser Benutzername ist nicht verfügbar",
+      "updated": "Profil aktualisiert",
+      "couldNotSave": "Konnte nicht gespeichert werden"
+    },
+    "account": {
+      "email": "E-Mail",
+      "verifiedText": "wurde bestätigt",
+      "notVerifiedText": "noch nicht bestätigt",
+      "sending": "Wird gesendet…",
+      "verifiedBtn": "Bestätigt",
+      "resend": "Erneut senden",
+      "sendingEmail": "Bestätigungs-E-Mail wird gesendet…",
+      "emailSent": "Bestätigungs-E-Mail gesendet! Prüfe dein Postfach.",
+      "couldNotSendEmail": "E-Mail konnte nicht gesendet werden",
+      "somethingWrong": "Etwas ist schiefgelaufen",
+      "changePassword": "Passwort ändern",
+      "currentPassword": "Aktuelles Passwort",
+      "newPassword": "Neues Passwort",
+      "confirmNewPassword": "Neues Passwort bestätigen",
+      "updating": "Wird aktualisiert…",
+      "update": "Aktualisieren",
+      "pwMismatch": "Neue Passwörter stimmen nicht überein",
+      "updatingPassword": "Passwort wird aktualisiert…",
+      "passwordUpdated": "Passwort aktualisiert",
+      "couldNotChangePassword": "Passwort konnte nicht geändert werden",
+      "deleteTitle": "Konto löschen",
+      "deleteDesc": "Lösche dein Konto, Profil, Beiträge und Nachrichten dauerhaft. Das kann nicht rückgängig gemacht werden.",
+      "continue": "Fortfahren",
+      "deleteDialogTitle": "Konto löschen?",
+      "deleteConfirmPrefix": "Dies entfernt dein Konto und alle zugehörigen Daten dauerhaft. Gib",
+      "deleteConfirmSuffix": "in Großbuchstaben ein, um zu bestätigen.",
+      "typeDeleteAria": "DELETE eingeben, um zu bestätigen",
+      "cancel": "Abbrechen",
+      "delete": "Löschen",
+      "deleting": "Wird gelöscht…",
+      "deletingAccount": "Konto wird gelöscht…",
+      "accountDeleted": "Dein Konto wurde gelöscht!",
+      "couldNotDelete": "Konto konnte nicht gelöscht werden",
+      "couldNotDeleteBang": "Konto konnte nicht gelöscht werden!"
+    },
+    "privacy": {
+      "postsTitle": "Beiträge",
+      "onlyFriendsTitle": "Nur Freunde können deine Beiträge sehen",
+      "onlyFriendsDesc": "Wenn aktiviert, können nur bestätigte Freunde deine Profil-Beiträge sehen. Alle anderen sehen stattdessen einen Privathinweis.",
+      "friendsOnlyOn": "Jetzt können nur Freunde deine Beiträge sehen",
+      "friendsOnlyOff": "Deine Beiträge sind wieder öffentlich",
+      "couldNotSave": "Konnte nicht gespeichert werden"
+    },
+    "preferences": {
+      "appearance": "Erscheinungsbild",
+      "themePreference": "Design-Präferenz",
+      "themeDesc": "Wähle, wie Orbit für dich aussieht",
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System",
+      "loading": "Wird geladen…",
+      "sound": "Ton",
+      "playSounds": "Benachrichtigungstöne abspielen",
+      "playSoundsDesc": "Ein kurzer Ton erklingt bei aktivierten Ereignissen",
+      "masterVolume": "Gesamtlautstärke",
+      "events": "Ereignisse",
+      "configureTitle": "Benachrichtigungen konfigurieren",
+      "configureDesc": "Wähle, welche Ereignisse ein Popup zeigen und welche einen Ton abspielen",
+      "popup": "Popup",
+      "soundLabel": "Ton",
+      "popupAria": "{{label}} Popup",
+      "soundAria": "{{label}} Ton",
+      "previewAria": "{{label}}-Ton anhören",
+      "test": "Testen",
+      "language": "Sprache",
+      "languageDesc": "Wähle die Sprache für Orbit.",
+      "categories": {
+        "friendRequest": {
+          "label": "Freundschaftsanfragen",
+          "description": "Wenn dir jemand eine Anfrage sendet"
+        },
+        "friendAccept": {
+          "label": "Anfrage angenommen",
+          "description": "Wenn jemand deine Anfrage annimmt"
+        },
+        "directMessage": {
+          "label": "Direktnachrichten",
+          "description": "Neue Nachrichten in einem privaten Chat"
+        },
+        "roomMessage": {
+          "label": "Raumnachrichten",
+          "description": "Neue Nachrichten in einem Gruppenraum"
+        },
+        "like": {
+          "label": "Beitrags-Likes",
+          "description": "Wenn jemand deinen Beitrag liked"
+        },
+        "mention": {
+          "label": "Erwähnungen",
+          "description": "Wenn dich jemand in einem Beitrag oder einer Bio @markiert"
+        }
+      }
+    }
+  },
+  "app": {
+    "feed": {
+      "title": "Feed",
+      "results_one": "{{count}} Ergebnis",
+      "results_other": "{{count}} Ergebnisse",
+      "for": "für",
+      "in": "in",
+      "noMatchTitle": "Keine Beiträge passen zu deiner Suche",
+      "noMatchDesc": "Versuche andere Wörter oder entferne einen Tag, um die Suche zu erweitern.",
+      "friendsEmptyTitle": "Noch keine Beiträge von Freunden",
+      "friendsEmptyDesc": "Füge Freunde hinzu, um ihre Beiträge hier zu sehen, oder teile oben deinen ersten Beitrag.",
+      "findFriends": "Freunde finden",
+      "quietTitle": "Dein Feed ist ruhig",
+      "quietDesc": "Noch keine Beiträge — sei die oder der Erste und teile oben etwas.",
+      "controls": {
+        "forYou": "Für dich",
+        "friends": "Freunde",
+        "placeholderWithTags": "Tag hinzufügen oder suchen…",
+        "placeholder": "Beiträge oder #Tags suchen…",
+        "searchAria": "Beiträge und Tags suchen",
+        "removeTag": "#{{tag}} entfernen"
+      }
+    },
+    "friends": {
+      "title": "Freunde",
+      "description": "Finde Leute nach Name, Benutzername oder gemeinsamen Interessen und sende eine Anfrage. Sobald sie angenommen wurde, könnt ihr euch schreiben.",
+      "searchPlaceholder": "Nach Name, @Benutzername oder #Interesse suchen",
+      "noUsersFound": "Keine Nutzer gefunden für \"{{query}}\"",
+      "incoming": "Eingehende Anfragen ({{count}})",
+      "noIncoming": "Du hast keine eingehenden Anfragen.",
+      "outgoing": "Ausgehende Anfragen ({{count}})",
+      "noOutgoing": "Du hast keine ausgehenden Freundschaftsanfragen. Suche oben nach Leuten und sende eine Anfrage.",
+      "yourFriends": "Deine Freunde ({{count}})",
+      "noFriends": "Du hast noch keine Freunde. Suche oben nach Leuten und sende eine Anfrage."
+    }
+  },
+  "banned": {
+    "metaTitle": "Konto gesperrt",
+    "metaDescription": "Dein Zugang zu dieser App wurde eingeschränkt.",
+    "accessBlocked": "Zugang blockiert",
+    "accountSuspended": "Dein Konto ist gesperrt",
+    "permanentNote": "Diese Einschränkung ist dauerhaft.",
+    "tempNote": "Der Zugang wird automatisch wiederhergestellt, wenn die Sperre endet.",
+    "reason": "Grund",
+    "duration": "Dauer",
+    "suspendedUntil": "Gesperrt bis",
+    "permanent": "Dauerhaft",
+    "issued": "Ausgestellt",
+    "by": "von {{name}}",
+    "appeal": "Wenn du glaubst, dass dies ein Fehler ist, wende dich bitte an den Support, um Einspruch zu erheben.",
+    "returnToSignIn": "Zurück zur Anmeldung"
+  },
+  "notifications": {
+    "title": "Benachrichtigungen",
+    "ariaCount": "Benachrichtigungen, {{count}} ungelesen",
+    "aria": "Benachrichtigungen",
+    "clearAll": "Alle löschen",
+    "tabs": {
+      "requests": "Anfragen",
+      "messages": "Nachrichten",
+      "likes": "Likes",
+      "mentions": "Erwähnungen"
+    },
+    "empty": {
+      "requests": "Gerade keine Freundschaftsanfragen.",
+      "messages": "Keine neuen Nachrichtenbenachrichtigungen.",
+      "likes": "Noch keine Likes für deine Beiträge.",
+      "mentions": "Noch keine Erwähnungen. @Markierungen erscheinen hier."
+    },
+    "accept": "Annehmen",
+    "decline": "Ablehnen",
+    "someone": "Jemand",
+    "newMessage": "Neue Nachricht",
+    "deleteAria": "Benachrichtigung löschen",
+    "viewPost": "Beitrag ansehen",
+    "postAlt": "Beitrag",
+    "userFallback": "Benutzer",
+    "justNow": "gerade eben",
+    "toastView": "Ansehen",
+    "toastOpen": "Öffnen",
+    "nowFriends": "Ihr seid jetzt mit {{name}} befreundet",
+    "them": "ihnen",
+    "requestDeclined": "Anfrage abgelehnt",
+    "couldNotRespond": "Antwort fehlgeschlagen",
+    "actions": {
+      "friendRequest": "hat dir eine Freundschaftsanfrage gesendet",
+      "friendAccept": "hat deine Freundschaftsanfrage angenommen",
+      "like": "gefällt dein Beitrag",
+      "mentionProfile": "hat dich im Profil markiert",
+      "mentionPost": "hat dich im Beitrag markiert",
+      "roomMessage": "hat {{room}} geschrieben",
+      "directMessage": "hat dir eine Nachricht gesendet"
+    }
+  },
+  "post": {
+    "composer": {
+      "captionPlaceholder": "Schreibe eine Bildunterschrift...",
+      "chooseImage": "Bitte wähle eine Bilddatei",
+      "uploadFailed": "Bild konnte nicht hochgeladen werden",
+      "needContent": "Füge ein Foto hinzu oder schreibe etwas",
+      "posted": "Gepostet!",
+      "couldNotPost": "Beitrag konnte nicht erstellt werden",
+      "selectedPreview": "Ausgewählte Vorschau",
+      "removeImage": "Bild entfernen",
+      "photo": "Foto",
+      "posting": "Wird gepostet...",
+      "post": "Posten"
+    },
+    "card": {
+      "updated": "Beitrag aktualisiert",
+      "couldNotUpdate": "Beitrag konnte nicht aktualisiert werden",
+      "deleted": "Beitrag gelöscht",
+      "couldNotDelete": "Beitrag konnte nicht gelöscht werden",
+      "unknown": "Unbekannt",
+      "options": "Beitragsoptionen",
+      "editCaption": "Bildunterschrift bearbeiten",
+      "reportPost": "Beitrag melden",
+      "deletePost": "Beitrag löschen",
+      "altWithCaption": "Beitrag: {{caption}}",
+      "altImage": "Beitragsbild",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "like": "Gefällt mir",
+      "unlike": "Gefällt mir nicht mehr",
+      "seeWhoLiked": "Sieh, wem dieser Beitrag gefällt ({{count}})",
+      "likes_one": "{{count}} Like",
+      "likes_other": "{{count}} Likes",
+      "noLikes": "Noch keine Likes",
+      "deleteTitle": "Diesen Beitrag löschen?",
+      "deleteDesc": "Dies entfernt den Beitrag und seine Likes dauerhaft. Das kann nicht rückgängig gemacht werden.",
+      "delete": "Löschen"
+    },
+    "grid": {
+      "lookingEmpty": "Sieht leer aus",
+      "lookingEmptyDesc": "Dieser Nutzer hat noch nichts gepostet. Schau später wieder vorbei!",
+      "newPost": "Neuer Beitrag",
+      "postAlt": "Beitrag",
+      "postByAuthor": "Beitrag von {{name}}"
+    },
+    "likers": {
+      "empty": "Noch keine Likes."
+    }
+  },
+  "friendship": {
+    "unfriended": "Freund entfernt",
+    "couldNotUnfriend": "Konnte nicht entfernt werden",
+    "requestCanceled": "Anfrage zurückgezogen",
+    "couldNotCancel": "Konnte nicht zurückgezogen werden",
+    "nowFriends": "Du und {{name}} seid jetzt befreundet",
+    "requestSent": "Freundschaftsanfrage gesendet",
+    "couldNotSend": "Anfrage konnte nicht gesendet werden",
+    "requestDeclined": "Anfrage abgelehnt",
+    "couldNotDecline": "Konnte nicht abgelehnt werden",
+    "viewFullProfile": "Vollständiges Profil ansehen",
+    "message": "Nachricht",
+    "removing": "Wird entfernt...",
+    "remove": "Entfernen",
+    "cancelling": "Wird zurückgezogen...",
+    "pending": "Ausstehend",
+    "cancel": "Zurückziehen",
+    "loading": "Wird geladen...",
+    "accept": "Annehmen",
+    "decline": "Ablehnen",
+    "adding": "Wird hinzugefügt...",
+    "addFriend": "Freund hinzufügen"
+  },
+  "report": {
+    "titleUser": "{{who}} melden",
+    "titlePost": "Diesen Beitrag melden",
+    "titleMessage": "Diese Nachricht melden",
+    "descUser": "Melde {{who}} zur Prüfung durch unser Moderationsteam.",
+    "descPostFrom": "Melde diesen Beitrag von {{who}} zur Prüfung durch unser Moderationsteam.",
+    "descPost": "Melde diesen Beitrag zur Prüfung durch unser Moderationsteam.",
+    "descMessageFrom": "Melde diese Nachricht von {{who}} zur Prüfung durch unser Moderationsteam.",
+    "descMessage": "Melde diese Nachricht zur Prüfung durch unser Moderationsteam.",
+    "outcome": "Du erhältst einen Referenzcode und eine Nachricht mit dem Ergebnis.",
+    "defaultUser": "Nutzer",
+    "defaultAccount": "dieses Konto",
+    "reasonLabel": "Grund (optional)",
+    "reasonPlaceholder": "Füge Kontext hinzu, der uns bei der Prüfung hilft",
+    "cancel": "Abbrechen",
+    "submit": "Meldung senden",
+    "submitted": "Meldung gesendet",
+    "reference": "Referenz {{reference}} — unser Team wird sie prüfen.",
+    "couldNotSubmit": "Meldung konnte nicht gesendet werden",
+    "button": "Melden"
+  },
+  "profile": {
+    "admin": "Admin",
+    "moderator": "Moderator",
+    "postsLabel_one": "Beitrag",
+    "postsLabel_other": "Beiträge",
+    "friendsLabel_one": "Freund",
+    "friendsLabel_other": "Freunde",
+    "unauthorizedTitle": "Nicht berechtigt",
+    "unauthorizedDesc": "Du musst mit diesem Nutzer befreundet sein, um seine Beiträge zu sehen.",
+    "moreInterests": "+{{count}} mehr",
+    "previewTitle": "Profilvorschau",
+    "couldNotLoad": "Profil konnte nicht geladen werden"
+  },
+  "chat": {
+    "lightbox": {
+      "zoomOut": "Verkleinern",
+      "zoomIn": "Vergrößern",
+      "resetZoom": "Zoom zurücksetzen",
+      "close": "Schließen"
+    },
+    "view": {
+      "chatEnded": "Chat beendet",
+      "somethingWrong": "Etwas ist schiefgelaufen",
+      "disconnectedToast": "{{name}} hat die Verbindung getrennt",
+      "back": "Zurück",
+      "startVoice": "Sprachanruf starten",
+      "startVideo": "Videoanruf starten",
+      "options": "Chat-Optionen",
+      "ended": "Beendet",
+      "viewProfile": "Profil ansehen",
+      "reportUser": "Nutzer melden",
+      "endChat": "Chat beenden",
+      "disconnectedBanner": "{{name}} hat die Verbindung getrennt.",
+      "endedBanner": "Dieser Chat ist beendet.",
+      "findNewMatch": "Neues Match finden"
+    },
+    "room": {
+      "messageEmpty": "Nachricht ist leer",
+      "couldNotEdit": "Nachricht konnte nicht bearbeitet werden",
+      "couldNotDelete": "Nachricht konnte nicht gelöscht werden",
+      "messageRemovedToast": "Nachricht entfernt — der Autor wurde benachrichtigt",
+      "couldNotRemove": "Nachricht konnte nicht entfernt werden",
+      "onlyImages": "Nur Bilddateien sind erlaubt",
+      "imageTooLarge": "Bild muss unter 8 MB sein",
+      "couldNotUpload": "Bild konnte nicht hochgeladen werden",
+      "deleted": "Diese Nachricht wurde gelöscht",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "openImage": "Bild öffnen",
+      "sharedImage": "Geteiltes Bild",
+      "edited": "(bearbeitet)",
+      "messageActions": "Nachrichtenaktionen",
+      "reply": "Antworten",
+      "edit": "Bearbeiten",
+      "delete": "Löschen",
+      "report": "Melden",
+      "removeMessage": "Nachricht entfernen",
+      "viewProfileAria": "Profil von {{name}} ansehen",
+      "replyingTo": "Antwort an {{name}}",
+      "yourself": "dich selbst",
+      "cancelReply": "Antwort abbrechen",
+      "pendingPreview": "Vorschau des Uploads",
+      "removeImage": "Bild entfernen",
+      "conversationEnded": "Diese Unterhaltung ist beendet.",
+      "attachImage": "Bild anhängen",
+      "typePlaceholder": "Nachricht schreiben…",
+      "sendMessage": "Nachricht senden",
+      "deletedMessage": "Gelöschte Nachricht",
+      "photo": "Foto",
+      "messageLabel": "Nachricht",
+      "you": "Du"
+    },
+    "system": {
+      "videoCall": "Videoanruf",
+      "voiceCall": "Sprachanruf",
+      "callCompleted": "{{noun}} · {{duration}}",
+      "callDeclined": "{{noun}} abgelehnt",
+      "missedVideo": "Verpasster Videoanruf",
+      "missedVoice": "Verpasster Sprachanruf",
+      "reportReceived": "Meldung erhalten · {{reference}}",
+      "reportGuilty": "Meldung {{reference}} geprüft — es wurden Maßnahmen ergriffen",
+      "reportNoViolation": "Meldung {{reference}} geprüft — kein Verstoß festgestellt",
+      "profileReset": "Ein Moderator hat dein Profil zurückgesetzt",
+      "postRemoved": "Ein Moderator hat einen deiner Beiträge entfernt",
+      "messageRemoved": "Ein Moderator hat eine deiner Nachrichten entfernt"
+    }
+  },
+  "match": {
+    "matchedWith": "Mit {{name}} gematcht!",
+    "couldNotStart": "Matching konnte nicht gestartet werden. Versuche es erneut.",
+    "findingTitle": "Jemanden finden…",
+    "findingDesc": "Bleib dran – wir bringen dich in einen Chat, sobald wir ein Match finden.",
+    "cancel": "Abbrechen",
+    "meetTitle": "Lerne jemanden Neues kennen",
+    "meetDesc": "Tippe unten und wir verbinden dich eins zu eins mit einer anderen Person, die genau jetzt bereit zum Chatten ist.",
+    "searching": "Wird gesucht…",
+    "findMatch": "Match finden"
+  },
+  "call": {
+    "ringing": "Es klingelt…",
+    "incomingVideo": "Eingehender Videoanruf",
+    "incoming": "Eingehender Anruf",
+    "connecting": "Verbindung wird hergestellt…",
+    "ended": "Anruf beendet",
+    "muteMic": "Mikrofon stummschalten",
+    "unmuteMic": "Stummschaltung aufheben",
+    "cameraOff": "Kamera ausschalten",
+    "cameraOn": "Kamera einschalten",
+    "stopScreen": "Bildschirmfreigabe beenden",
+    "shareScreen": "Bildschirm teilen",
+    "hangUp": "Auflegen",
+    "unmuteSpeaker": "Lautsprecher aktivieren",
+    "muteSpeaker": "Lautsprecher stummschalten",
+    "speakerVolume": "Lautsprecherlautstärke",
+    "collapse": "Auf Bild-in-Bild verkleinern",
+    "expand": "Auf Vollbild vergrößern",
+    "decline": "Ablehnen",
+    "accept": "Annehmen",
+    "close": "Schließen",
+    "reasons": {
+      "declined": "Anruf abgelehnt",
+      "unavailable": "Nicht verfügbar",
+      "connectionLost": "Verbindung verloren",
+      "noAnswer": "Keine Antwort",
+      "connectionFailed": "Verbindung fehlgeschlagen",
+      "missed": "Verpasster Anruf",
+      "couldNotConnect": "Verbindung nicht möglich"
+    }
+  },
+  "messages": {
+    "chatCleared": "Chat geleert",
+    "couldNotClear": "Chat konnte nicht geleert werden",
+    "removedFriend": "{{name}} entfernt und euren Chat gelöscht",
+    "couldNotRemoveFriend": "Freund konnte nicht entfernt werden",
+    "searchPlaceholder": "Unterhaltungen durchsuchen",
+    "noConversations": "Noch keine Unterhaltungen. Füge Freunde hinzu und fang an zu chatten.",
+    "findFriends": "Freunde finden",
+    "youPrefix": "Du: ",
+    "noMessages": "Noch keine Nachrichten",
+    "back": "Zurück zu Unterhaltungen",
+    "startVoice": "Sprachanruf starten",
+    "startVideo": "Videoanruf starten",
+    "options": "Unterhaltungsoptionen",
+    "clearChat": "Chat leeren",
+    "reportUser": "Nutzer melden",
+    "unfriend": "Freund entfernen",
+    "loadingMessages": "Nachrichten werden geladen…",
+    "conversationStart": "Dies ist der Anfang deiner Unterhaltung mit {{name}}. Sag hallo!",
+    "chooseTitle": "Wähle eine Unterhaltung",
+    "chooseDesc": "Wähle links eine Unterhaltung aus, um wieder einzusteigen, oder füge Freunde hinzu, um eine neue zu starten."
+  },
+  "rooms": {
+    "couldNotOpen": "Kanal konnte nicht geöffnet werden",
+    "creating": "#{{name}} wird erstellt…",
+    "created": "#{{name}} erstellt",
+    "couldNotCreate": "Raum konnte nicht erstellt werden",
+    "deleting": "#{{name}} wird gelöscht…",
+    "deleted": "#{{name}} gelöscht",
+    "couldNotDelete": "Raum konnte nicht gelöscht werden",
+    "channelFallback": "Kanal",
+    "channelTitleFallback": "Kanal",
+    "noChannels": "Noch keine Kanäle. Erstelle den ersten.",
+    "createChannel": "Kanal erstellen",
+    "createDialogTitle": "Kanal erstellen",
+    "createDialogDesc": "Gib ihm einen Namen. Jeder kann ihn finden und beitreten.",
+    "channelName": "Kanalname",
+    "channelPlaceholder": "z. B. Gespräche für die Nacht",
+    "creatingBtn": "Wird erstellt…",
+    "createBtn": "Erstellen",
+    "onlineInChat": "{{count}} online in diesem Chat",
+    "chooseTitle": "Wähle einen Kanal",
+    "chooseDesc": "Wähle links einen Kanal aus, um ins Gespräch einzusteigen, oder erstelle deinen eigenen.",
+    "back": "Zurück zu den Kanälen",
+    "deleteChannelAria": "Kanal löschen",
+    "deleteTitle": "Kanal löschen?",
+    "deleteDesc": "Dies löscht den Kanal und alle seine Nachrichten dauerhaft für alle. Diese Aktion kann nicht rückgängig gemacht werden.",
+    "cancel": "Abbrechen",
+    "deletingBtn": "Wird gelöscht…",
+    "deleteBtn": "Löschen",
+    "noMessagesTitle": "Noch keine Nachrichten",
+    "noMessagesDesc": "Sei die oder der Erste und sag etwas.",
+    "membersTitle": "Mitglieder in diesem Kanal",
+    "membersDesc_one": "In {{name}} ist aktuell {{count}} Mitglied.",
+    "membersDesc_other": "In {{name}} sind aktuell {{count}} Mitglieder.",
+    "membersDescNone": "Aktuell ist kein Raum aktiv."
+  },
+  "moderation": {
+    "title": "Moderation",
+    "descAdmin": "Rollen verwalten, Konten sperren oder löschen, Profile zurücksetzen, Meldungen und Moderationsverlauf prüfen.",
+    "descMod": "Mitglieder sperren, Profile zurücksetzen, Meldungen und Moderationsverlauf prüfen.",
+    "tabUsers": "Nutzer",
+    "tabReports": "Meldungen",
+    "roles": {
+      "ADMIN": "Admin",
+      "MODERATOR": "Moderator",
+      "MEMBER": "Mitglied"
+    },
+    "durations": {
+      "d1": "1 Tag",
+      "d7": "7 Tage",
+      "d30": "30 Tage",
+      "perm": "Dauerhaft"
+    },
+    "couldNotLoadUsers": "Nutzer konnten nicht geladen werden",
+    "updatingRole": "Rolle von {{name}} wird aktualisiert…",
+    "roleUpdated": "{{name}} ist jetzt {{role}}",
+    "couldNotChangeRole": "Rolle konnte nicht geändert werden",
+    "liftingBan": "Sperre für {{name}} wird aufgehoben…",
+    "banLifted": "Die Sperre von {{name}} wurde aufgehoben",
+    "couldNotLiftBan": "Sperre konnte nicht aufgehoben werden",
+    "searchUsersPlaceholder": "Nach Name, Benutzername oder E-Mail suchen",
+    "searchUsersAria": "Nutzer suchen",
+    "noUsers": "Keine Nutzer gefunden.",
+    "you": "(du)",
+    "banned": "Gesperrt",
+    "manageUser": "{{name}} verwalten",
+    "liftBanItem": "Sperre aufheben",
+    "banUserItem": "Nutzer sperren",
+    "banHistoryItem": "Sperrverlauf",
+    "resetProfileItem": "Profil zurücksetzen",
+    "changeRole": "Rolle ändern",
+    "deleteItem": "Löschen",
+    "noUsersPager": "Keine Nutzer",
+    "range": "{{start}}–{{end}} von {{total}}",
+    "prev": "Zurück",
+    "pageOf": "Seite {{page}} von {{total}}",
+    "next": "Weiter",
+    "reset": {
+      "name": "Anzeigename",
+      "nameHint": "Auf „Entfernter Nutzer“ zurücksetzen",
+      "username": "Benutzername",
+      "usernameHint": "Auf ein zufälliges Kürzel zurücksetzen",
+      "avatar": "Avatar",
+      "avatarHint": "Profilbild entfernen",
+      "bio": "Bio",
+      "bioHint": "Bio-Text löschen",
+      "interests": "Interessen",
+      "interestsHint": "Alle Interessen-Tags entfernen",
+      "posts": "Alle Beiträge",
+      "postsHint": "Jeden Beitrag löschen, den sie erstellt haben",
+      "resetting": "Profil von {{name}} wird zurükgesetzt…",
+      "resetPosts_one": "Profil zurükgesetzt · {{count}} Beitrag gelöscht",
+      "resetPosts_other": "Profil zurükgesetzt · {{count}} Beiträge gelöscht",
+      "resetDone": "Profil zurükgesetzt",
+      "couldNotReset": "Profil konnte nicht zurükgesetzt werden",
+      "title": "Profil von {{name}} zurücksetzen",
+      "desc": "Leere die ausgewählten Profilfelder und lösche optional ihre Beiträge. Nicht-leerbare Felder werden durch neutrale Platzhalter ersetzt. Das kann nicht rückgängig gemacht werden.",
+      "cancel": "Abbrechen",
+      "resetBtn": "Profil zurücksetzen"
+    },
+    "ban": {
+      "reasonRequired": "Ein Sperrgrund ist erforderlich",
+      "banning": "{{name}} wird gesperrt…",
+      "bannedWithIp": "{{name}} und ihre IP wurden gesperrt",
+      "bannedUser": "{{name}} wurde gesperrt",
+      "couldNotBan": "Nutzer konnte nicht gesperrt werden",
+      "title": "{{name}} sperren",
+      "desc": "Sie verlieren sofort den Zugang und werden abgemeldet. Diese Aktion wird in ihrem Sperrverlauf festgehalten.",
+      "reason": "Grund",
+      "reasonPlaceholder": "Erkläre, warum dieses Konto gesperrt wird",
+      "duration": "Dauer",
+      "alsoBanIp": "Auch ihre IP-Adresse sperren",
+      "ipHint": "Blockiert die zuletzt bekannte IP dieses Kontos.\nIPs können geteilt werden, daher kann dies andere Nutzer betreffen.",
+      "cancel": "Abbrechen",
+      "banBtn": "Nutzer sperren"
+    },
+    "deleteDialog": {
+      "deleting": "{{name}} wird gelöscht…",
+      "deleted": "Das Konto von {{name}} wurde gelöscht",
+      "couldNotDelete": "Konto konnte nicht gelöscht werden",
+      "title": "{{name}} löschen?",
+      "desc": "Dies entfernt das Konto und alle ihre Beiträge, Likes, Nachrichten und anderen Daten dauerhaft. Das kann nicht rückgängig gemacht werden.",
+      "cancel": "Abbrechen",
+      "deleteBtn": "Löschen"
+    },
+    "history": {
+      "couldNotLoad": "Verlauf konnte nicht geladen werden",
+      "liftingBan": "Sperre wird aufgehoben…",
+      "banLifted": "Sperre aufgehoben",
+      "couldNotLift": "Sperre konnte nicht aufgehoben werden",
+      "deletingEntry": "Sperrverlauf-Eintrag wird gelöscht…",
+      "entryDeleted": "Sperrverlauf-Eintrag gelöscht",
+      "couldNotDeleteEntry": "Eintrag konnte nicht gelöscht werden",
+      "title": "Sperrverlauf von {{name}}",
+      "desc": "Jede gegen dieses Konto verhängte Sperre, neueste zuerst.",
+      "searchPlaceholder": "Grund, IP, Aussteller suchen...",
+      "sortBy": "Sortieren nach",
+      "newest": "Neueste zuerst",
+      "oldest": "Älteste zuerst",
+      "byIssuer": "Nach Aussteller sortieren",
+      "byLifter": "Nach Aufheber sortieren",
+      "noMatching": "Keine passenden Sperrverlauf-Einträge gefunden.",
+      "noEntries": "Keine Sperrverlauf-Einträge gefunden.",
+      "ip": "IP",
+      "account": "Konto",
+      "active": "Aktiv",
+      "lifted": "Aufgehoben",
+      "unban": "Entsperren",
+      "delete": "Löschen",
+      "reason": "Grund",
+      "ipAddress": "IP-Adresse",
+      "duration": "Dauer",
+      "expires": "Läuft ab",
+      "permanent": "Dauerhaft",
+      "issued": "Ausgestellt",
+      "liftedLabel": "Aufgehoben",
+      "reasonPrefix": "Grund: {{reason}}",
+      "liftTitle": "Sperre aufheben",
+      "liftDesc": "Gib optional einen Grund für die Aufhebung dieser {{scope}}-Sperre an.",
+      "liftReasonLabel": "Grund",
+      "liftReasonPlaceholder": "z. B. über Support-Ticket angefochten, Missverständnis geklärt",
+      "scopeAccount": "Konto",
+      "scopeIp": "IP",
+      "liftCancel": "Abbrechen",
+      "confirmLift": "Aufhebung bestätigen"
+    }
+  }
+}

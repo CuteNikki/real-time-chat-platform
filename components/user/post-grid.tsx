@@ -5,21 +5,30 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { ImageIcon, PlusIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import type { PostSummary } from '@/lib/types';
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { EmptyState } from '@/components/ui/empty-state';
 import { PostCard } from '@/components/user/post-card';
 
 export function PostGrid({
   posts,
   isOwnProfile = false,
+  canModerate = false,
 }: {
   posts: PostSummary[];
   isOwnProfile?: boolean;
+  canModerate?: boolean;
 }) {
   const [items, setItems] = useState<PostSummary[]>(posts);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const { t } = useTranslation();
+  // Tracks the open post's fullscreen image viewer. While it's up, the dialog
+  // must not dismiss on the clicks/Escape that belong to the viewer (which is
+  // portaled to <body>, so Radix would otherwise read them as "outside").
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -44,19 +53,12 @@ export function PostGrid({
 
   if (items.length === 0 && !isOwnProfile) {
     return (
-      <div className='flex h-full flex-col items-center justify-center gap-4 p-6 text-center'>
-        <div className='bg-accent relative mb-4 flex size-28 shrink-0 items-center justify-center rounded-full'>
-          <ImageIcon className='text-primary size-12 shrink-0' aria-hidden />
-        </div>
-        <div className='flex flex-col items-center gap-2'>
-          <span className='text-3xl font-semibold tracking-tight text-balance'>
-            Looking Empty
-          </span>
-          <p className='text-muted-foreground max-w-sm text-pretty'>
-            This user hasn't posted anything yet. Check back later!
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        icon={ImageIcon}
+        title={t('post.grid.lookingEmpty')}
+        description={t('post.grid.lookingEmptyDesc')}
+        className='h-full'
+      />
     );
   }
 
@@ -75,7 +77,7 @@ export function PostGrid({
               <PlusIcon className='shrink-0' aria-hidden />
             </div>
             <span className='text-muted-foreground text-xs font-medium'>
-              New Post
+              {t('post.grid.newPost')}
             </span>
           </button>
         ) : null}
@@ -90,7 +92,7 @@ export function PostGrid({
             {p.imageUrl ? (
               <Image
                 src={p.imageUrl || '/placeholder.svg'}
-                alt={p.caption ?? 'Post'}
+                alt={p.caption ?? t('post.grid.postAlt')}
                 fill
                 sizes='(max-width: 640px) 33vw, 300px'
                 className='group-hover:bg-muted object-cover transition-transform group-hover:scale-105'
@@ -108,19 +110,37 @@ export function PostGrid({
 
       <Dialog
         open={!!active}
-        onOpenChange={(open) => !open && setActiveId(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setActiveId(null);
+            setLightboxOpen(false);
+          }
+        }}
       >
         <DialogContent
           showCloseButton={false}
           className='border-0 bg-transparent p-0 ring-0 sm:max-w-md'
+          // The image viewer lives in a body portal, so its clicks/Escape read
+          // as "outside" this dialog. Ignore those dismissals while it's open.
+          onInteractOutside={(e) => {
+            if (lightboxOpen) e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            if (lightboxOpen) e.preventDefault();
+          }}
         >
           <DialogTitle className='sr-only'>
-            {active ? `Post by ${active.authorName}` : 'Post'}
+            {active
+              ? t('post.grid.postByAuthor', { name: active.authorName })
+              : t('post.grid.postAlt')}
           </DialogTitle>
           {active ? (
             <div className='max-h-[85vh] overflow-y-auto'>
               <PostCard
+                key={active.id}
                 post={active}
+                canModerate={canModerate}
+                onLightboxOpenChangeAction={setLightboxOpen}
                 onDeletedAction={(id) => {
                   setActiveId(null);
                   setItems((prev) => prev.filter((p) => p.id !== id));

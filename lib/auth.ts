@@ -5,7 +5,9 @@ import {
   sendVerificationEmailMessage,
 } from '@/lib/email';
 import { generateUsername } from '@/lib/id';
+import { isReservedName } from '@/lib/reserved-names';
 import { betterAuth } from 'better-auth';
+import { APIError } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 import { eq } from 'drizzle-orm';
 import { Pool } from 'pg';
@@ -57,6 +59,11 @@ export const auth = betterAuth({
   database: new Pool({ connectionString: process.env.DATABASE_URL }),
   baseURL: getBaseURL(),
   trustedOrigins: getTrustedOrigins(),
+  session: {
+    // Skip the per-request DB session lookup via a signed cookie cache; safe
+    // because roles (getMyRole) and bans (getEffectiveBan) are read fresh.
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
+  },
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
@@ -83,9 +90,20 @@ export const auth = betterAuth({
     user: {
       create: {
         // Every user gets a unique, generated username by default. They can
-        // change it later in settings, but it is always present.
+        // change it later in settings, but it is always present. We also refuse
+        // display names that impersonate Orbit or a staff identity right at
+        // signup, before the row is written.
         before: async (data) => {
           const record = data as Record<string, unknown>;
+          if (
+            typeof record.name === 'string' &&
+            isReservedName(record.name)
+          ) {
+            throw new APIError('BAD_REQUEST', {
+              message:
+                "That display name isn't allowed — it impersonates Orbit or our staff",
+            });
+          }
           if (!record.username) {
             return {
               data: { ...record, username: await generateUniqueUsername() },

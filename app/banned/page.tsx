@@ -1,20 +1,25 @@
-import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { SignOutButton } from '@/components/auth/sign-out-button';
+import { LocalTime } from '@/components/local-time';
 import { auth } from '@/lib/auth';
 import { getEffectiveBan } from '@/lib/ban';
-import { LocalTime } from '@/components/local-time';
-import { SignOutButton } from '@/components/auth/sign-out-button';
+import { getTranslation } from '@/lib/i18n/server';
 import { Ban, Clock, ShieldAlert, User } from 'lucide-react';
+import type { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-export const metadata: Metadata = {
-  title: 'Account suspended',
-  description: 'Your access to this app has been restricted.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getTranslation();
+  return {
+    title: t('banned.metaTitle'),
+    description: t('banned.metaDescription'),
+  };
+}
 
 export default async function BannedPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   const ban = await getEffectiveBan(session?.user?.id ?? null);
+  const { t } = await getTranslation();
 
   // Not actually banned — don't let this page be viewed by anyone else.
   if (!ban) {
@@ -32,13 +37,11 @@ export default async function BannedPage() {
           </div>
           <h1 className='text-2xl font-semibold tracking-tight text-balance'>
             {ban.scope === 'IP'
-              ? 'Access blocked'
-              : 'Your account is suspended'}
+              ? t('banned.accessBlocked')
+              : t('banned.accountSuspended')}
           </h1>
           <p className='text-muted-foreground mt-2 text-sm text-pretty'>
-            {permanent
-              ? 'This restriction is permanent.'
-              : 'Access will be restored automatically when the suspension ends.'}
+            {permanent ? t('banned.permanentNote') : t('banned.tempNote')}
           </p>
         </div>
 
@@ -50,7 +53,7 @@ export default async function BannedPage() {
             />
             <div className='min-w-0'>
               <dt className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
-                Reason
+                {t('banned.reason')}
               </dt>
               <dd className='mt-0.5 text-sm text-pretty'>{ban.reason}</dd>
             </div>
@@ -63,11 +66,11 @@ export default async function BannedPage() {
             />
             <div className='min-w-0'>
               <dt className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
-                {permanent ? 'Duration' : 'Suspended until'}
+                {permanent ? t('banned.duration') : t('banned.suspendedUntil')}
               </dt>
               <dd className='mt-0.5 text-sm'>
                 {permanent ? (
-                  'Permanent'
+                  t('banned.permanent')
                 ) : (
                   <LocalTime iso={ban.expiresAt as string} />
                 )}
@@ -82,14 +85,14 @@ export default async function BannedPage() {
             />
             <div className='min-w-0'>
               <dt className='text-muted-foreground text-xs font-medium tracking-wide uppercase'>
-                Issued
+                {t('banned.issued')}
               </dt>
               <dd className='mt-0.5 text-sm'>
                 <LocalTime iso={ban.createdAt} />
                 {ban.bannedByName ? (
                   <span className='text-muted-foreground'>
                     {' '}
-                    by {ban.bannedByName}
+                    {t('banned.by', { name: ban.bannedByName })}
                   </span>
                 ) : null}
               </dd>
@@ -98,11 +101,11 @@ export default async function BannedPage() {
         </dl>
 
         <p className='text-muted-foreground mt-6 text-center text-xs text-pretty'>
-          If you believe this is a mistake, please contact support to appeal.
+          {t('banned.appeal')}
         </p>
 
         <div className='mt-4 flex justify-center'>
-          <SignOutButton>Return to sign in</SignOutButton>
+          <SignOutButton>{t('banned.returnToSignIn')}</SignOutButton>
         </div>
       </div>
     </main>

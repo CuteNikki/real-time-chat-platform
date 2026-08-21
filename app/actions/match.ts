@@ -2,11 +2,12 @@
 
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { chat, chatParticipant, randomQueue, message } from '@/lib/db/schema';
+import { chat, chatParticipant, randomQueue } from '@/lib/db/schema';
 import { getCurrentUser } from '@/lib/session';
 import { pusherServer } from '@/lib/pusher/server';
-import { userChannel, chatChannel, EVENTS } from '@/lib/pusher/channels';
+import { userChannel, EVENTS } from '@/lib/pusher/channels';
 import { newId } from '@/lib/id';
+import { teardownRandomChat } from '@/lib/random-chat';
 
 type MatchResult =
   | { status: 'matched'; chatId: string; partnerName: string }
@@ -93,28 +94,8 @@ export async function cancelMatch() {
 // End a random chat: mark it ended, remove both participants, notify the room.
 export async function endRandomChat(chatId: string) {
   const me = await getCurrentUser();
-
-  // Verify membership.
-  const [membership] = await db
-    .select()
-    .from(chatParticipant)
-    .where(
-      and(
-        eq(chatParticipant.chatId, chatId),
-        eq(chatParticipant.userId, me.id),
-      ),
-    )
-    .limit(1);
-  if (!membership) throw new Error('Not a member of this chat');
-
-  // Notify the partner, then delete the ephemeral match entirely.
-  await pusherServer.trigger(chatChannel(chatId), EVENTS.CHAT_ENDED, {
-    by: me.name,
-    disconnected: true,
-  });
-  await db.delete(message).where(eq(message.chatId, chatId));
-  await db.delete(chatParticipant).where(eq(chatParticipant.chatId, chatId));
-  await db.delete(chat).where(eq(chat.id, chatId));
+  const result = await teardownRandomChat(chatId, { id: me.id, name: me.name });
+  if (result === 'not-member') throw new Error('Not a member of this chat');
   return { ok: true };
 }
 
