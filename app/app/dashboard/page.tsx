@@ -21,7 +21,7 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className='xs:pt-20 h-full w-full overflow-y-auto pt-16 pb-14 md:pb-0'>
+    <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>
       <div className='mx-auto w-full max-w-3xl px-4 py-8'>
         <PageHeader
           title='Moderation'

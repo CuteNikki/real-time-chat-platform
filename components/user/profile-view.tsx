@@ -35,7 +35,7 @@ export function ProfileView({
     atLeast(role, profile.role);
 
   return (
-    <div className='h-full w-full overflow-y-auto'>
+    <div className='w-full'>
       <div className='mx-auto w-full max-w-4xl px-4 py-8 sm:px-6'>
         <header className='flex flex-col gap-6 sm:flex-row'>
           <UserAvatar
