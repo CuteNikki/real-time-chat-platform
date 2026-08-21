@@ -148,9 +148,18 @@ export function NotificationBell({
       body?: string | null;
       type?: NotificationType;
       category?: NotificationCategory | null;
+      // False when this event collapsed into an existing unread notification
+      // (e.g. re-sending a friend request or re-liking a post) rather than
+      // creating a new one. Defaults to true for older payload shapes.
+      isNew?: boolean;
     }) => {
       mutate();
       if (open) load();
+
+      // A collapsed duplicate already has an unread entry the recipient
+      // hasn't seen yet — re-alerting on every repeat is what made spamming
+      // an action so noisy, so only toast/chime for genuinely new events.
+      if (payload?.isNew === false) return;
 
       const category =
         payload?.category ?? categoryForType(payload?.type ?? 'MESSAGE');
@@ -346,7 +355,7 @@ export function NotificationBell({
                     {requests.length === 0 ? (
                       <EmptyState label='No friend requests right now.' />
                     ) : (
-                      <ul className='flex flex-col gap-1.5'>
+                      <ul className='flex flex-col gap-2'>
                         {requests.map((n) => (
                           <RequestRow
                             key={n.id}
@@ -368,7 +377,7 @@ export function NotificationBell({
                     {messages.length === 0 ? (
                       <EmptyState label='No new message notifications.' />
                     ) : (
-                      <ul className='flex flex-col gap-1.5'>
+                      <ul className='flex flex-col gap-2'>
                         {messages.map((n) => (
                           <MessageRow
                             key={n.id}
@@ -385,7 +394,7 @@ export function NotificationBell({
                     {likes.length === 0 ? (
                       <EmptyState label='No likes on your posts yet.' />
                     ) : (
-                      <ul className='flex flex-col gap-1.5'>
+                      <ul className='flex flex-col gap-2'>
                         {likes.map((n) => (
                           <LikeRow
                             key={n.id}
@@ -443,26 +452,27 @@ function RowShell({
   return (
     <li
       className={cn(
-        'group border-border relative flex gap-3 rounded-lg border p-2.5 transition-colors',
-        !n.read && 'bg-card',
+        'border-border flex gap-3 rounded-xl border p-3 transition-colors',
+        n.read ? 'bg-transparent' : 'bg-card',
       )}
     >
-      <div className='relative shrink-0'>
+      {n.actorId ? (
         <UserAvatar
           name={n.actorName ?? 'User'}
           image={n.actorImage}
-          className='size-9'
+          className='size-9 shrink-0'
         />
-        <span className='bg-primary text-primary-foreground ring-popover absolute -right-1 -bottom-1 grid size-4 place-items-center rounded-full ring-2'>
-          <Icon className='size-2.5' aria-hidden />
+      ) : (
+        <span className='bg-secondary text-secondary-foreground grid size-9 shrink-0 place-items-center rounded-full'>
+          <Icon className='size-4' aria-hidden />
         </span>
-      </div>
+      )}
       <div className='min-w-0 flex-1'>{children}</div>
       <button
         type='button'
         onClick={onDelete}
         aria-label='Delete notification'
-        className='text-muted-foreground hover:bg-secondary hover:text-foreground absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-md opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100'
+        className='text-muted-foreground hover:bg-secondary hover:text-foreground grid size-7 shrink-0 place-items-center self-start rounded-md transition-colors'
       >
         <Trash2 className='size-3.5' aria-hidden />
       </button>
@@ -487,7 +497,7 @@ function RequestRow({
 }) {
   return (
     <RowShell n={n} onDelete={onDelete}>
-      <div className='flex items-start justify-between gap-2 pr-5'>
+      <div className='flex items-start justify-between gap-2'>
         <p className='text-sm leading-tight'>
           <span className='font-medium'>{n.actorName ?? 'Someone'}</span>
           {n.body ? (
@@ -571,7 +581,7 @@ function LikeRow({
 
   return (
     <RowShell n={n} onDelete={onDelete}>
-      <div className='flex items-start justify-between gap-2 pr-5'>
+      <div className='flex items-start justify-between gap-2'>
         <p className='text-sm leading-tight'>
           <span className='font-medium'>{n.actorName ?? 'Someone'}</span>
           <span className='text-muted-foreground'> liked your </span>
@@ -618,11 +628,7 @@ function MessageRow({
 }) {
   return (
     <RowShell n={n} onDelete={onDelete}>
-      <button
-        type='button'
-        onClick={onOpen}
-        className='block w-full pr-5 text-left'
-      >
+      <button type='button' onClick={onOpen} className='block w-full text-left'>
         <div className='flex items-start justify-between gap-2'>
           <p className='truncate text-sm leading-tight font-medium'>
             {n.actorName ?? 'New message'}
