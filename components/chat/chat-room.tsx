@@ -1,7 +1,9 @@
 'use client';
 
+import type { TFunction } from 'i18next';
 import type React from 'react';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
@@ -38,11 +40,12 @@ import { useChat } from '@/hooks/use-chat';
 
 import { formatExactTimestamp, formatMessageTime } from '@/lib/format-time';
 import { newId } from '@/lib/id';
-import {
-  INITIAL_MESSAGE_LIMIT,
-  OLDER_MESSAGE_LIMIT,
-} from '@/lib/pagination';
-import type { ChatMessage, NotificationCategory, SystemMessageMeta } from '@/lib/types';
+import { INITIAL_MESSAGE_LIMIT, OLDER_MESSAGE_LIMIT } from '@/lib/pagination';
+import type {
+  ChatMessage,
+  NotificationCategory,
+  SystemMessageMeta,
+} from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 import { ImageLightbox } from '@/components/chat/image-lightbox';
@@ -78,12 +81,13 @@ type Row =
 
 // A short label for a quoted/replied message.
 function previewOf(
+  t: TFunction,
   m: Pick<ChatMessage, 'deletedAt' | 'content' | 'imageUrl'>,
 ): string {
-  if (m.deletedAt) return 'Deleted message';
+  if (m.deletedAt) return t('chat.room.deletedMessage');
   if (m.content) return m.content;
-  if (m.imageUrl) return 'Photo';
-  return 'Message';
+  if (m.imageUrl) return t('chat.room.photo');
+  return t('chat.room.messageLabel');
 }
 
 // Human "m:ss" for a call duration.
@@ -97,48 +101,67 @@ function formatCallDuration(totalSec: number): string {
 // Icon + text for a structured system notice. The message's `meta` is the
 // authoritative record; the copy is composed here from its fields (never a
 // pre-baked sentence stored on the row).
-function describeSystemMeta(meta: SystemMessageMeta): {
+function describeSystemMeta(
+  t: TFunction,
+  meta: SystemMessageMeta,
+): {
   Icon: typeof Phone;
   text: string;
 } {
   switch (meta.kind) {
     case 'CALL': {
-      const noun = meta.media === 'VIDEO' ? 'Video call' : 'Voice call';
+      const noun =
+        meta.media === 'VIDEO'
+          ? t('chat.system.videoCall')
+          : t('chat.system.voiceCall');
       if (meta.outcome === 'COMPLETED') {
         return {
           Icon: meta.media === 'VIDEO' ? Video : Phone,
-          text: `${noun} · ${formatCallDuration(meta.durationSec)}`,
+          text: t('chat.system.callCompleted', {
+            noun,
+            duration: formatCallDuration(meta.durationSec),
+          }),
         };
       }
       if (meta.outcome === 'DECLINED') {
-        return { Icon: PhoneMissed, text: `${noun} declined` };
+        return {
+          Icon: PhoneMissed,
+          text: t('chat.system.callDeclined', { noun }),
+        };
       }
-      return { Icon: PhoneMissed, text: `Missed ${noun.toLowerCase()}` };
+      return {
+        Icon: PhoneMissed,
+        text:
+          meta.media === 'VIDEO'
+            ? t('chat.system.missedVideo')
+            : t('chat.system.missedVoice'),
+      };
     }
     case 'REPORT_FILED':
       return {
         Icon: ShieldAlert,
-        text: `Report received · ${meta.reference}`,
+        text: t('chat.system.reportReceived', { reference: meta.reference }),
       };
     case 'REPORT_RESOLVED':
       return {
         Icon: ShieldCheck,
         text:
           meta.verdict === 'GUILTY'
-            ? `Report ${meta.reference} reviewed — action was taken`
-            : `Report ${meta.reference} reviewed — no violation found`,
+            ? t('chat.system.reportGuilty', { reference: meta.reference })
+            : t('chat.system.reportNoViolation', { reference: meta.reference }),
       };
     case 'PROFILE_RESET':
-      return { Icon: UserCog, text: 'A moderator reset your profile' };
+      return { Icon: UserCog, text: t('chat.system.profileReset') };
     case 'POST_REMOVED':
-      return { Icon: Trash2, text: 'A moderator removed one of your posts' };
+      return { Icon: Trash2, text: t('chat.system.postRemoved') };
     case 'MESSAGE_REMOVED':
-      return { Icon: Trash2, text: 'A moderator removed one of your messages' };
+      return { Icon: Trash2, text: t('chat.system.messageRemoved') };
   }
 }
 
 // A centered, pill-shaped system notice rendered inline in the message stream.
 function SystemNotice({ message }: { message: ChatMessage }) {
+  const { t } = useTranslation();
   // Fall back to the stored preview text if meta is somehow absent.
   if (!message.meta) {
     return message.content ? (
@@ -149,7 +172,7 @@ function SystemNotice({ message }: { message: ChatMessage }) {
       </li>
     ) : null;
   }
-  const { Icon, text } = describeSystemMeta(message.meta);
+  const { Icon, text } = describeSystemMeta(t, message.meta);
   return (
     <li className='flex justify-center py-1'>
       <span
@@ -199,6 +222,7 @@ export function ChatRoom({
   // a moderator's attempt on an admin's message is rejected there.
   canModerate?: boolean;
 }) {
+  const { t } = useTranslation();
   const { messages, ended, appendLocal, patchLocal, prependOlder } = useChat({
     chatId,
     currentUserId,
@@ -352,7 +376,7 @@ export function ChatRoom({
   async function saveEdit(m: ChatMessage) {
     const next = editText.trim();
     if (!next && !m.imageUrl) {
-      toast.error('Message is empty');
+      toast.error(t('chat.room.messageEmpty'));
       return;
     }
     if (next === (m.content ?? '')) {
@@ -367,7 +391,9 @@ export function ChatRoom({
     try {
       await editMessage({ chatId, messageId: m.id, content: next });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not edit message');
+      toast.error(
+        err instanceof Error ? err.message : t('chat.room.couldNotEdit'),
+      );
     }
   }
 
@@ -382,7 +408,7 @@ export function ChatRoom({
       await deleteMessage({ chatId, messageId: m.id });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Could not delete message',
+        err instanceof Error ? err.message : t('chat.room.couldNotDelete'),
       );
     }
   }
@@ -401,10 +427,10 @@ export function ChatRoom({
         deletedAt: new Date().toISOString(),
       });
       if (replyingTo?.id === m.id) setReplyingTo(null);
-      toast.success('Message removed — the author was notified');
+      toast.success(t('chat.room.messageRemovedToast'));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Could not remove message',
+        err instanceof Error ? err.message : t('chat.room.couldNotRemove'),
       );
     }
   }
@@ -414,11 +440,11 @@ export function ChatRoom({
     e.target.value = '';
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast.error('Only image files are allowed');
+      toast.error(t('chat.room.onlyImages'));
       return;
     }
     if (file.size > 8 * 1024 * 1024) {
-      toast.error('Image must be under 8MB');
+      toast.error(t('chat.room.imageTooLarge'));
       return;
     }
     setUploading(true);
@@ -430,7 +456,7 @@ export function ChatRoom({
       const { url } = await res.json();
       setPendingImage(url);
     } catch {
-      toast.error('Could not upload image');
+      toast.error(t('chat.room.couldNotUpload'));
     } finally {
       setUploading(false);
     }
@@ -523,7 +549,9 @@ export function ChatRoom({
             )}
             {rows.map((row) => {
               if (row.type === 'system') {
-                return <SystemNotice key={row.message.id} message={row.message} />;
+                return (
+                  <SystemNotice key={row.message.id} message={row.message} />
+                );
               }
               const g = row.group;
               const last = g.items[g.items.length - 1];
@@ -550,7 +578,7 @@ export function ChatRoom({
                           'flex max-w-[85%] flex-col gap-1 rounded-2xl transition-shadow sm:max-w-[75%]',
                           g.mine ? 'items-end' : 'items-start',
                           highlightId === m.id &&
-                            'ring-primary/60 ring-2 ring-offset-4 ring-offset-background',
+                            'ring-primary/60 ring-offset-background ring-2 ring-offset-4',
                         )}
                       >
                         {/* Quoted reply: its own dimmed bubble sitting above the
@@ -571,14 +599,14 @@ export function ChatRoom({
                               )}
                               aria-hidden
                             />
-                            <span className='bg-secondary text-muted-foreground flex min-w-0 max-w-full items-baseline gap-1.5 rounded-xl px-2.5 py-1 text-xs'>
+                            <span className='bg-secondary text-muted-foreground flex max-w-full min-w-0 items-baseline gap-1.5 rounded-xl px-2.5 py-1 text-xs'>
                               <span className='text-foreground/80 shrink-0 font-medium'>
                                 {replyTarget.senderId === currentUserId
-                                  ? 'You'
+                                  ? t('chat.room.you')
                                   : replyTarget.senderName}
                               </span>
                               <span className='truncate opacity-80'>
-                                {previewOf(replyTarget)}
+                                {previewOf(t, replyTarget)}
                               </span>
                             </span>
                           </button>
@@ -594,7 +622,7 @@ export function ChatRoom({
                           {m.deletedAt ? (
                             <div className='text-muted-foreground border-border flex items-center gap-1.5 rounded-2xl border border-dashed px-3.5 py-2 text-sm italic'>
                               <Ban className='size-3.5' aria-hidden />
-                              This message was deleted
+                              {t('chat.room.deleted')}
                             </div>
                           ) : editing ? (
                             <div className='bg-muted flex min-w-56 flex-col gap-2 rounded-2xl p-2'>
@@ -619,7 +647,7 @@ export function ChatRoom({
                                   variant='ghost'
                                   onClick={() => setEditingId(null)}
                                 >
-                                  Cancel
+                                  {t('chat.room.cancel')}
                                 </Button>
                                 <Button
                                   type='button'
@@ -627,21 +655,19 @@ export function ChatRoom({
                                   onClick={() => saveEdit(m)}
                                 >
                                   <Check aria-hidden />
-                                  Save
+                                  {t('chat.room.save')}
                                 </Button>
                               </div>
                             </div>
                           ) : (
                             <div
                               className={cn(
-                                'flex min-w-0 max-w-full flex-col overflow-hidden rounded-2xl text-sm leading-relaxed',
+                                'flex max-w-full min-w-0 flex-col overflow-hidden rounded-2xl text-sm leading-relaxed',
                                 g.mine
                                   ? 'bg-primary text-primary-foreground rounded-br-md'
                                   : 'bg-muted text-foreground rounded-bl-md',
                                 groupedTop &&
-                                  (g.mine
-                                    ? 'rounded-tr-md'
-                                    : 'rounded-tl-md'),
+                                  (g.mine ? 'rounded-tr-md' : 'rounded-tl-md'),
                               )}
                             >
                               {m.imageUrl && (
@@ -649,12 +675,12 @@ export function ChatRoom({
                                   type='button'
                                   onClick={() => setLightboxSrc(m.imageUrl)}
                                   className='block cursor-zoom-in p-1'
-                                  aria-label='Open image'
+                                  aria-label={t('chat.room.openImage')}
                                 >
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
                                     src={m.imageUrl}
-                                    alt='Shared image'
+                                    alt={t('chat.room.sharedImage')}
                                     onLoad={handleImageLoad}
                                     className='block max-h-80 w-full rounded-xl object-cover'
                                   />
@@ -673,7 +699,7 @@ export function ChatRoom({
                                   {m.content}
                                   {m.editedAt && (
                                     <span className='ml-1 align-baseline text-[10px] opacity-60'>
-                                      (edited)
+                                      {t('chat.room.edited')}
                                     </span>
                                   )}
                                 </p>
@@ -689,7 +715,7 @@ export function ChatRoom({
                                   <button
                                     type='button'
                                     className='text-muted-foreground hover:bg-muted hover:text-foreground grid size-7 place-items-center rounded-full outline-none'
-                                    aria-label='Message actions'
+                                    aria-label={t('chat.room.messageActions')}
                                   >
                                     <MoreHorizontal className='size-4' />
                                   </button>
@@ -701,14 +727,14 @@ export function ChatRoom({
                                     onSelect={() => startReply(m)}
                                   >
                                     <Reply aria-hidden />
-                                    Reply
+                                    {t('chat.room.reply')}
                                   </DropdownMenuItem>
                                   {g.mine && (
                                     <DropdownMenuItem
                                       onSelect={() => startEdit(m)}
                                     >
                                       <Pencil aria-hidden />
-                                      Edit
+                                      {t('chat.room.edit')}
                                     </DropdownMenuItem>
                                   )}
                                   {g.mine && (
@@ -717,7 +743,7 @@ export function ChatRoom({
                                       onSelect={() => removeMessage(m)}
                                     >
                                       <Trash2 aria-hidden />
-                                      Delete
+                                      {t('chat.room.delete')}
                                     </DropdownMenuItem>
                                   )}
                                   {!g.mine && (
@@ -732,7 +758,7 @@ export function ChatRoom({
                                       }
                                     >
                                       <Flag aria-hidden />
-                                      Report
+                                      {t('chat.room.report')}
                                     </DropdownMenuItem>
                                   )}
                                   {!g.mine && canModerate && (
@@ -741,7 +767,7 @@ export function ChatRoom({
                                       onSelect={() => moderatorRemove(m)}
                                     >
                                       <ShieldX aria-hidden />
-                                      Remove message
+                                      {t('chat.room.removeMessage')}
                                     </DropdownMenuItem>
                                   )}
                                 </DropdownMenuContent>
@@ -766,7 +792,9 @@ export function ChatRoom({
                           type='button'
                           onClick={() => onUserClickAction(g.senderId)}
                           className='ring-ring shrink-0 rounded-full outline-none focus-visible:ring-2'
-                          aria-label={`View ${g.senderName}'s profile`}
+                          aria-label={t('chat.room.viewProfileAria', {
+                            name: g.senderName,
+                          })}
                         >
                           <UserAvatar
                             name={g.senderName}
@@ -817,16 +845,21 @@ export function ChatRoom({
         <div className='flex w-full flex-col gap-2'>
           {replyingTo && (
             <div className='bg-muted flex items-center gap-2 rounded-lg px-3 py-2 text-sm'>
-              <Reply className='text-muted-foreground size-4 shrink-0' aria-hidden />
+              <Reply
+                className='text-muted-foreground size-4 shrink-0'
+                aria-hidden
+              />
               <div className='min-w-0 flex-1'>
                 <p className='text-xs font-medium'>
-                  Replying to{' '}
-                  {replyingTo.senderId === currentUserId
-                    ? 'yourself'
-                    : replyingTo.senderName}
+                  {t('chat.room.replyingTo', {
+                    name:
+                      replyingTo.senderId === currentUserId
+                        ? t('chat.room.yourself')
+                        : replyingTo.senderName,
+                  })}
                 </p>
                 <p className='text-muted-foreground line-clamp-1 text-xs'>
-                  {previewOf(replyingTo)}
+                  {previewOf(t, replyingTo)}
                 </p>
               </div>
               <Button
@@ -834,7 +867,7 @@ export function ChatRoom({
                 onClick={() => setReplyingTo(null)}
                 size='icon-xs'
                 variant='ghost'
-                aria-label='Cancel reply'
+                aria-label={t('chat.room.cancelReply')}
               >
                 <XIcon aria-hidden />
               </Button>
@@ -845,7 +878,7 @@ export function ChatRoom({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={pendingImage}
-                alt='Pending upload preview'
+                alt={t('chat.room.pendingPreview')}
                 className='border-border max-h-28 rounded-lg border object-cover'
               />
               <Button
@@ -853,7 +886,7 @@ export function ChatRoom({
                 onClick={() => setPendingImage(null)}
                 className='absolute -top-1 -right-1'
                 size='icon-xs'
-                aria-label='Remove image'
+                aria-label={t('chat.room.removeImage')}
               >
                 <XIcon aria-hidden />
               </Button>
@@ -861,7 +894,7 @@ export function ChatRoom({
           )}
           {ended ? (
             <p className='text-muted-foreground py-2 text-center text-sm'>
-              This conversation has ended.
+              {t('chat.room.conversationEnded')}
             </p>
           ) : (
             <form onSubmit={submit} className='flex items-center gap-2'>
@@ -880,7 +913,7 @@ export function ChatRoom({
                     size='icon-lg'
                     disabled={uploading}
                     onClick={() => fileRef.current?.click()}
-                    aria-label='Attach image'
+                    aria-label={t('chat.room.attachImage')}
                   >
                     {uploading ? (
                       <Loader2Icon className='animate-spin' aria-hidden />
@@ -908,13 +941,13 @@ export function ChatRoom({
                 }}
                 className='max-h-18 min-h-0! resize-none'
                 rows={1}
-                placeholder='Type a message…'
+                placeholder={t('chat.room.typePlaceholder')}
               />
               <Button
                 type='submit'
                 size='icon-lg'
                 disabled={sending || (!text.trim() && !pendingImage)}
-                aria-label='Send message'
+                aria-label={t('chat.room.sendMessage')}
               >
                 <SendHorizonal aria-hidden />
               </Button>
@@ -926,7 +959,7 @@ export function ChatRoom({
       <ImageLightbox
         open={!!lightboxSrc}
         src={lightboxSrc ?? ''}
-        alt='Shared image'
+        alt={t('chat.room.sharedImage')}
         onClose={() => setLightboxSrc(null)}
       />
 

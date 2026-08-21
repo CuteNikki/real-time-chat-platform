@@ -3,8 +3,14 @@
 import Link from 'next/link';
 import { useRef } from 'react';
 
-import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { ArrowRightIcon, ChevronDownIcon, SparklesIcon } from 'lucide-react';
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from 'motion/react';
+import { useTranslation } from 'react-i18next';
 
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -15,6 +21,8 @@ import { EASE } from './motion';
 // Small live-chat mock that floats beside the hero copy — gives the page a
 // concrete "this is the product" anchor with depth (glow + glass + float).
 function HeroPreview() {
+  const { t } = useTranslation();
+
   return (
     <div className='relative mx-auto w-full max-w-sm'>
       {/* Ambient glow behind the card. */}
@@ -29,16 +37,16 @@ function HeroPreview() {
             <span className='bg-primary relative inline-flex size-2.5 rounded-full' />
           </span>
           <span className='text-muted-foreground text-xs font-medium'>
-            3 people live in this room
+            {t('landing.hero.preview.live')}
           </span>
         </div>
         <div className='flex flex-col gap-3'>
           <ChatBubble side='start' name='Maya'>
-            wait you&apos;re into film photography too?? 🎞️
+            {t('landing.hero.preview.msgMaya')}
           </ChatBubble>
-          <ChatBubble side='end'>no way, what do you shoot on</ChatBubble>
+          <ChatBubble side='end'>{t('landing.hero.preview.msgYou')}</ChatBubble>
           <ChatBubble side='start' name='Jon'>
-            found my people in here lol
+            {t('landing.hero.preview.msgJon')}
           </ChatBubble>
         </div>
       </div>
@@ -80,6 +88,7 @@ function ChatBubble({
 export function Hero() {
   const ref = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
+  const { t } = useTranslation();
   const scrollContainer = useLandingScrollContainer();
 
   // Drive the hero's exit off its own scroll progress: 0 while pinned at the
@@ -114,9 +123,7 @@ export function Hero() {
   return (
     <section ref={ref} className='relative'>
       <motion.div
-        style={
-          reduce ? undefined : { opacity, scale, y, filter: blur }
-        }
+        style={reduce ? undefined : { opacity, scale, y, filter: blur }}
         className='mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-12 px-4 py-20 lg:grid-cols-[1.1fr_0.9fr] lg:py-28'
       >
         <motion.div
@@ -133,22 +140,25 @@ export function Hero() {
               <span className='bg-primary absolute inline-flex size-full animate-ping rounded-full opacity-75' />
               <span className='bg-primary relative inline-flex size-2 rounded-full' />
             </span>
-            Live conversations, right now
+            {t('landing.hero.badge')}
           </motion.span>
 
           <motion.h1
             variants={reduce ? undefined : item}
             className='max-w-3xl text-5xl leading-[1.05] font-semibold tracking-tight text-balance lg:text-7xl'
           >
-            Talk to <span className='text-primary'>someone new</span> in seconds
+            {t('landing.hero.titleBefore')}
+            <span className='text-primary'>
+              {t('landing.hero.titleHighlight')}
+            </span>
+            {t('landing.hero.titleAfter')}
           </motion.h1>
 
           <motion.p
             variants={reduce ? undefined : item}
             className='text-muted-foreground mt-6 max-w-xl text-lg leading-relaxed text-pretty'
           >
-            Orbit matches you with strangers, spins up group rooms and lets you
-            chat with friends in private — all in real time, no profile required.
+            {t('landing.hero.subtitle')}
           </motion.p>
 
           <motion.div
@@ -159,7 +169,7 @@ export function Hero() {
               href='/sign-up'
               className={buttonVariants({ size: 'lg', className: 'p-4!' })}
             >
-              Start Now
+              {t('landing.hero.primaryCta')}
               <ArrowRightIcon className='size-4' aria-hidden />
             </Link>
             <Link
@@ -170,7 +180,7 @@ export function Hero() {
                 className: 'p-4!',
               })}
             >
-              I have an account
+              {t('landing.hero.secondaryCta')}
             </Link>
           </motion.div>
 
@@ -179,7 +189,7 @@ export function Hero() {
             className='text-muted-foreground mt-6 inline-flex items-center gap-2 text-sm'
           >
             <SparklesIcon className='text-primary size-4' aria-hidden />
-            Free forever · no card, no catch
+            {t('landing.hero.free')}
           </motion.div>
         </motion.div>
 

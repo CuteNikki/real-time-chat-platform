@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 
 import {
@@ -35,16 +36,26 @@ import { UserAvatar } from '@/components/user/user-avatar';
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 const links = [
-  { href: '/app/feed', label: 'Feed', icon: HomeIcon, exact: false },
-  { href: '/app/match', label: 'Match', icon: ShuffleIcon, exact: false },
-  { href: '/app/rooms', label: 'Rooms', icon: Users2Icon, exact: false },
+  { href: '/app/feed', labelKey: 'nav.feed', icon: HomeIcon, exact: false },
+  {
+    href: '/app/match',
+    labelKey: 'nav.match',
+    icon: ShuffleIcon,
+    exact: false,
+  },
+  { href: '/app/rooms', labelKey: 'nav.rooms', icon: Users2Icon, exact: false },
   {
     href: '/app/messages',
-    label: 'Messages',
+    labelKey: 'nav.messages',
     icon: MessageCircleIcon,
     exact: false,
   },
-  { href: '/app/friends', label: 'Friends', icon: UserPlus2Icon, exact: false },
+  {
+    href: '/app/friends',
+    labelKey: 'nav.friends',
+    icon: UserPlus2Icon,
+    exact: false,
+  },
 ];
 
 export function AppNav({
@@ -67,6 +78,7 @@ export function AppNav({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useTranslation();
 
   // Poll pending friend requests for the badge; realtime events also revalidate this.
   const { data } = useSWR<{ count: number }>(
@@ -118,7 +130,7 @@ export function AppNav({
                 )}
               >
                 <Icon className='size-4' aria-hidden />
-                <span className='hidden md:inline'>{link.label}</span>
+                <span className='hidden md:inline'>{t(link.labelKey)}</span>
                 {showBadge && (
                   <Badge
                     className='ml-0.5 h-5 min-w-5 justify-center px-1 tabular-nums'
@@ -165,27 +177,27 @@ export function AppNav({
               <DropdownMenuItem asChild>
                 <Link href={profileHref}>
                   <User2Icon aria-hidden />
-                  Profile
+                  {t('nav.profile')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href='/app/settings'>
                   <SettingsIcon aria-hidden />
-                  Settings
+                  {t('nav.settings')}
                 </Link>
               </DropdownMenuItem>
               {(user.role === 'ADMIN' || user.role === 'MODERATOR') && (
                 <DropdownMenuItem asChild>
                   <Link href='/app/dashboard'>
                     <ShieldIcon aria-hidden />
-                    Dashboard
+                    {t('nav.dashboard')}
                   </Link>
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} variant='destructive'>
                 <LogOutIcon aria-hidden />
-                Sign Out
+                {t('nav.signOut')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -197,6 +209,7 @@ export function AppNav({
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   const { data } = useSWR<{ count: number }>(
     '/api/invites/pending-count',
@@ -209,7 +222,7 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      aria-label='Primary'
+      aria-label={t('nav.primary')}
       className='border-border bg-background fixed inset-x-0 bottom-0 z-50 flex shrink-0 items-stretch justify-around border-t md:hidden'
     >
       {links.map((link) => {
@@ -240,7 +253,7 @@ export function MobileBottomNav() {
                 </Badge>
               )}
             </span>
-            {link.label}
+            {t(link.labelKey)}
           </Link>
         );
       })}

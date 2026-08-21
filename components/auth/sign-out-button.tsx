@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { authClient } from '@/lib/auth-client';
 import { Button } from '@/components/ui/button';
-import { LogOut, Loader2 } from 'lucide-react';
+import { authClient } from '@/lib/auth-client';
+import { Loader2, LogOut } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function SignOutButton({
   className,
@@ -16,6 +17,7 @@ export function SignOutButton({
   children?: React.ReactNode;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
 
   async function signOut() {
@@ -41,7 +43,7 @@ export function SignOutButton({
       ) : (
         <LogOut className='size-4' aria-hidden />
       )}
-      {children ?? 'Sign out'}
+      {children ?? t('auth.signOut')}
     </Button>
   );
 }

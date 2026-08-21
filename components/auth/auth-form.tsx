@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { Loader2Icon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { authClient } from '@/lib/auth-client';
 
@@ -14,6 +15,7 @@ import { Label } from '@/components/ui/label';
 
 export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -34,16 +36,15 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
           password,
           name,
         });
-        if (error) throw new Error(error.message || 'Could not create account');
+        if (error) throw new Error(error.message || t('auth.form.errCreate'));
       } else {
         const { error } = await authClient.signIn.email({ email, password });
-        if (error)
-          throw new Error(error.message || 'Invalid email or password');
+        if (error) throw new Error(error.message || t('auth.form.errInvalid'));
       }
       router.push('/app');
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError(err instanceof Error ? err.message : t('auth.form.errGeneric'));
       setLoading(false);
     }
   }
@@ -52,38 +53,38 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
     <form onSubmit={handleSubmit} className='flex flex-col gap-4'>
       {isSignUp && (
         <div className='flex flex-col gap-2'>
-          <Label htmlFor='name'>Display Name</Label>
+          <Label htmlFor='name'>{t('auth.form.displayName')}</Label>
           <Input
             id='name'
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder='What should people call you?'
+            placeholder={t('auth.form.displayNamePlaceholder')}
             required
             autoComplete='name'
           />
         </div>
       )}
       <div className='flex flex-col gap-2'>
-        <Label htmlFor='email'>Email</Label>
+        <Label htmlFor='email'>{t('auth.form.email')}</Label>
         <Input
           id='email'
           type='email'
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder='you@example.com'
+          placeholder={t('auth.form.emailPlaceholder')}
           required
           autoComplete='email'
         />
       </div>
       <div className='flex flex-col gap-2'>
         <div className='flex items-center justify-between'>
-          <Label htmlFor='password'>Password</Label>
+          <Label htmlFor='password'>{t('auth.form.password')}</Label>
           {!isSignUp && (
             <Link
               href='/forgot-password'
               className='text-muted-foreground hover:text-foreground text-xs font-medium underline transition-colors'
             >
-              Forgot password?
+              {t('auth.form.forgotPassword')}
             </Link>
           )}
         </div>
@@ -92,7 +93,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
           type='password'
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder='At least 8 characters'
+          placeholder={t('auth.form.passwordPlaceholder')}
           required
           minLength={8}
           maxLength={128}
@@ -108,16 +109,20 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
 
       <Button type='submit' disabled={loading} size='lg'>
         {loading && <Loader2Icon className='animate-spin' aria-hidden />}
-        {loading ? 'Please wait…' : isSignUp ? 'Create account' : 'Sign in'}
+        {loading
+          ? t('auth.form.pleaseWait')
+          : isSignUp
+            ? t('auth.form.createAccount')
+            : t('auth.form.signInButton')}
       </Button>
 
       <p className='text-muted-foreground text-center text-sm'>
-        {isSignUp ? 'Already have an account? ' : 'New here? '}
+        {isSignUp ? t('auth.form.haveAccount') : t('auth.form.newHere')}{' '}
         <Link
           href={isSignUp ? '/sign-in' : '/sign-up'}
           className='text-foreground font-medium underline'
         >
-          {isSignUp ? 'Sign in' : 'Create an account'}
+          {isSignUp ? t('auth.form.signInLink') : t('auth.form.createLink')}
         </Link>
       </p>
     </form>

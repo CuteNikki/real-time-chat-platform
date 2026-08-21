@@ -8,6 +8,7 @@ import { getMyRole } from '@/lib/roles-server';
 
 import { ModerationDashboard } from '@/components/moderation-dashboard';
 import { PageHeader } from '@/components/ui/page-header';
+import { getTranslation } from '@/lib/i18n/server';
 
 export default async function DashboardPage() {
   const role = await getMyRole();
@@ -19,16 +20,17 @@ export default async function DashboardPage() {
     listReports('PENDING'),
     countPendingReports(),
   ]);
+  const { t } = await getTranslation();
 
   return (
     <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>
       <div className='mx-auto w-full max-w-3xl px-4 py-8'>
         <PageHeader
-          title='Moderation'
+          title={t('moderation.title')}
           description={
             role === 'ADMIN'
-              ? 'Manage roles, ban or delete accounts, reset profiles, review reports, and moderation history.'
-              : 'Ban members, reset profiles, review reports, and moderation history.'
+              ? t('moderation.descAdmin')
+              : t('moderation.descMod')
           }
           className='mb-6'
         />

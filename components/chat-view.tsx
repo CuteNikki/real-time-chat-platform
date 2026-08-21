@@ -14,11 +14,12 @@ import {
   Users2Icon,
   Video,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { endRandomChat } from '@/app/actions/match';
 
-import type { ChatMessage } from '@/lib/types';
 import { postBeacon } from '@/lib/beacon';
+import type { ChatMessage } from '@/lib/types';
 
 import { useCall } from '@/components/call/call-provider';
 import { ChatRoom } from '@/components/chat/chat-room';
@@ -61,6 +62,7 @@ export function ChatView({
 }) {
   const router = useRouter();
   const { startCall, hangUp } = useCall();
+  const { t } = useTranslation();
   const [ended, setEnded] = useState(initialEnded);
   const [partnerLeft, setPartnerLeft] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -104,10 +106,12 @@ export function ChatView({
     try {
       endedRef.current = true;
       await endRandomChat(chatId);
-      toast.success('Chat ended');
+      toast.success(t('chat.view.chatEnded'));
       router.push('/app/match');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+      toast.error(
+        err instanceof Error ? err.message : t('chat.view.somethingWrong'),
+      );
       setLeaving(false);
       // Reset the ref so the user can try leaving again if it failed
       endedRef.current = false;
@@ -129,7 +133,7 @@ export function ChatView({
     // arriving while endedRef was false means the *partner* triggered it.
     if (payload) {
       setPartnerLeft(true);
-      toast(`${payload.by ?? title} disconnected`);
+      toast(t('chat.view.disconnectedToast', { name: payload.by ?? title }));
     }
     endedRef.current = true;
   }
@@ -139,9 +143,13 @@ export function ChatView({
 
   function call(video: boolean) {
     if (!partnerId) return;
-    startCall(chatId, { id: partnerId, name: title, image: partnerImage }, {
-      video,
-    });
+    startCall(
+      chatId,
+      { id: partnerId, name: title, image: partnerImage },
+      {
+        video,
+      },
+    );
   }
 
   return (
@@ -153,7 +161,7 @@ export function ChatView({
           size='icon-lg'
           className='shrink-0'
           onClick={() => router.back()}
-          aria-label='Back'
+          aria-label={t('chat.view.back')}
         >
           <ArrowLeftIcon className='shrink-0' aria-hidden />
         </Button>
@@ -176,7 +184,7 @@ export function ChatView({
             </span>
             {ended && (
               <Badge variant='outline' className='h-5 px-1.5 text-[11px]'>
-                Ended
+                {t('chat.view.ended')}
               </Badge>
             )}
           </div>
@@ -188,7 +196,7 @@ export function ChatView({
           className='shrink-0'
           onClick={() => call(false)}
           disabled={!canCall}
-          aria-label='Start voice call'
+          aria-label={t('chat.view.startVoice')}
         >
           <Phone className='shrink-0' aria-hidden />
         </Button>
@@ -198,14 +206,18 @@ export function ChatView({
           className='shrink-0'
           onClick={() => call(true)}
           disabled={!canCall}
-          aria-label='Start video call'
+          aria-label={t('chat.view.startVideo')}
         >
           <Video className='shrink-0' aria-hidden />
         </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant='ghost' size='icon-lg' aria-label='Chat options'>
+            <Button
+              variant='ghost'
+              size='icon-lg'
+              aria-label={t('chat.view.options')}
+            >
               <MoreVertical className='shrink-0' aria-hidden />
             </Button>
           </DropdownMenuTrigger>
@@ -213,7 +225,7 @@ export function ChatView({
             {canPreview && (
               <DropdownMenuItem onClick={() => setPreviewUserId(partnerId)}>
                 <Users2Icon className='shrink-0' aria-hidden />
-                View Profile
+                {t('chat.view.viewProfile')}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem
@@ -222,7 +234,7 @@ export function ChatView({
               disabled={!canPreview}
             >
               <Flag className='shrink-0' aria-hidden />
-              Report User
+              {t('chat.view.reportUser')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -231,7 +243,7 @@ export function ChatView({
               variant='destructive'
             >
               <LogOutIcon className='shrink-0' aria-hidden />
-              End Chat
+              {t('chat.view.endChat')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -240,9 +252,11 @@ export function ChatView({
       {/* Partner-disconnected banner */}
       {ended && (
         <div className='border-border bg-secondary/60 text-secondary-foreground border-b px-4 py-2 text-center text-sm sm:px-6'>
-          {partnerLeft ? `${title} disconnected. ` : 'This chat has ended. '}
+          {partnerLeft
+            ? t('chat.view.disconnectedBanner', { name: title })
+            : t('chat.view.endedBanner')}{' '}
           <Button variant='link' onClick={() => router.push('/app/match')}>
-            Find a new match
+            {t('chat.view.findNewMatch')}
             <ArrowRightIcon className='shrink-0' aria-hidden />
           </Button>
         </div>
@@ -269,9 +283,7 @@ export function ChatView({
         open={reportOpen}
         onOpenChange={setReportOpen}
         target={
-          partnerId
-            ? { reportedUserId: partnerId, name: title, chatId }
-            : null
+          partnerId ? { reportedUserId: partnerId, name: title, chatId } : null
         }
       />
     </div>

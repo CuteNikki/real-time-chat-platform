@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { Hash } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { searchHashtags } from '@/app/actions/hashtags';
 import { searchMentionUsers } from '@/app/actions/profile';
@@ -75,6 +76,7 @@ type Props = Omit<
 // Enter/Tab on the keyboard-highlighted row) inserts "@username " / "#tag " at
 // the caret. Everything else behaves like a normal controlled Textarea.
 export function MentionTextarea({ value, onValueChange, ...props }: Props) {
+  const { t } = useTranslation();
   const ref = useRef<HTMLTextAreaElement>(null);
   const [token, setToken] = useState<ActiveToken | null>(null);
   const [results, setResults] = useState<Suggestion[]>([]);
@@ -138,8 +140,7 @@ export function MentionTextarea({ value, onValueChange, ...props }: Props) {
     const after = value.slice(token.end);
     // Avoid doubling the space if the caret already sits before whitespace.
     const trailing = /^\s/.test(after) ? '' : ' ';
-    const body =
-      s.kind === 'mention' ? `@${s.user.username}` : `#${s.tag.tag}`;
+    const body = s.kind === 'mention' ? `@${s.user.username}` : `#${s.tag.tag}`;
     const injected = `${body}${trailing}`;
     const next = before + injected + after;
     onValueChange(next);
@@ -239,7 +240,7 @@ export function MentionTextarea({ value, onValueChange, ...props }: Props) {
                         #{s.tag.tag}
                       </span>
                       <span className='text-muted-foreground truncate text-xs tabular-nums'>
-                        {s.tag.count} {s.tag.count === 1 ? 'post' : 'posts'}
+                        {t('common.postCount', { count: s.tag.count })}
                       </span>
                     </span>
                   </>

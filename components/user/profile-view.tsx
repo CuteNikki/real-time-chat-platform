@@ -3,6 +3,7 @@
 import { Suspense } from 'react';
 
 import { LockIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { atLeast, Role } from '@/lib/roles';
 import type { PostSummary, UserProfile } from '@/lib/types';
@@ -25,6 +26,7 @@ export function ProfileView({
   initialPosts: PostSummary[];
   role: Role;
 }) {
+  const { t } = useTranslation();
   // A moderator/admin may delete this profile owner's posts, mirroring the
   // server guard in moderatorDeletePost: never your own posts here (those use
   // the normal owner controls), and only users at or below your own role —
@@ -56,7 +58,9 @@ export function ProfileView({
                 </div>
                 {profile.role !== 'MEMBER' ? (
                   <Badge variant='destructive'>
-                    {profile.role === 'ADMIN' ? 'Admin' : 'Moderator'}
+                    {profile.role === 'ADMIN'
+                      ? t('profile.admin')
+                      : t('profile.moderator')}
                   </Badge>
                 ) : null}
               </div>
@@ -73,13 +77,17 @@ export function ProfileView({
                 <strong className='font-semibold tabular-nums'>
                   {profile.postCount}
                 </strong>{' '}
-                <span className='text-muted-foreground'>post(s)</span>
+                <span className='text-muted-foreground'>
+                  {t('profile.postsLabel', { count: profile.postCount })}
+                </span>
               </span>
               <span>
                 <strong className='font-semibold tabular-nums'>
                   {profile.friendCount}
                 </strong>{' '}
-                <span className='text-muted-foreground'>friend(s)</span>
+                <span className='text-muted-foreground'>
+                  {t('profile.friendsLabel', { count: profile.friendCount })}
+                </span>
               </span>
             </div>
 
@@ -107,8 +115,8 @@ export function ProfileView({
           ) : (
             <EmptyState
               icon={LockIcon}
-              title='Unauthorized'
-              description='You need to be friends with this user to view their posts.'
+              title={t('profile.unauthorizedTitle')}
+              description={t('profile.unauthorizedDesc')}
               className='h-full'
             />
           )}

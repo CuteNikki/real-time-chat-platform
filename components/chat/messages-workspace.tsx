@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
@@ -56,6 +57,7 @@ export function MessagesWorkspace({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { startCall } = useCall();
+  const { t } = useTranslation();
 
   // Conversations kept in local state so we can drop one instantly on unfriend.
   const [convos, setConvos] = useState(conversations);
@@ -133,9 +135,11 @@ export function MessagesWorkspace({
             : c,
         ),
       );
-      toast.success('Chat cleared');
+      toast.success(t('messages.chatCleared'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not clear chat');
+      toast.error(
+        err instanceof Error ? err.message : t('messages.couldNotClear'),
+      );
     } finally {
       setMenuBusy(false);
     }
@@ -150,10 +154,10 @@ export function MessagesWorkspace({
       setConvos((cs) => cs.filter((c) => c.chatId !== active.chatId));
       setActiveId(null);
       router.replace('/app/messages', { scroll: false });
-      toast.success(`Removed ${removedName} and deleted your chat`);
+      toast.success(t('messages.removedFriend', { name: removedName }));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Could not remove friend',
+        err instanceof Error ? err.message : t('messages.couldNotRemoveFriend'),
       );
     } finally {
       setMenuBusy(false);
@@ -178,7 +182,7 @@ export function MessagesWorkspace({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder='Search conversations'
+              placeholder={t('messages.searchPlaceholder')}
               className='pl-9'
             />
           </div>
@@ -188,13 +192,13 @@ export function MessagesWorkspace({
           {filtered.length === 0 ? (
             <div className='p-6 text-center'>
               <p className='text-muted-foreground text-sm text-balance'>
-                No conversations yet. Add friends and start chatting.
+                {t('messages.noConversations')}
               </p>
               <Link
                 href='/app/friends'
                 className='text-primary mt-2 inline-block text-sm font-medium hover:underline'
               >
-                Find friends
+                {t('messages.findFriends')}
               </Link>
             </div>
           ) : (
@@ -222,8 +226,8 @@ export function MessagesWorkspace({
                         </p>
                         <p className='text-muted-foreground truncate text-xs'>
                           {c.lastMessage
-                            ? `${c.lastFromMe ? 'You: ' : ''}${c.lastMessage}`
-                            : 'No messages yet'}
+                            ? `${c.lastFromMe ? t('messages.youPrefix') : ''}${c.lastMessage}`
+                            : t('messages.noMessages')}
                         </p>
                       </div>
                     </button>
@@ -249,7 +253,7 @@ export function MessagesWorkspace({
                 type='button'
                 onClick={() => setActiveId(null)}
                 className='text-muted-foreground hover:text-foreground -ml-1 shrink-0 rounded-md p-1 sm:hidden'
-                aria-label='Back to conversations'
+                aria-label={t('messages.back')}
               >
                 <ArrowLeft className='size-5' aria-hidden />
               </button>
@@ -292,7 +296,7 @@ export function MessagesWorkspace({
                     )
                   }
                   disabled={!active.partnerId}
-                  aria-label='Start voice call'
+                  aria-label={t('messages.startVoice')}
                 >
                   <Phone className='shrink-0' aria-hidden />
                 </Button>
@@ -312,7 +316,7 @@ export function MessagesWorkspace({
                     )
                   }
                   disabled={!active.partnerId}
-                  aria-label='Start video call'
+                  aria-label={t('messages.startVideo')}
                 >
                   <Video className='shrink-0' aria-hidden />
                 </Button>
@@ -324,7 +328,7 @@ export function MessagesWorkspace({
                       variant='ghost'
                       className='shrink-0'
                       disabled={menuBusy}
-                      aria-label='Conversation options'
+                      aria-label={t('messages.options')}
                     >
                       <MoreVertical className='shrink-0' aria-hidden />
                     </Button>
@@ -332,14 +336,14 @@ export function MessagesWorkspace({
                   <DropdownMenuContent align='end'>
                     <DropdownMenuItem onClick={handleClearChat}>
                       <Eraser className='size-4' aria-hidden />
-                      Clear chat
+                      {t('messages.clearChat')}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => setReportOpen(true)}
                       disabled={!active.partnerId}
                     >
                       <Flag className='size-4' aria-hidden />
-                      Report user
+                      {t('messages.reportUser')}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -347,7 +351,7 @@ export function MessagesWorkspace({
                       onClick={handleUnfriend}
                     >
                       <UserMinus className='size-4' aria-hidden />
-                      Unfriend
+                      {t('messages.unfriend')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -358,7 +362,7 @@ export function MessagesWorkspace({
               {loading ? (
                 <div className='flex h-full items-center justify-center'>
                   <p className='text-muted-foreground text-sm'>
-                    Loading messages…
+                    {t('messages.loadingMessages')}
                   </p>
                 </div>
               ) : (
@@ -374,8 +378,9 @@ export function MessagesWorkspace({
                   notifyCategory='directMessage'
                   emptyState={
                     <p className='text-muted-foreground text-sm text-balance'>
-                      This is the start of your conversation with{' '}
-                      {active.partnerName}. Say hello!
+                      {t('messages.conversationStart', {
+                        name: active.partnerName,
+                      })}
                     </p>
                   }
                 />
@@ -385,8 +390,8 @@ export function MessagesWorkspace({
         ) : (
           <EmptyState
             icon={MessageCircleIcon}
-            title='Choose a conversation'
-            description='Pick a conversation from the left to jump back in, or add friends to start a new one.'
+            title={t('messages.chooseTitle')}
+            description={t('messages.chooseDesc')}
             className='h-full'
           />
         )}

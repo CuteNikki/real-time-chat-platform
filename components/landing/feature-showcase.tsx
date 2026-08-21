@@ -3,18 +3,19 @@
 import { useEffect, useRef, useState } from 'react';
 
 import {
-  AnimatePresence,
-  motion,
-  useMotionValue,
-  useReducedMotion,
-} from 'motion/react';
-import {
   ImageIcon,
   LockIcon,
   ShuffleIcon,
   Users2Icon,
   type LucideIcon,
 } from 'lucide-react';
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useReducedMotion,
+} from 'motion/react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
 
@@ -76,16 +77,18 @@ function Bubble({
 // ---- Per-feature mock visuals -------------------------------------------
 
 function MatchVisual() {
+  const { t } = useTranslation();
+
   return (
     <div className='flex h-full flex-col justify-center gap-5'>
       <div className='flex items-center justify-center gap-4'>
         <MiniAvatar
-          label='You'
+          label={t('landing.features.visuals.you')}
           className='size-14 from-violet-500 to-fuchsia-500 text-sm'
         />
         <div className='relative flex flex-col items-center'>
           <span className='bg-primary/15 text-primary rounded-full px-3 py-1 text-xs font-semibold'>
-            matched
+            {t('landing.features.visuals.matched')}
           </span>
           <div className='bg-border my-1 h-8 w-px' />
         </div>
@@ -95,23 +98,27 @@ function MatchVisual() {
         />
       </div>
       <div className='flex flex-col gap-3'>
-        <Bubble side='start' name='Stranger'>
-          hey! random question — cats or dogs 🐱🐶
+        <Bubble side='start' name={t('landing.features.visuals.stranger')}>
+          {t('landing.features.visuals.matchMsg1')}
         </Bubble>
-        <Bubble side='end'>cats, obviously. this is a test</Bubble>
+        <Bubble side='end'>{t('landing.features.visuals.matchMsg2')}</Bubble>
       </div>
     </div>
   );
 }
 
 function RoomsVisual() {
+  const { t } = useTranslation();
+
   return (
     <div className='flex h-full flex-col gap-4'>
       <div className='flex items-center justify-between'>
-        <span className='font-semibold tracking-tight'># late-night-talks</span>
+        <span className='font-semibold tracking-tight'>
+          {t('landing.features.visuals.roomName')}
+        </span>
         <span className='bg-primary/15 text-primary flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold'>
           <Users2Icon className='size-3.5' aria-hidden />
-          12 live
+          {t('landing.features.visuals.roomLive', { count: 12 })}
         </span>
       </div>
       <div className='flex -space-x-2'>
@@ -133,26 +140,28 @@ function RoomsVisual() {
       </div>
       <div className='flex flex-col gap-3'>
         <Bubble side='start' name='Priya'>
-          anyone up for a movie rec?
+          {t('landing.features.visuals.roomMsgPriya')}
         </Bubble>
         <Bubble side='start' name='Leo'>
-          the whole room is awake somehow 😅
+          {t('landing.features.visuals.roomMsgLeo')}
         </Bubble>
-        <Bubble side='end'>this is the best room fr</Bubble>
+        <Bubble side='end'>{t('landing.features.visuals.roomMsgYou')}</Bubble>
       </div>
     </div>
   );
 }
 
 function PrivateVisual() {
+  const { t } = useTranslation();
+
   return (
     <div className='flex h-full flex-col justify-center gap-3'>
       <div className='text-muted-foreground flex items-center gap-2 text-xs'>
         <LockIcon className='size-3.5' aria-hidden />
-        Private · just the two of you
+        {t('landing.features.visuals.privateLabel')}
       </div>
       <Bubble side='start' name='Sam'>
-        sending the sunset from earlier 🌇
+        {t('landing.features.visuals.privateMsgSam')}
       </Bubble>
       <div className='flex justify-start'>
         <div className='bg-secondary max-w-[85%] rounded-2xl rounded-bl-sm p-1.5'>
@@ -161,44 +170,26 @@ function PrivateVisual() {
           </div>
         </div>
       </div>
-      <Bubble side='end'>okay that&apos;s unreal 😍</Bubble>
+      <Bubble side='end'>{t('landing.features.visuals.privateMsgYou')}</Bubble>
     </div>
   );
 }
 
 type Feature = {
   icon: LucideIcon;
-  title: string;
-  blurb: string;
+  id: string;
   Visual: () => React.ReactElement;
 };
 
 const FEATURES: Feature[] = [
-  {
-    icon: ShuffleIcon,
-    title: 'Random match',
-    blurb:
-      "Tap once and get paired one-on-one with someone who's up to talk right now. Skip anytime — nothing's saved when a random chat ends.",
-    Visual: MatchVisual,
-  },
-  {
-    icon: Users2Icon,
-    title: 'Group rooms',
-    blurb:
-      'Drop into open rooms and chat with everyone at once. Live presence shows exactly who is in the room as it happens.',
-    Visual: RoomsVisual,
-  },
-  {
-    icon: LockIcon,
-    title: 'Private chats',
-    blurb:
-      'Message friends one-on-one, share images, and keep the conversation just between the two of you.',
-    Visual: PrivateVisual,
-  },
+  { icon: ShuffleIcon, id: 'match', Visual: MatchVisual },
+  { icon: Users2Icon, id: 'rooms', Visual: RoomsVisual },
+  { icon: LockIcon, id: 'private', Visual: PrivateVisual },
 ];
 
 export function FeatureShowcase() {
   const reduce = useReducedMotion();
+  const { t } = useTranslation();
   const [active, setActive] = useState(0);
 
   // Progress is a motion value so the bar animates at 60fps without a React
@@ -245,10 +236,10 @@ export function FeatureShowcase() {
     <section className='mx-auto w-full max-w-7xl px-4 py-20 lg:py-28'>
       <Reveal className='mb-12 flex flex-col items-center text-center'>
         <span className='text-primary text-sm font-semibold tracking-wider uppercase'>
-          One app, three ways to talk
+          {t('landing.features.eyebrow')}
         </span>
         <h2 className='mt-3 max-w-2xl text-4xl font-semibold tracking-tight text-balance md:text-5xl'>
-          Every kind of conversation, in real time
+          {t('landing.features.title')}
         </h2>
       </Reveal>
 
@@ -264,7 +255,7 @@ export function FeatureShowcase() {
             const Icon = f.icon;
             return (
               <button
-                key={f.title}
+                key={f.id}
                 type='button'
                 onClick={() => select(i)}
                 className='group relative w-full rounded-2xl p-5 text-left'
@@ -289,7 +280,7 @@ export function FeatureShowcase() {
                   </div>
                   <div className='min-w-0 flex-1'>
                     <span className='block font-semibold tracking-tight'>
-                      {f.title}
+                      {t(`landing.features.${f.id}.title`)}
                     </span>
                     <p
                       className={cn(
@@ -299,16 +290,14 @@ export function FeatureShowcase() {
                           : 'opacity-70 group-hover:opacity-100',
                       )}
                     >
-                      {f.blurb}
+                      {t(`landing.features.${f.id}.blurb`)}
                     </p>
                     {/* Progress track — only the active tab's bar fills. */}
                     <div className='bg-border mt-3 h-1 w-full overflow-hidden rounded-full'>
                       {isActive && (
                         <motion.div
                           className='bg-primary h-full w-full origin-left rounded-full'
-                          style={
-                            reduce ? { scaleX: 1 } : { scaleX: progress }
-                          }
+                          style={reduce ? { scaleX: 1 } : { scaleX: progress }}
                         />
                       )}
                     </div>

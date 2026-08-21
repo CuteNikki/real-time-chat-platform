@@ -5,6 +5,9 @@ import { ThemeProvider } from 'next-themes';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
+import { I18nProvider } from '@/components/i18n-provider';
+import { detectLanguage } from '@/lib/i18n/server';
+
 const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' });
 const geistMono = Geist_Mono({
   subsets: ['latin'],
@@ -42,23 +45,27 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const lng = await detectLanguage();
+
   return (
     <html
-      lang='en'
+      lang={lng}
       className={`${geistSans.variable} ${geistMono.variable} bg-background`}
       suppressHydrationWarning
     >
       <body className='font-sans antialiased'>
-        <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
-          {children}
-          <Toaster position='top-center' richColors closeButton />
-          {process.env.NODE_ENV === 'production' && <Analytics />}
-        </ThemeProvider>
+        <I18nProvider lng={lng}>
+          <ThemeProvider attribute='class' defaultTheme='system' enableSystem>
+            {children}
+            <Toaster position='top-center' richColors closeButton />
+            {process.env.NODE_ENV === 'production' && <Analytics />}
+          </ThemeProvider>
+        </I18nProvider>
       </body>
     </html>
   );

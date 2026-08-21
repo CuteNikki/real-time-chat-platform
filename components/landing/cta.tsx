@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 
-import { motion, useReducedMotion } from 'motion/react';
 import { ArrowRightIcon } from 'lucide-react';
+import { motion, useReducedMotion } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 
 import { buttonVariants } from '@/components/ui/button';
 
@@ -11,6 +12,7 @@ import { EASE } from './motion';
 
 export function Cta() {
   const reduce = useReducedMotion();
+  const { t } = useTranslation();
 
   return (
     <section className='mx-auto w-full max-w-7xl px-4 py-16'>
@@ -36,11 +38,10 @@ export function Cta() {
         />
 
         <span className='relative text-3xl font-semibold tracking-tight text-balance md:text-5xl'>
-          Someone new is one tap away
+          {t('landing.cta.title')}
         </span>
         <p className='text-primary-foreground/80 relative max-w-md text-pretty'>
-          No lengthy profile, no swiping. Just real-time conversation whenever
-          you want it.
+          {t('landing.cta.subtitle')}
         </p>
         <Link
           href='/sign-up'
@@ -50,7 +51,7 @@ export function Cta() {
             className: 'relative mt-2 p-4!',
           })}
         >
-          Start Now
+          {t('landing.cta.button')}
           <ArrowRightIcon className='size-4' aria-hidden />
         </Link>
       </motion.div>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import type { TFunction } from 'i18next';
 import {
   Maximize2,
   Mic,
@@ -16,6 +17,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
 
@@ -30,6 +32,32 @@ function formatDuration(sec: number) {
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
+
+// Map an internal end-reason (kept in English so it doubles as a comparison
+// key in the call hook) to translated display text.
+function reasonText(t: TFunction, endReason: string | null): string {
+  switch (endReason) {
+    case 'Call declined':
+      return t('call.reasons.declined');
+    case 'Unavailable':
+      return t('call.reasons.unavailable');
+    case 'Connection lost':
+      return t('call.reasons.connectionLost');
+    case 'No answer':
+      return t('call.reasons.noAnswer');
+    case 'Connection failed':
+      return t('call.reasons.connectionFailed');
+    case 'Missed call':
+      return t('call.reasons.missed');
+    case 'Could not connect':
+      return t('call.reasons.couldNotConnect');
+    case 'Call ended':
+    case null:
+      return t('call.ended');
+    default:
+      return endReason;
+  }
+}
 
 // Attaches a MediaStream to a <video>. Always muted here — audio is played by
 // the dedicated RemoteAudio sink so it keeps playing on voice calls (no remote
@@ -165,6 +193,7 @@ function RoundButton({
 // while on a call). A video call can be expanded to full screen and collapsed
 // back to the card.
 export function CallOverlay({ call }: { call: WebRTCCall }) {
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   const [expanded, setExpanded] = useState(false);
@@ -237,16 +266,16 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
 
   const statusText =
     status === 'outgoing'
-      ? 'Ringing…'
+      ? t('call.ringing')
       : status === 'incoming'
         ? call.isVideoCall
-          ? 'Incoming video call'
-          : 'Incoming call'
+          ? t('call.incomingVideo')
+          : t('call.incoming')
         : status === 'connecting'
-          ? 'Connecting…'
+          ? t('call.connecting')
           : status === 'connected'
             ? formatDuration(elapsed)
-            : (endReason ?? 'Call ended');
+            : reasonText(t, endReason);
 
   const activeControls = (large: boolean) => (
     <>
@@ -254,7 +283,7 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
         onClick={toggleMic}
         variant={micOn ? 'active' : 'surface'}
         large={large}
-        label={micOn ? 'Mute microphone' : 'Unmute microphone'}
+        label={micOn ? t('call.muteMic') : t('call.unmuteMic')}
       >
         {micOn ? (
           <Mic className={large ? 'size-6' : 'size-5'} aria-hidden />
@@ -266,7 +295,7 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
         onClick={toggleCam}
         variant={camOn ? 'active' : 'surface'}
         large={large}
-        label={camOn ? 'Turn camera off' : 'Turn camera on'}
+        label={camOn ? t('call.cameraOff') : t('call.cameraOn')}
       >
         {camOn ? (
           <VideoIcon className={large ? 'size-6' : 'size-5'} aria-hidden />
@@ -278,11 +307,16 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
         onClick={toggleScreenShare}
         variant={screenOn ? 'active' : 'surface'}
         large={large}
-        label={screenOn ? 'Stop sharing screen' : 'Share screen'}
+        label={screenOn ? t('call.stopScreen') : t('call.shareScreen')}
       >
         <MonitorUp className={large ? 'size-6' : 'size-5'} aria-hidden />
       </RoundButton>
-      <RoundButton onClick={hangUp} variant='danger' large={large} label='Hang up'>
+      <RoundButton
+        onClick={hangUp}
+        variant='danger'
+        large={large}
+        label={t('call.hangUp')}
+      >
         <PhoneOff className={large ? 'size-6' : 'size-5'} aria-hidden />
       </RoundButton>
     </>
@@ -344,14 +378,22 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
     if (!card) return;
     const rect = card.getBoundingClientRect();
     if (!pos) setPos({ x: rect.left, y: rect.top });
-    resizeRef.current = { startX: e.clientX, startW: rect.width, left: rect.left };
+    resizeRef.current = {
+      startX: e.clientX,
+      startW: rect.width,
+      left: rect.left,
+    };
     e.currentTarget.setPointerCapture(e.pointerId);
   };
   const onResizeMove = (e: React.PointerEvent) => {
     const r = resizeRef.current;
     if (!r) return;
     const maxW = Math.max(240, window.innerWidth - 16 - r.left);
-    const w = clamp(r.startW + (e.clientX - r.startX), 240, Math.min(560, maxW));
+    const w = clamp(
+      r.startW + (e.clientX - r.startX),
+      240,
+      Math.min(560, maxW),
+    );
     setSize(w);
   };
   const onResizeEnd = () => {
@@ -373,7 +415,9 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
       <button
         type='button'
         onClick={toggleMute}
-        aria-label={volume === 0 ? 'Unmute speaker' : 'Mute speaker'}
+        aria-label={
+          volume === 0 ? t('call.unmuteSpeaker') : t('call.muteSpeaker')
+        }
         className='shrink-0 text-white/70 transition-colors hover:text-white'
       >
         {volume === 0 ? (
@@ -389,7 +433,7 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
         step={0.05}
         value={volume}
         onChange={(e) => setVolume(Number(e.target.value))}
-        aria-label='Speaker volume'
+        aria-label={t('call.speakerVolume')}
         className='h-1 flex-1 cursor-pointer accent-white'
       />
     </div>
@@ -406,17 +450,21 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
             className='h-full w-full object-cover'
           />
           <div className='absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/60 to-transparent p-4'>
-            <UserAvatar name={peer.name} image={peer.image} className='size-9' />
+            <UserAvatar
+              name={peer.name}
+              image={peer.image}
+              className='size-9'
+            />
             <div className='min-w-0 leading-tight'>
               <p className='truncate font-semibold'>{peer.name}</p>
-              <p className='text-white/70 text-xs' suppressHydrationWarning>
+              <p className='text-xs text-white/70' suppressHydrationWarning>
                 {statusText}
               </p>
             </div>
             <button
               type='button'
               onClick={() => setExpanded(false)}
-              aria-label='Collapse to picture-in-picture'
+              aria-label={t('call.collapse')}
               className='ml-auto grid size-9 place-items-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25'
             >
               <Minimize2 className='size-5' aria-hidden />
@@ -448,7 +496,9 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
     <div
       ref={cardRef}
       style={{
-        ...(pos ? { left: pos.x, top: pos.y, right: 'auto', bottom: 'auto' } : {}),
+        ...(pos
+          ? { left: pos.x, top: pos.y, right: 'auto', bottom: 'auto' }
+          : {}),
         ...(size ? { width: size } : {}),
       }}
       className='pointer-events-auto fixed right-4 bottom-4 z-[120] w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-neutral-900 text-white shadow-2xl'
@@ -483,7 +533,7 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
             <button
               type='button'
               onClick={() => setExpanded(true)}
-              aria-label='Expand to full screen'
+              aria-label={t('call.expand')}
               className='absolute top-2 right-2 grid size-8 place-items-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60'
             >
               <Maximize2 className='size-4' aria-hidden />
@@ -491,7 +541,7 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
           ) : null}
           <div className='absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-2 pr-24'>
             <p className='truncate text-sm font-semibold'>{peer.name}</p>
-            <p className='text-white/70 text-xs' suppressHydrationWarning>
+            <p className='text-xs text-white/70' suppressHydrationWarning>
               {statusText}
             </p>
           </div>
@@ -517,7 +567,7 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
           />
           <div className='min-w-0 leading-tight'>
             <p className='truncate font-semibold'>{peer.name}</p>
-            <p className='text-white/70 text-xs' suppressHydrationWarning>
+            <p className='text-xs text-white/70' suppressHydrationWarning>
               {statusText}
             </p>
           </div>
@@ -529,10 +579,18 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
         <div className='flex items-center justify-center gap-2'>
           {isIncoming ? (
             <>
-              <RoundButton onClick={decline} variant='danger' label='Decline'>
+              <RoundButton
+                onClick={decline}
+                variant='danger'
+                label={t('call.decline')}
+              >
                 <PhoneOff className='size-5' aria-hidden />
               </RoundButton>
-              <RoundButton onClick={accept} variant='accept' label='Accept'>
+              <RoundButton
+                onClick={accept}
+                variant='accept'
+                label={t('call.accept')}
+              >
                 <Phone className='size-5' aria-hidden />
               </RoundButton>
             </>
@@ -542,7 +600,7 @@ export function CallOverlay({ call }: { call: WebRTCCall }) {
               onClick={dismiss}
               className='rounded-full bg-white/15 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-white/25'
             >
-              Close
+              {t('call.close')}
             </button>
           ) : (
             activeControls(false)

@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import { ArrowLeftIcon, CompassIcon, OrbitIcon } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 
 import { AuthNav } from '@/components/auth/auth-nav';
 import { EASE } from '@/components/landing/motion';
@@ -38,6 +39,7 @@ function OrbitZero() {
 
 export function NotFoundView() {
   const reduce = useReducedMotion();
+  const { t } = useTranslation();
 
   const container = {
     hidden: {},
@@ -97,23 +99,21 @@ export function NotFoundView() {
               className='border-border bg-card/60 text-muted-foreground mt-10 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm backdrop-blur-sm'
             >
               <CompassIcon className='text-primary size-4' aria-hidden />
-              Lost in orbit
+              {t('notFound.badge')}
             </motion.span>
 
             <motion.h1
               variants={reduce ? undefined : item}
               className='mt-6 max-w-xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl'
             >
-              This page drifted off course
+              {t('notFound.title')}
             </motion.h1>
 
             <motion.p
               variants={reduce ? undefined : item}
               className='text-muted-foreground mt-4 max-w-md text-lg leading-relaxed text-pretty'
             >
-              The page you&apos;re looking for doesn&apos;t exist, moved, or
-              never made it into orbit. Let&apos;s get you back to something
-              real.
+              {t('notFound.description')}
             </motion.p>
 
             <motion.div
@@ -125,7 +125,7 @@ export function NotFoundView() {
                 className={buttonVariants({ size: 'lg', className: 'p-4!' })}
               >
                 <ArrowLeftIcon className='size-4' aria-hidden />
-                Back to home
+                {t('notFound.backHome')}
               </Link>
               <Link
                 href='/app'
@@ -135,7 +135,7 @@ export function NotFoundView() {
                   className: 'p-4!',
                 })}
               >
-                Open Orbit
+                {t('notFound.openApp')}
               </Link>
             </motion.div>
           </motion.div>

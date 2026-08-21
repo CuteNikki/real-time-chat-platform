@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Loader2Icon, ShuffleIcon, SparklesIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import {
   cancelMatch,
@@ -19,6 +20,7 @@ import { Button } from '@/components/ui/button';
 
 export function MatchFinder({ userId }: { userId: string }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [status, setStatus] = useState<'idle' | 'searching' | 'matched'>(
     'idle',
   );
@@ -28,10 +30,11 @@ export function MatchFinder({ userId }: { userId: string }) {
   const goToChat = useCallback(
     (chatId: string, partnerName?: string) => {
       setStatus('matched');
-      if (partnerName) toast.success(`Matched with ${partnerName}!`);
+      if (partnerName)
+        toast.success(t('match.matchedWith', { name: partnerName }));
       router.push(`/app/chat/${chatId}`);
     },
-    [router],
+    [router, t],
   );
 
   // Realtime: partner-side match notification. Use the reference-counted
@@ -86,7 +89,7 @@ export function MatchFinder({ userId }: { userId: string }) {
         setStatus('searching');
       }
     } catch {
-      toast.error('Could not start matching. Try again.');
+      toast.error(t('match.couldNotStart'));
     } finally {
       setBusy(false);
     }
@@ -121,10 +124,10 @@ export function MatchFinder({ userId }: { userId: string }) {
       {status === 'searching' ? (
         <div className='flex flex-col items-center gap-2'>
           <span className='text-3xl font-semibold tracking-tight'>
-            Finding Someone…
+            {t('match.findingTitle')}
           </span>
           <p className='text-muted-foreground max-w-sm text-balance'>
-            Hang tight - we'll drop you into a chat the moment we find a match.
+            {t('match.findingDesc')}
           </p>
           <Button
             variant='outline'
@@ -133,21 +136,20 @@ export function MatchFinder({ userId }: { userId: string }) {
             disabled={busy}
             className='mt-2'
           >
-            Cancel
+            {t('match.cancel')}
           </Button>
         </div>
       ) : (
         <div className='flex flex-col items-center gap-2'>
           <span className='text-3xl font-semibold tracking-tight text-balance'>
-            Meet Someone New
+            {t('match.meetTitle')}
           </span>
           <p className='text-muted-foreground max-w-sm text-pretty'>
-            Tap below and we'll pair you one-on-one with another person who's
-            ready to chat right now.
+            {t('match.meetDesc')}
           </p>
           <Button size='lg' onClick={start} disabled={busy} className='mt-2'>
             <SparklesIcon aria-hidden />
-            {busy ? 'Searching…' : 'Find a Match'}
+            {busy ? t('match.searching') : t('match.findMatch')}
           </Button>
         </div>
       )}

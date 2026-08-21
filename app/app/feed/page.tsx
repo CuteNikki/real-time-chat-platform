@@ -6,13 +6,14 @@ import { SearchXIcon, UserPlus2Icon } from 'lucide-react';
 import { getFeed, searchPosts } from '@/app/actions/posts';
 import { getMyProfile } from '@/app/actions/profile';
 
+import { getTranslation } from '@/lib/i18n/server';
 import { normalizeHashtag } from '@/lib/mentions';
 import type { FeedScope } from '@/lib/types';
 
+import { FeedControls } from '@/components/feed/feed-controls';
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/ui/page-header';
-import { Button } from '@/components/ui/button';
-import { FeedControls } from '@/components/feed/feed-controls';
 import { PostCard } from '@/components/user/post-card';
 import { PostComposer } from '@/components/user/post-composer';
 
@@ -42,35 +43,34 @@ export default async function FeedPage({
     ? await searchPosts({ query, tags })
     : await getFeed(scope);
 
+  const { t } = await getTranslation();
+
   return (
     <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>
       <div className='mx-auto flex w-full max-w-xl flex-col gap-2 px-4 py-6'>
-        <PageHeader title='Feed' />
+        <PageHeader title={t('app.feed.title')} />
 
         <div className='mt-1'>
-          <FeedControls
-            tab={scope}
-            query={raw.query ?? ''}
-            tags={tags}
-          />
+          <FeedControls tab={scope} query={raw.query ?? ''} tags={tags} />
         </div>
 
         {searching ? (
           <div className='mt-3 flex flex-col gap-4'>
             <p className='text-muted-foreground text-sm'>
-              {posts.length} {posts.length === 1 ? 'result' : 'results'}
+              {t('app.feed.results', { count: posts.length })}
               {query ? (
                 <>
                   {' '}
-                  for <span className='text-foreground font-medium'>“{query}”</span>
+                  {t('app.feed.for')}{' '}
+                  <span className='text-foreground font-medium'>“{query}”</span>
                 </>
               ) : null}
               {tags.length > 0 ? (
                 <>
                   {' '}
-                  in{' '}
+                  {t('app.feed.in')}{' '}
                   <span className='text-foreground font-medium'>
-                    {tags.map((t) => `#${t}`).join(', ')}
+                    {tags.map((tag) => `#${tag}`).join(', ')}
                   </span>
                 </>
               ) : null}
@@ -79,8 +79,8 @@ export default async function FeedPage({
             {posts.length === 0 ? (
               <EmptyState
                 icon={SearchXIcon}
-                title='No posts match your search'
-                description='Try different words or remove a tag to widen the search.'
+                title={t('app.feed.noMatchTitle')}
+                description={t('app.feed.noMatchDesc')}
                 className='border-border bg-card rounded-2xl border border-dashed'
               />
             ) : (
@@ -101,13 +101,13 @@ export default async function FeedPage({
               scope === 'friends' ? (
                 <EmptyState
                   icon={UserPlus2Icon}
-                  title='No posts from friends yet'
-                  description='Add friends to see their posts here, or share your first post above.'
+                  title={t('app.feed.friendsEmptyTitle')}
+                  description={t('app.feed.friendsEmptyDesc')}
                   className='border-border bg-card rounded-2xl border border-dashed'
                   action={
                     <Button variant='secondary' asChild>
                       <Link href='/app/friends'>
-                        Find Friends
+                        {t('app.feed.findFriends')}
                         <UserPlus2Icon className='shrink-0' />
                       </Link>
                     </Button>
@@ -116,8 +116,8 @@ export default async function FeedPage({
               ) : (
                 <EmptyState
                   icon={UserPlus2Icon}
-                  title='Your feed is quiet'
-                  description='No posts yet — be the first to share something above.'
+                  title={t('app.feed.quietTitle')}
+                  description={t('app.feed.quietDesc')}
                   className='border-border bg-card rounded-2xl border border-dashed'
                 />
               )

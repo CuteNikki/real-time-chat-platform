@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 import { ImageIcon, PlusIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import type { PostSummary } from '@/lib/types';
 
@@ -23,6 +24,7 @@ export function PostGrid({
 }) {
   const [items, setItems] = useState<PostSummary[]>(posts);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const { t } = useTranslation();
   // Tracks the open post's fullscreen image viewer. While it's up, the dialog
   // must not dismiss on the clicks/Escape that belong to the viewer (which is
   // portaled to <body>, so Radix would otherwise read them as "outside").
@@ -53,8 +55,8 @@ export function PostGrid({
     return (
       <EmptyState
         icon={ImageIcon}
-        title='Looking empty'
-        description="This user hasn't posted anything yet. Check back later!"
+        title={t('post.grid.lookingEmpty')}
+        description={t('post.grid.lookingEmptyDesc')}
         className='h-full'
       />
     );
@@ -75,7 +77,7 @@ export function PostGrid({
               <PlusIcon className='shrink-0' aria-hidden />
             </div>
             <span className='text-muted-foreground text-xs font-medium'>
-              New Post
+              {t('post.grid.newPost')}
             </span>
           </button>
         ) : null}
@@ -90,7 +92,7 @@ export function PostGrid({
             {p.imageUrl ? (
               <Image
                 src={p.imageUrl || '/placeholder.svg'}
-                alt={p.caption ?? 'Post'}
+                alt={p.caption ?? t('post.grid.postAlt')}
                 fill
                 sizes='(max-width: 640px) 33vw, 300px'
                 className='group-hover:bg-muted object-cover transition-transform group-hover:scale-105'
@@ -128,7 +130,9 @@ export function PostGrid({
           }}
         >
           <DialogTitle className='sr-only'>
-            {active ? `Post by ${active.authorName}` : 'Post'}
+            {active
+              ? t('post.grid.postByAuthor', { name: active.authorName })
+              : t('post.grid.postAlt')}
           </DialogTitle>
           {active ? (
             <div className='max-h-[85vh] overflow-y-auto'>

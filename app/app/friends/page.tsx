@@ -7,6 +7,8 @@ import {
 } from '@/app/actions/invites';
 import { getMyProfile } from '@/app/actions/profile';
 
+import { getTranslation } from '@/lib/i18n/server';
+
 import { FriendsView } from '@/components/friends-view';
 import { PageHeader } from '@/components/ui/page-header';
 
@@ -19,12 +21,14 @@ export default async function FriendsPage() {
   ]);
   if (!me) redirect('/sign-in');
 
+  const { t } = await getTranslation();
+
   return (
     <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>
       <div className='mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 py-6'>
         <PageHeader
-          title='Friends'
-          description='Find people by name, username, or shared interests, then send a request. Once accepted, you can DM each other.'
+          title={t('app.friends.title')}
+          description={t('app.friends.description')}
         />
         <FriendsView
           initialIncoming={pending}

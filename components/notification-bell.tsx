@@ -1,9 +1,11 @@
 'use client';
 
+import type { TFunction } from 'i18next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
@@ -31,13 +33,13 @@ import {
 import { playNotificationSound } from '@/lib/notification-sound';
 import {
   categoryForType,
-  notificationActionText,
   notificationChatHref,
   notificationPreview,
 } from '@/lib/notifications';
 import { EVENTS, userChannel } from '@/lib/pusher/channels';
 import { acquireChannel, releaseChannel } from '@/lib/pusher/client';
 import type {
+  NotificationMetadata,
   NotificationRealtimePayload,
   NotificationSummary,
 } from '@/lib/types';
@@ -75,16 +77,41 @@ const unreadBadgeClass =
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
-function timeAgo(iso: string) {
+function timeAgo(t: TFunction, iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
-  if (m < 1) return 'just now';
+  if (m < 1) return t('notifications.justNow');
   if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h`;
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d`;
   return new Date(iso).toLocaleDateString();
+}
+
+// The action clause after the actor's name, translated. Name is rendered
+// separately so it appears exactly once.
+function actionText(
+  t: TFunction,
+  type: NotificationSummary['type'],
+  metadata?: NotificationMetadata | null,
+): string {
+  switch (type) {
+    case 'FRIEND_REQUEST':
+      return t('notifications.actions.friendRequest');
+    case 'FRIEND_ACCEPT':
+      return t('notifications.actions.friendAccept');
+    case 'LIKE':
+      return t('notifications.actions.like');
+    case 'MENTION':
+      return metadata?.mentionSource === 'profile'
+        ? t('notifications.actions.mentionProfile')
+        : t('notifications.actions.mentionPost');
+    default:
+      return metadata?.roomName
+        ? t('notifications.actions.roomMessage', { room: metadata.roomName })
+        : t('notifications.actions.directMessage');
+  }
 }
 
 function iconFor(type: NotificationSummary['type']) {
@@ -109,6 +136,7 @@ export function NotificationBell({
   username: string | null;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data, mutate } = useSWR<Counts>(
     '/api/notifications/unread-count',
     fetcher,
@@ -167,11 +195,8 @@ export function NotificationBell({
 
       // Popup (toast) — respect the per-category popup preference.
       if (catPref?.popup) {
-        const actorName = payload.actor?.name ?? 'Someone';
-        const action = notificationActionText(
-          payload.type,
-          payload.metadata ?? null,
-        );
+        const actorName = payload.actor?.name ?? t('notifications.someone');
+        const action = actionText(t, payload.type, payload.metadata ?? null);
         const preview = notificationPreview(payload.metadata ?? null);
         // Deep-link the toast's action button: likes point at the liked post on
         // the current user's own profile; mentions point at the actor's post or
@@ -218,8 +243,8 @@ export function NotificationBell({
               ? {
                   label:
                     payload.type === 'LIKE' || payload.type === 'MENTION'
-                      ? 'View'
-                      : 'Open',
+                      ? t('notifications.toastView')
+                      : t('notifications.toastOpen'),
                   onClick: () => router.push(href),
                 }
               : undefined,
@@ -237,7 +262,7 @@ export function NotificationBell({
       channel.unbind(EVENTS.NOTIFICATION, onNotification);
       releaseChannel(userChannel(userId));
     };
-  }, [userId, mutate, open, load, prefs, username, router]);
+  }, [userId, mutate, open, load, prefs, username, router, t]);
 
   // Mark the active tab's notifications read shortly after viewing.
   useEffect(() => {
@@ -281,11 +306,15 @@ export function NotificationBell({
       mutate();
       toast.success(
         accept
-          ? `You're now friends with ${n.actorName ?? 'them'}`
-          : 'Request declined',
+          ? t('notifications.nowFriends', {
+              name: n.actorName ?? t('notifications.them'),
+            })
+          : t('notifications.requestDeclined'),
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not respond');
+      toast.error(
+        err instanceof Error ? err.message : t('notifications.couldNotRespond'),
+      );
     } finally {
       setBusyId(null);
     }
@@ -345,7 +374,9 @@ export function NotificationBell({
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           aria-label={
-            total > 0 ? `Notifications, ${total} unread` : 'Notifications'
+            total > 0
+              ? t('notifications.ariaCount', { count: total })
+              : t('notifications.aria')
           }
           className={cn(
             buttonVariants({
@@ -371,14 +402,16 @@ export function NotificationBell({
           className='w-[calc(100vw-1.5rem)] p-0 sm:w-108'
         >
           <div className='border-border flex items-center justify-between gap-2 border-b px-3 py-2.5'>
-            <h2 className='text-sm font-semibold'>Notifications</h2>
+            <h2 className='text-sm font-semibold'>
+              {t('notifications.title')}
+            </h2>
             {activeList.length > 0 && (
               <button
                 type='button'
                 onClick={clearTab}
                 className='text-muted-foreground hover:text-foreground text-xs transition-colors'
               >
-                Clear all
+                {t('notifications.clearAll')}
               </button>
             )}
           </div>
@@ -388,11 +421,13 @@ export function NotificationBell({
               <TabsList className='w-full'>
                 <TabsTrigger
                   value='requests'
-                  aria-label='Requests'
+                  aria-label={t('notifications.tabs.requests')}
                   className='gap-1'
                 >
                   <UserPlus className='size-4' aria-hidden />
-                  <span className='hidden sm:inline'>Requests</span>
+                  <span className='hidden sm:inline'>
+                    {t('notifications.tabs.requests')}
+                  </span>
                   {unreadRequests > 0 ? (
                     <Badge className={unreadBadgeClass}>
                       {unreadRequests > 9 ? '9+' : unreadRequests}
@@ -401,20 +436,28 @@ export function NotificationBell({
                 </TabsTrigger>
                 <TabsTrigger
                   value='messages'
-                  aria-label='Messages'
+                  aria-label={t('notifications.tabs.messages')}
                   className='gap-1'
                 >
                   <MessageCircle className='size-4' aria-hidden />
-                  <span className='hidden sm:inline'>Messages</span>
+                  <span className='hidden sm:inline'>
+                    {t('notifications.tabs.messages')}
+                  </span>
                   {unreadMessages > 0 ? (
                     <Badge className={unreadBadgeClass}>
                       {unreadMessages > 9 ? '9+' : unreadMessages}
                     </Badge>
                   ) : null}
                 </TabsTrigger>
-                <TabsTrigger value='likes' aria-label='Likes' className='gap-1'>
+                <TabsTrigger
+                  value='likes'
+                  aria-label={t('notifications.tabs.likes')}
+                  className='gap-1'
+                >
                   <Heart className='size-4' aria-hidden />
-                  <span className='hidden sm:inline'>Likes</span>
+                  <span className='hidden sm:inline'>
+                    {t('notifications.tabs.likes')}
+                  </span>
                   {unreadLikes > 0 ? (
                     <Badge className={unreadBadgeClass}>
                       {unreadLikes > 9 ? '9+' : unreadLikes}
@@ -423,11 +466,13 @@ export function NotificationBell({
                 </TabsTrigger>
                 <TabsTrigger
                   value='mentions'
-                  aria-label='Mentions'
+                  aria-label={t('notifications.tabs.mentions')}
                   className='gap-1'
                 >
                   <AtSign className='size-4' aria-hidden />
-                  <span className='hidden sm:inline'>Mentions</span>
+                  <span className='hidden sm:inline'>
+                    {t('notifications.tabs.mentions')}
+                  </span>
                   {unreadMentions > 0 ? (
                     <Badge className={unreadBadgeClass}>
                       {unreadMentions > 9 ? '9+' : unreadMentions}
@@ -449,7 +494,7 @@ export function NotificationBell({
                 <>
                   <TabsContent value='requests'>
                     {requests.length === 0 ? (
-                      <EmptyState label='No friend requests right now.' />
+                      <EmptyState label={t('notifications.empty.requests')} />
                     ) : (
                       <ul className='flex flex-col gap-1.5'>
                         {requests.map((n) => (
@@ -471,7 +516,7 @@ export function NotificationBell({
 
                   <TabsContent value='messages'>
                     {messages.length === 0 ? (
-                      <EmptyState label='No new message notifications.' />
+                      <EmptyState label={t('notifications.empty.messages')} />
                     ) : (
                       <ul className='flex flex-col gap-1.5'>
                         {messages.map((n) => (
@@ -488,7 +533,7 @@ export function NotificationBell({
 
                   <TabsContent value='likes'>
                     {likes.length === 0 ? (
-                      <EmptyState label='No likes on your posts yet.' />
+                      <EmptyState label={t('notifications.empty.likes')} />
                     ) : (
                       <ul className='flex flex-col gap-1.5'>
                         {likes.map((n) => (
@@ -509,7 +554,7 @@ export function NotificationBell({
 
                   <TabsContent value='mentions'>
                     {mentions.length === 0 ? (
-                      <EmptyState label="No mentions yet. You'll see @tags here." />
+                      <EmptyState label={t('notifications.empty.mentions')} />
                     ) : (
                       <ul className='flex flex-col gap-1.5'>
                         {mentions.map((n) => (
@@ -565,6 +610,7 @@ function RowShell({
   onDelete: () => void;
 }) {
   const Icon = iconFor(n.type);
+  const { t } = useTranslation();
   return (
     <li
       className={cn(
@@ -573,7 +619,7 @@ function RowShell({
     >
       <div className='relative shrink-0 self-start'>
         <UserAvatar
-          name={n.actorName ?? 'User'}
+          name={n.actorName ?? t('notifications.userFallback')}
           image={n.actorImage}
           className='size-9'
         />
@@ -591,7 +637,7 @@ function RowShell({
       <button
         type='button'
         onClick={onDelete}
-        aria-label='Delete notification'
+        aria-label={t('notifications.deleteAria')}
         className='text-muted-foreground hover:bg-secondary hover:text-foreground absolute top-1.5 right-1.5 grid size-6 place-items-center rounded-md opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100'
       >
         <Trash2 className='size-3.5' aria-hidden />
@@ -615,6 +661,7 @@ function RequestRow({
   onView: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <RowShell n={n} onDelete={onDelete}>
       <div className='flex items-start justify-between gap-2 pr-5'>
@@ -623,17 +670,17 @@ function RequestRow({
             className='cursor-pointer font-medium hover:underline'
             onClick={onView}
           >
-            {n.actorName ?? 'Someone'}
+            {n.actorName ?? t('notifications.someone')}
           </span>{' '}
           <span className='text-muted-foreground'>
-            {notificationActionText(n.type, n.metadata)}
+            {actionText(t, n.type, n.metadata)}
           </span>
         </p>
         <span
           className='text-muted-foreground shrink-0 text-xs'
           suppressHydrationWarning
         >
-          {timeAgo(n.createdAt)}
+          {timeAgo(t, n.createdAt)}
         </span>
       </div>
       {n.inviteId ? (
@@ -649,7 +696,7 @@ function RequestRow({
             ) : (
               <Check className='size-3.5' aria-hidden />
             )}
-            Accept
+            {t('notifications.accept')}
           </Button>
           <Button
             size='sm'
@@ -659,7 +706,7 @@ function RequestRow({
             onClick={onDecline}
           >
             <X className='size-3.5' aria-hidden />
-            Decline
+            {t('notifications.decline')}
           </Button>
         </div>
       ) : null}
@@ -684,6 +731,7 @@ function LikeRow({
 }) {
   const postHref =
     n.postId && username ? `/app/u/${username}?post=${n.postId}` : null;
+  const { t } = useTranslation();
 
   return (
     <RowShell n={n} onDelete={onDelete}>
@@ -693,26 +741,27 @@ function LikeRow({
             className='cursor-pointer font-medium hover:underline'
             onClick={onView}
           >
-            {n.actorName ?? 'Someone'}
-          </span>
-          <span className='text-muted-foreground'> liked your </span>
+            {n.actorName ?? t('notifications.someone')}
+          </span>{' '}
           {postHref ? (
             <Link
               href={postHref}
               onClick={onNavigate}
-              className='text-foreground cursor-pointer hover:underline'
+              className='text-muted-foreground hover:underline'
             >
-              post
+              {actionText(t, n.type, n.metadata)}
             </Link>
           ) : (
-            <span className='text-muted-foreground'>post</span>
+            <span className='text-muted-foreground'>
+              {actionText(t, n.type, n.metadata)}
+            </span>
           )}
         </p>
         <span
           className='text-muted-foreground shrink-0 text-xs'
           suppressHydrationWarning
         >
-          {timeAgo(n.createdAt)}
+          {timeAgo(t, n.createdAt)}
         </span>
       </div>
       {n.post ? (
@@ -738,12 +787,14 @@ function NotifPostPreview({
   href: string | null;
   onNavigate: () => void;
 }) {
+  const { t } = useTranslation();
+
   if (post.imageUrl) {
     const thumb = (
       <span className='border-border relative block size-12 overflow-hidden rounded-md border'>
         <Image
           src={post.imageUrl}
-          alt={post.caption ?? 'Post'}
+          alt={post.caption ?? t('notifications.postAlt')}
           fill
           sizes='48px'
           className='object-cover'
@@ -755,7 +806,7 @@ function NotifPostPreview({
         href={href}
         onClick={onNavigate}
         className='mt-2 block w-fit'
-        aria-label='View post'
+        aria-label={t('notifications.viewPost')}
       >
         {thumb}
       </Link>
@@ -793,6 +844,7 @@ function MentionRow({
       : `/app/u/${n.actorUsername}`
     : null;
   const preview = notificationPreview(n.metadata);
+  const { t } = useTranslation();
 
   return (
     <RowShell n={n} onDelete={onDelete}>
@@ -802,26 +854,27 @@ function MentionRow({
             className='cursor-pointer font-medium hover:underline'
             onClick={onView}
           >
-            {n.actorName ?? 'Someone'}
-          </span>
-          <span className='text-muted-foreground'> tagged you in their </span>
+            {n.actorName ?? t('notifications.someone')}
+          </span>{' '}
           {href ? (
             <Link
               href={href}
               onClick={onNavigate}
-              className='text-foreground cursor-pointer hover:underline'
+              className='text-muted-foreground hover:underline'
             >
-              {source}
+              {actionText(t, n.type, n.metadata)}
             </Link>
           ) : (
-            <span className='text-muted-foreground'>{source}</span>
+            <span className='text-muted-foreground'>
+              {actionText(t, n.type, n.metadata)}
+            </span>
           )}
         </p>
         <span
           className='text-muted-foreground shrink-0 text-xs'
           suppressHydrationWarning
         >
-          {timeAgo(n.createdAt)}
+          {timeAgo(t, n.createdAt)}
         </span>
       </div>
       {n.post ? (
@@ -845,6 +898,7 @@ function MessageRow({
   onDelete: () => void;
 }) {
   const preview = notificationPreview(n.metadata);
+  const { t } = useTranslation();
   return (
     <RowShell n={n} onDelete={onDelete}>
       <button
@@ -854,16 +908,18 @@ function MessageRow({
       >
         <div className='flex items-start justify-between gap-2'>
           <p className='truncate text-sm leading-tight'>
-            <span className='font-medium'>{n.actorName ?? 'New message'}</span>{' '}
+            <span className='font-medium'>
+              {n.actorName ?? t('notifications.newMessage')}
+            </span>{' '}
             <span className='text-muted-foreground font-normal'>
-              {notificationActionText(n.type, n.metadata)}
+              {actionText(t, n.type, n.metadata)}
             </span>
           </p>
           <span
             className='text-muted-foreground shrink-0 text-xs'
             suppressHydrationWarning
           >
-            {timeAgo(n.createdAt)}
+            {timeAgo(t, n.createdAt)}
           </span>
         </div>
         {preview ? (

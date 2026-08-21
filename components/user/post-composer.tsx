@@ -6,6 +6,7 @@ import { MentionTextarea } from '@/components/user/mention-textarea';
 import { ImagePlus, Loader2, Loader2Icon, SendIcon, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 export function PostComposer({
@@ -16,6 +17,7 @@ export function PostComposer({
   userImage: string | null;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const fileRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function PostComposer({
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast.error('Please choose an image file');
+      toast.error(t('post.composer.chooseImage'));
       return;
     }
     setPreview(URL.createObjectURL(file));
@@ -40,7 +42,7 @@ export function PostComposer({
       const data = await res.json();
       setUploadedUrl(data.url);
     } catch {
-      toast.error('Could not upload image');
+      toast.error(t('post.composer.uploadFailed'));
       setPreview(null);
     } finally {
       setUploading(false);
@@ -56,7 +58,7 @@ export function PostComposer({
   async function submit() {
     // A post needs an image or some text.
     if (!uploadedUrl && !caption.trim()) {
-      toast.error('Add a photo or write something');
+      toast.error(t('post.composer.needContent'));
       return;
     }
     setPosting(true);
@@ -67,10 +69,12 @@ export function PostComposer({
       });
       setCaption('');
       clearImage();
-      toast.success('Posted!');
+      toast.success(t('post.composer.posted'));
       router.refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not post');
+      toast.error(
+        err instanceof Error ? err.message : t('post.composer.couldNotPost'),
+      );
     } finally {
       setPosting(false);
     }
@@ -83,7 +87,7 @@ export function PostComposer({
           <MentionTextarea
             value={caption}
             onValueChange={setCaption}
-            placeholder='Write a caption...'
+            placeholder={t('post.composer.captionPlaceholder')}
             className='block min-h-15 w-full resize-none rounded-none border-none bg-transparent! p-0 text-base leading-relaxed wrap-break-word whitespace-pre-wrap shadow-none focus-visible:ring-0 md:text-base'
             maxLength={500}
           />
@@ -92,7 +96,7 @@ export function PostComposer({
             <div className='border-border relative w-full overflow-hidden rounded-lg border'>
               <img
                 src={preview || '/placeholder.svg'}
-                alt='Selected preview'
+                alt={t('post.composer.selectedPreview')}
                 className='max-h-96 w-full object-cover'
               />
               {uploading ? (
@@ -108,7 +112,7 @@ export function PostComposer({
                 onClick={clearImage}
                 size='icon-xs'
                 className='absolute top-2 right-2'
-                aria-label='Remove image'
+                aria-label={t('post.composer.removeImage')}
               >
                 <X className='size-4' aria-hidden />
               </Button>
@@ -131,7 +135,7 @@ export function PostComposer({
               onClick={() => fileRef.current?.click()}
             >
               <ImagePlus className='shrink-0' aria-hidden />
-              Photo
+              {t('post.composer.photo')}
             </Button>
             <Button
               type='button'
@@ -143,12 +147,12 @@ export function PostComposer({
               {posting ? (
                 <>
                   <Loader2 className='shrink-0 animate-spin' aria-hidden />
-                  Posting...
+                  {t('post.composer.posting')}
                 </>
               ) : (
                 <>
                   <SendIcon className='shrink-0' aria-hidden />
-                  Post
+                  {t('post.composer.post')}
                 </>
               )}
             </Button>

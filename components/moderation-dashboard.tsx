@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { ModerationUserRow } from '@/app/actions/moderation';
 
-import type { ReportListItem } from '@/lib/types';
 import type { Role } from '@/lib/roles';
+import type { ReportListItem } from '@/lib/types';
 
 import { ModerationView } from '@/components/moderation-view';
 import { ReportsView } from '@/components/reports-view';
@@ -30,14 +31,15 @@ export function ModerationDashboard({
   initialReports: ReportListItem[];
   pendingReports: number;
 }) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<'users' | 'reports'>('users');
 
   return (
     <Tabs value={tab} onValueChange={(v) => setTab(v as 'users' | 'reports')}>
       <TabsList className='mb-4'>
-        <TabsTrigger value='users'>Users</TabsTrigger>
+        <TabsTrigger value='users'>{t('moderation.tabUsers')}</TabsTrigger>
         <TabsTrigger value='reports'>
-          Reports
+          {t('moderation.tabReports')}
           {pendingReports > 0 ? (
             <Badge variant='destructive' className='ml-1.5 tabular-nums'>
               {pendingReports}

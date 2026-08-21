@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
@@ -52,6 +53,7 @@ export function FriendshipButtons({
   );
   const [busy, setBusy] = useState(false);
   const router = useRouter();
+  const { t } = useTranslation();
 
   function message() {
     if (!profile?.dmChatId) return;
@@ -66,9 +68,11 @@ export function FriendshipButtons({
       await removeFriend(profile.id);
       setProfile({ ...profile, friendStatus: 'none' });
       if (onUpdateAction) onUpdateAction('none');
-      toast.success('Unfriended successfully');
+      toast.success(t('friendship.unfriended'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not unfriend');
+      toast.error(
+        err instanceof Error ? err.message : t('friendship.couldNotUnfriend'),
+      );
     } finally {
       setBusy(false);
     }
@@ -81,9 +85,11 @@ export function FriendshipButtons({
       await cancelFriendRequest(profile.id);
       setProfile({ ...profile, friendStatus: 'none' });
       if (onUpdateAction) onUpdateAction('none');
-      toast.success('Request canceled');
+      toast.success(t('friendship.requestCanceled'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not cancel');
+      toast.error(
+        err instanceof Error ? err.message : t('friendship.couldNotCancel'),
+      );
       setProfile({ ...profile, friendStatus: 'none' });
     } finally {
       setBusy(false);
@@ -102,15 +108,15 @@ export function FriendshipButtons({
           dmChatId: res.chatId ?? null,
         });
         if (onUpdateAction) onUpdateAction('friends', res.chatId);
-        toast.success(`You and ${profile.name} are now friends`);
+        toast.success(t('friendship.nowFriends', { name: profile.name }));
       } else {
         setProfile({ ...profile, friendStatus: 'outgoing' });
         if (onUpdateAction) onUpdateAction('outgoing');
-        toast.success('Friend request sent');
+        toast.success(t('friendship.requestSent'));
       }
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : 'Could not send request',
+        err instanceof Error ? err.message : t('friendship.couldNotSend'),
       );
     } finally {
       setBusy(false);
@@ -124,9 +130,11 @@ export function FriendshipButtons({
       await declineFriendRequestByUserId(profile.id);
       setProfile({ ...profile, friendStatus: 'none' });
       if (onUpdateAction) onUpdateAction('none');
-      toast.success('Request declined');
+      toast.success(t('friendship.requestDeclined'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not decline');
+      toast.error(
+        err instanceof Error ? err.message : t('friendship.couldNotDecline'),
+      );
     } finally {
       setBusy(false);
     }
@@ -140,7 +148,7 @@ export function FriendshipButtons({
           onClick={onCloseAction}
         >
           <ExternalLinkIcon className='size-4' aria-hidden />
-          View Full Profile
+          {t('friendship.viewFullProfile')}
         </Link>
       </Button>
     );
@@ -158,18 +166,18 @@ export function FriendshipButtons({
             onClick={message}
           >
             <MessageCircle className='shrink-0' aria-hidden />
-            Message
+            {t('friendship.message')}
           </Button>
           <Button variant='destructive' disabled={busy} onClick={unfriend}>
             {busy ? (
               <>
                 <Loader2Icon className='shrink-0 animate-spin' aria-hidden />
-                Removing...
+                {t('friendship.removing')}
               </>
             ) : (
               <>
                 <UserMinus2Icon className='shrink-0' aria-hidden />
-                Remove
+                {t('friendship.remove')}
               </>
             )}
           </Button>
@@ -196,10 +204,10 @@ export function FriendshipButtons({
             </>
           )}
           <span className='group-hover/req:hidden'>
-            {busy ? 'Cancelling...' : 'Pending'}
+            {busy ? t('friendship.cancelling') : t('friendship.pending')}
           </span>
           <span className='hidden group-hover/req:inline'>
-            {busy ? 'Cancelling...' : 'Cancel'}
+            {busy ? t('friendship.cancelling') : t('friendship.cancel')}
           </span>
         </Button>
       ) : profile?.friendStatus === 'incoming' ? (
@@ -207,17 +215,17 @@ export function FriendshipButtons({
           {busy ? (
             <Button variant='secondary' disabled={busy}>
               <Loader2Icon className='shrink-0 animate-spin' aria-hidden />
-              Loading...
+              {t('friendship.loading')}
             </Button>
           ) : (
             <>
               <Button className='flex-1' disabled={busy} onClick={addOrAccept}>
                 <CheckIcon className='shrink-0' aria-hidden />
-                Accept
+                {t('friendship.accept')}
               </Button>
               <Button variant='destructive' disabled={busy} onClick={decline}>
                 <XIcon className='shrink-0' aria-hidden />
-                Decline
+                {t('friendship.decline')}
               </Button>
             </>
           )}
@@ -227,12 +235,12 @@ export function FriendshipButtons({
           {busy ? (
             <>
               <Loader2Icon className='shrink-0 animate-spin' aria-hidden />
-              Adding...
+              {t('friendship.adding')}
             </>
           ) : (
             <>
               <UserPlus2Icon className='shrink-0' aria-hidden />
-              Add Friend
+              {t('friendship.addFriend')}
             </>
           )}
         </Button>
@@ -245,7 +253,7 @@ export function FriendshipButtons({
             onClick={onCloseAction}
           >
             <ExternalLinkIcon className='size-4' aria-hidden />
-            View Full Profile
+            {t('friendship.viewFullProfile')}
           </Link>
         </Button>
       )}

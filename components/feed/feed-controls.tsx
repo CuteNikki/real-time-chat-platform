@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { useRouter } from 'next/navigation';
 import { Hash, Search, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 import { searchHashtags } from '@/app/actions/hashtags';
 
@@ -56,6 +57,7 @@ type Props = {
 // driving ?tags=…. Clicking a tab exits search back to browse.
 export function FeedControls({ tab, query, tags }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [text, setText] = useState(query);
   const [localTags, setLocalTags] = useState<string[]>(tags);
   const [suggests, setSuggests] = useState<HashtagSuggestion[]>([]);
@@ -188,21 +190,28 @@ export function FeedControls({ tab, query, tags }: Props) {
     <div className='flex flex-col gap-3'>
       <Tabs value={tab} onValueChange={selectTab}>
         <TabsList className='w-full max-w-xs'>
-          <TabsTrigger value='for-you'>For You</TabsTrigger>
-          <TabsTrigger value='friends'>Friends</TabsTrigger>
+          <TabsTrigger value='for-you'>
+            {t('app.feed.controls.forYou')}
+          </TabsTrigger>
+          <TabsTrigger value='friends'>
+            {t('app.feed.controls.friends')}
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
       <div className='relative'>
         <div className='border-input focus-within:border-ring focus-within:ring-ring/50 dark:bg-input/30 flex min-h-8 w-full flex-wrap items-center gap-1.5 rounded-lg border bg-transparent px-2.5 py-1 transition-colors focus-within:ring-3'>
-          <Search className='text-muted-foreground size-4 shrink-0' aria-hidden />
-          {localTags.map((t) => (
-            <Badge key={t} variant='secondary' className='gap-1 pr-1'>
-              #{t}
+          <Search
+            className='text-muted-foreground size-4 shrink-0'
+            aria-hidden
+          />
+          {localTags.map((tag) => (
+            <Badge key={tag} variant='secondary' className='gap-1 pr-1'>
+              #{tag}
               <button
                 type='button'
-                onClick={() => removeTag(t)}
-                aria-label={`Remove #${t}`}
+                onClick={() => removeTag(tag)}
+                aria-label={t('app.feed.controls.removeTag', { tag })}
                 className='hover:bg-foreground/10 -mr-0.5 flex size-4 items-center justify-center rounded-full transition-colors'
               >
                 <X className='size-3' aria-hidden />
@@ -215,9 +224,11 @@ export function FeedControls({ tab, query, tags }: Props) {
             onKeyDown={onKeyDown}
             onBlur={() => setSuggests([])}
             placeholder={
-              localTags.length > 0 ? 'Add a tag or search…' : 'Search posts or #tags…'
+              localTags.length > 0
+                ? t('app.feed.controls.placeholderWithTags')
+                : t('app.feed.controls.placeholder')
             }
-            aria-label='Search posts and tags'
+            aria-label={t('app.feed.controls.searchAria')}
             aria-autocomplete='list'
             aria-expanded={open}
             className='placeholder:text-muted-foreground h-6 min-w-24 flex-1 bg-transparent text-sm outline-none'
@@ -254,7 +265,7 @@ export function FeedControls({ tab, query, tags }: Props) {
                       #{s.tag}
                     </span>
                     <span className='text-muted-foreground truncate text-xs tabular-nums'>
-                      {s.count} {s.count === 1 ? 'post' : 'posts'}
+                      {t('common.postCount', { count: s.count })}
                     </span>
                   </span>
                 </button>

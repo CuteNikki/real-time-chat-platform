@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { FlagIcon, Loader2Icon } from 'lucide-react';
@@ -51,6 +52,7 @@ export function ReportDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -77,37 +79,54 @@ export function ReportDialog({
         reason: reason.trim() || undefined,
       });
       onOpenChange(false);
-      toast.success('Report submitted', {
-        description: `Reference ${res.reference} — our team will review it.`,
+      toast.success(t('report.submitted'), {
+        description: t('report.reference', { reference: res.reference }),
       });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not submit report');
+      toast.error(
+        err instanceof Error ? err.message : t('report.couldNotSubmit'),
+      );
       setSubmitting(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => (!submitting ? onOpenChange(o) : undefined)}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => (!submitting ? onOpenChange(o) : undefined)}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Report {noun === 'user' ? (who ?? 'user') : `this ${noun}`}
+            {noun === 'user'
+              ? t('report.titleUser', { who: who ?? t('report.defaultUser') })
+              : noun === 'post'
+                ? t('report.titlePost')
+                : t('report.titleMessage')}
           </DialogTitle>
           <DialogDescription>
             {noun === 'user'
-              ? `Flag ${who ?? 'this account'} for our moderators to review.`
-              : `Flag this ${noun}${who ? ` from ${who}` : ''} for our moderators to review.`}{' '}
-            You&apos;ll get a reference code and a message with the outcome.
+              ? t('report.descUser', {
+                  who: who ?? t('report.defaultAccount'),
+                })
+              : noun === 'post'
+                ? who
+                  ? t('report.descPostFrom', { who })
+                  : t('report.descPost')
+                : who
+                  ? t('report.descMessageFrom', { who })
+                  : t('report.descMessage')}{' '}
+            {t('report.outcome')}
           </DialogDescription>
         </DialogHeader>
 
         <div className='space-y-2'>
-          <Label htmlFor='report-reason'>Reason (optional)</Label>
+          <Label htmlFor='report-reason'>{t('report.reasonLabel')}</Label>
           <Textarea
             id='report-reason'
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder='Add any context that will help us review this report'
+            placeholder={t('report.reasonPlaceholder')}
             className='resize-y wrap-break-word'
             maxLength={1000}
             rows={3}
@@ -120,7 +139,7 @@ export function ReportDialog({
             onClick={() => onOpenChange(false)}
             disabled={submitting}
           >
-            Cancel
+            {t('report.cancel')}
           </Button>
           <Button variant='destructive' onClick={submit} disabled={submitting}>
             {submitting ? (
@@ -128,7 +147,7 @@ export function ReportDialog({
             ) : (
               <FlagIcon aria-hidden />
             )}
-            Submit report
+            {t('report.submit')}
           </Button>
         </DialogFooter>
       </DialogContent>

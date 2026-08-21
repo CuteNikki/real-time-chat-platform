@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { motion, useReducedMotion } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 
 import {
   isSettingsTab,
@@ -35,6 +36,7 @@ export function SettingsTabs({
 }) {
   const [active, setActive] = useState<SettingsTab>(tab);
   const reduce = useReducedMotion();
+  const { t } = useTranslation();
 
   // A real navigation (e.g. the nav's Settings link, or a shared ?tab= URL)
   // re-renders the server component with a new tab; client switches use
@@ -69,16 +71,16 @@ export function SettingsTabs({
         <div className='scrollbar-none overflow-x-auto overflow-y-hidden px-4 sm:overflow-visible sm:px-0'>
           <TabsList className='w-max sm:w-fit'>
             <TabsTrigger value='profile' className='flex-none px-2'>
-              Profile
+              {t('settings.tabs.profile')}
             </TabsTrigger>
             <TabsTrigger value='account' className='flex-none px-2'>
-              Account
+              {t('settings.tabs.account')}
             </TabsTrigger>
             <TabsTrigger value='privacy' className='flex-none px-2'>
-              Privacy
+              {t('settings.tabs.privacy')}
             </TabsTrigger>
             <TabsTrigger value='preferences' className='flex-none px-2'>
-              Preferences
+              {t('settings.tabs.preferences')}
             </TabsTrigger>
           </TabsList>
         </div>

@@ -3,36 +3,42 @@
 import Link from 'next/link';
 
 import { ArrowUpIcon, OrbitIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { Separator } from '@/components/ui/separator';
 
-const GROUPS: { title: string; links: { label: string; href: string }[] }[] = [
+const GROUPS: {
+  titleKey: string;
+  links: { labelKey: string; href: string }[];
+}[] = [
   {
-    title: 'Company',
+    titleKey: 'landing.footer.groups.company',
     links: [
-      { label: 'About', href: '/about' },
-      { label: 'Careers', href: '/careers' },
+      { labelKey: 'landing.footer.links.about', href: '/about' },
+      { labelKey: 'landing.footer.links.careers', href: '/careers' },
     ],
   },
   {
-    title: 'Socials',
+    titleKey: 'landing.footer.groups.socials',
     links: [
-      { label: 'Discord', href: '/discord' },
-      { label: 'Instagram', href: '/instagram' },
-      { label: 'Twitter', href: '/twitter' },
+      { labelKey: 'landing.footer.links.discord', href: '/discord' },
+      { labelKey: 'landing.footer.links.instagram', href: '/instagram' },
+      { labelKey: 'landing.footer.links.twitter', href: '/twitter' },
     ],
   },
   {
-    title: 'Legal',
+    titleKey: 'landing.footer.groups.legal',
     links: [
-      { label: 'Privacy Policy', href: '/privacy' },
-      { label: 'Terms & Conditions', href: '/terms' },
-      { label: 'Imprint', href: '/imprint' },
+      { labelKey: 'landing.footer.links.privacy', href: '/privacy' },
+      { labelKey: 'landing.footer.links.terms', href: '/terms' },
+      { labelKey: 'landing.footer.links.imprint', href: '/imprint' },
     ],
   },
 ];
 
 export function LandingFooter() {
+  const { t } = useTranslation();
+
   return (
     <footer className='xs:p-6 mx-auto w-full max-w-7xl p-4'>
       <div className='flex flex-col gap-6 sm:flex-row sm:justify-between'>
@@ -42,17 +48,19 @@ export function LandingFooter() {
             <span className='text-lg font-semibold tracking-tight'>Orbit</span>
           </Link>
           <span className='text-muted-foreground text-sm'>
-            Real-time chat, powered by presence.
+            {t('landing.footer.tagline')}
           </span>
         </div>
         <div className='xs:flex-row flex flex-wrap gap-x-10 gap-y-4'>
           {GROUPS.map((g) => (
-            <div key={g.title} className='flex flex-col gap-2'>
-              <span className='font-semibold tracking-tight'>{g.title}</span>
+            <div key={g.titleKey} className='flex flex-col gap-2'>
+              <span className='font-semibold tracking-tight'>
+                {t(g.titleKey)}
+              </span>
               <ul className='text-muted-foreground [&>li>a]:hover:text-foreground [&>li>a]:focus:text-foreground flex flex-col gap-1 text-sm [&>li>a]:transition-colors [&>li>a]:hover:underline'>
                 {g.links.map((l) => (
                   <li key={l.href}>
-                    <Link href={l.href}>{l.label}</Link>
+                    <Link href={l.href}>{t(l.labelKey)}</Link>
                   </li>
                 ))}
               </ul>
@@ -63,13 +71,13 @@ export function LandingFooter() {
       <Separator className='my-6' />
       <div className='flex justify-between gap-2'>
         <span className='text-muted-foreground text-xs'>
-          © {new Date().getFullYear()} Orbit · All rights reserved.
+          {t('landing.footer.rights', { year: new Date().getFullYear() })}
         </span>
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className='text-muted-foreground hover:text-foreground focus:text-foreground flex items-center gap-1 text-xs uppercase transition-colors'
         >
-          Back to top
+          {t('landing.footer.backToTop')}
           <ArrowUpIcon className='inline-block size-4' aria-hidden />
         </button>
       </div>

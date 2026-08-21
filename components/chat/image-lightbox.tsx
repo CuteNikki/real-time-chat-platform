@@ -1,9 +1,10 @@
 'use client';
 
+import { cn } from '@/lib/utils';
+import { Minus, Plus, RotateCcw, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Minus, Plus, RotateCcw, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 6;
@@ -25,6 +26,7 @@ export function ImageLightbox({
   open: boolean;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const [scale, setScale] = useState(1);
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
@@ -108,51 +110,51 @@ export function ImageLightbox({
       // pointer-events-auto: when opened over a modal (e.g. Radix Dialog sets
       // `pointer-events: none` on <body>), this body-portaled layer would
       // inherit it and go dead — re-enable so the toolbar/backdrop stay usable.
-      className="pointer-events-auto fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm"
+      className='pointer-events-auto fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm'
       onClick={onClose}
     >
       {/* Toolbar */}
       <div
-        className="absolute top-4 right-4 z-10 flex items-center gap-1 rounded-full bg-white/10 p-1 backdrop-blur"
+        className='absolute top-4 right-4 z-10 flex items-center gap-1 rounded-full bg-white/10 p-1 backdrop-blur'
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          type="button"
+          type='button'
           onClick={() => zoomTo(scale - STEP)}
           disabled={scale <= MIN_SCALE}
-          className="grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15 disabled:opacity-40"
-          aria-label="Zoom out"
+          className='grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15 disabled:opacity-40'
+          aria-label={t('chat.lightbox.zoomOut')}
         >
-          <Minus className="size-4" />
+          <Minus className='size-4' />
         </button>
-        <span className="min-w-12 text-center text-sm tabular-nums text-white/80">
+        <span className='min-w-12 text-center text-sm text-white/80 tabular-nums'>
           {Math.round(scale * 100)}%
         </span>
         <button
-          type="button"
+          type='button'
           onClick={() => zoomTo(scale + STEP)}
           disabled={scale >= MAX_SCALE}
-          className="grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15 disabled:opacity-40"
-          aria-label="Zoom in"
+          className='grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15 disabled:opacity-40'
+          aria-label={t('chat.lightbox.zoomIn')}
         >
-          <Plus className="size-4" />
+          <Plus className='size-4' />
         </button>
         <button
-          type="button"
+          type='button'
           onClick={() => zoomTo(1)}
           disabled={scale === 1 && offset.x === 0 && offset.y === 0}
-          className="grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15 disabled:opacity-40"
-          aria-label="Reset zoom"
+          className='grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15 disabled:opacity-40'
+          aria-label={t('chat.lightbox.resetZoom')}
         >
-          <RotateCcw className="size-4" />
+          <RotateCcw className='size-4' />
         </button>
         <button
-          type="button"
+          type='button'
           onClick={onClose}
-          className="grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15"
-          aria-label="Close"
+          className='grid size-9 place-items-center rounded-full text-white/90 transition-colors hover:bg-white/15'
+          aria-label={t('chat.lightbox.close')}
         >
-          <X className="size-4" />
+          <X className='size-4' />
         </button>
       </div>
 
@@ -173,8 +175,12 @@ export function ImageLightbox({
           transition: dragging ? 'none' : 'transform 0.15s ease-out',
         }}
         className={cn(
-          'max-h-[90vh] max-w-[92vw] touch-none select-none rounded-lg object-contain shadow-2xl',
-          scale > 1 ? (dragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-zoom-in',
+          'max-h-[90vh] max-w-[92vw] touch-none rounded-lg object-contain shadow-2xl select-none',
+          scale > 1
+            ? dragging
+              ? 'cursor-grabbing'
+              : 'cursor-grab'
+            : 'cursor-zoom-in',
         )}
       />
     </div>,

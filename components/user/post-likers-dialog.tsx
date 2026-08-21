@@ -13,6 +13,7 @@ import type { PostLiker } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function PostLikersDialog({
   postId,
@@ -23,6 +24,7 @@ export function PostLikersDialog({
   count: number;
   children: React.ReactNode;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [likers, setLikers] = useState<PostLiker[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,7 +48,7 @@ export function PostLikersDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className='sm:max-w-sm'>
         <DialogHeader>
-          <DialogTitle>{count === 1 ? '1 like' : `${count} likes`}</DialogTitle>
+          <DialogTitle>{t('post.card.likes', { count })}</DialogTitle>
         </DialogHeader>
         <div className='-mx-1 max-h-80 overflow-y-auto'>
           {loading ? (
@@ -58,7 +60,7 @@ export function PostLikersDialog({
             </div>
           ) : likers.length === 0 ? (
             <p className='text-muted-foreground py-10 text-center text-sm'>
-              No likes yet.
+              {t('post.likers.empty')}
             </p>
           ) : (
             <ul className='flex flex-col'>

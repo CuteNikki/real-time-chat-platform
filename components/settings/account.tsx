@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import {
@@ -39,6 +40,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function AccountSettings() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { data: session, isPending: sessionPending } = useSession();
   const [sendingVerify, setSendingVerify] = useState(false);
 
@@ -54,13 +56,18 @@ export function AccountSettings() {
           email: session.user.email,
           callbackURL: '/app/settings',
         });
-        if (error) throw new Error(error.message || 'Could not send email');
+        if (error)
+          throw new Error(
+            error.message || t('settings.account.couldNotSendEmail'),
+          );
       })(),
       {
-        loading: 'Sending verification email...',
-        success: 'Verification email sent! Check your inbox.',
+        loading: t('settings.account.sendingEmail'),
+        success: t('settings.account.emailSent'),
         error: (err) =>
-          err instanceof Error ? err.message : 'Something went wrong',
+          err instanceof Error
+            ? err.message
+            : t('settings.account.somethingWrong'),
         finally: () => setSendingVerify(false),
       },
     );
@@ -79,7 +86,7 @@ export function AccountSettings() {
   async function handleChangePassword(e: React.SubmitEvent) {
     e.preventDefault();
     if (next !== confirm) {
-      toast.error('New passwords do not match');
+      toast.error(t('settings.account.pwMismatch'));
       return;
     }
 
@@ -93,17 +100,21 @@ export function AccountSettings() {
           revokeOtherSessions: true,
         });
         if (error)
-          throw new Error(error.message || 'Could not change password');
+          throw new Error(
+            error.message || t('settings.account.couldNotChangePassword'),
+          );
 
         setCurrent('');
         setNext('');
         setConfirm('');
       })(),
       {
-        loading: 'Updating password...',
-        success: 'Password updated',
+        loading: t('settings.account.updatingPassword'),
+        success: t('settings.account.passwordUpdated'),
         error: (err) =>
-          err instanceof Error ? err.message : 'Could not change password',
+          err instanceof Error
+            ? err.message
+            : t('settings.account.couldNotChangePassword'),
         finally: () => setSavingPw(false),
       },
     );
@@ -115,20 +126,23 @@ export function AccountSettings() {
     toast.promise(
       (async () => {
         const { error } = await deleteUser();
-        if (error) throw new Error(error.message || 'Could not delete account');
+        if (error)
+          throw new Error(
+            error.message || t('settings.account.couldNotDelete'),
+          );
 
         await signOut();
         router.push('/sign-up');
         router.refresh();
       })(),
       {
-        loading: 'Deleting account...',
-        success: 'Your account has been deleted!',
+        loading: t('settings.account.deletingAccount'),
+        success: t('settings.account.accountDeleted'),
         error: (err) => {
           setDeleting(false);
           return err instanceof Error
             ? err.message
-            : 'Could not delete account!';
+            : t('settings.account.couldNotDeleteBang');
         },
       },
     );
@@ -143,7 +157,9 @@ export function AccountSettings() {
             className='text-muted-foreground size-4 shrink-0'
             aria-hidden
           />
-          <h2 className='text-lg font-semibold tracking-tight'>Email</h2>
+          <h2 className='text-lg font-semibold tracking-tight'>
+            {t('settings.account.email')}
+          </h2>
         </div>
         {sessionPending ? (
           <div className='border-border bg-card flex items-center gap-3 rounded-xl border p-4'>
@@ -159,7 +175,9 @@ export function AccountSettings() {
                 {session.user.email}
               </p>
               <p className='text-muted-foreground text-sm'>
-                {isVerified ? 'has been verified' : 'not verified yet'}
+                {isVerified
+                  ? t('settings.account.verifiedText')
+                  : t('settings.account.notVerifiedText')}
               </p>
             </div>
             <Button
@@ -171,19 +189,19 @@ export function AccountSettings() {
               {sendingVerify ? (
                 <>
                   <Loader2Icon className='shrink-0 animate-spin' aria-hidden />
-                  Sending...
+                  {t('settings.account.sending')}
                 </>
               ) : (
                 <>
                   {isVerified ? (
                     <>
                       <CheckIcon className='shrink-0' aria-hidden />
-                      Verified
+                      {t('settings.account.verifiedBtn')}
                     </>
                   ) : (
                     <>
                       <MailsIcon className='shrink-0' aria-hidden />
-                      Resend
+                      {t('settings.account.resend')}
                     </>
                   )}
                 </>
@@ -200,12 +218,14 @@ export function AccountSettings() {
             aria-hidden
           />
           <h2 className='text-lg font-semibold tracking-tight'>
-            Change Password
+            {t('settings.account.changePassword')}
           </h2>
         </div>
         <form onSubmit={handleChangePassword} className='space-y-4'>
           <div className='space-y-2'>
-            <Label htmlFor='current-password'>Current password</Label>
+            <Label htmlFor='current-password'>
+              {t('settings.account.currentPassword')}
+            </Label>
             <Input
               id='current-password'
               type='password'
@@ -217,7 +237,9 @@ export function AccountSettings() {
           </div>
           <div className='grid gap-2 sm:grid-cols-2'>
             <div className='space-y-2'>
-              <Label htmlFor='new-password'>New password</Label>
+              <Label htmlFor='new-password'>
+                {t('settings.account.newPassword')}
+              </Label>
               <Input
                 id='new-password'
                 type='password'
@@ -229,7 +251,9 @@ export function AccountSettings() {
               />
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='confirm-password'>Confirm new password</Label>
+              <Label htmlFor='confirm-password'>
+                {t('settings.account.confirmNewPassword')}
+              </Label>
               <Input
                 id='confirm-password'
                 type='password'
@@ -246,12 +270,12 @@ export function AccountSettings() {
               {savingPw ? (
                 <>
                   <Loader2Icon className='shrink-0 animate-spin' aria-hidden />
-                  Updating...
+                  {t('settings.account.updating')}
                 </>
               ) : (
                 <>
                   <SaveIcon className='shrink-0' aria-hidden />
-                  Update
+                  {t('settings.account.update')}
                 </>
               )}
             </Button>
@@ -264,25 +288,27 @@ export function AccountSettings() {
         <div className='flex items-center gap-2'>
           <Trash2Icon className='text-destructive size-4' aria-hidden />
           <h2 className='text-destructive text-lg font-semibold tracking-tight'>
-            Delete Account
+            {t('settings.account.deleteTitle')}
           </h2>
         </div>
         <p className='text-muted-foreground text-sm leading-relaxed'>
-          Permanently delete your account, profile, posts, and messages. This
-          cannot be undone.
+          {t('settings.account.deleteDesc')}
         </p>
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant='destructive'>Continue</Button>
+            <Button variant='destructive'>
+              {t('settings.account.continue')}
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete your account?</DialogTitle>
+              <DialogTitle>
+                {t('settings.account.deleteDialogTitle')}
+              </DialogTitle>
               <DialogDescription>
-                This permanently removes your account and all associated data.
-                Type{' '}
-                <span className='text-foreground font-semibold'>DELETE</span> in
-                uppercase to confirm.
+                {t('settings.account.deleteConfirmPrefix')}{' '}
+                <span className='text-foreground font-semibold'>DELETE</span>{' '}
+                {t('settings.account.deleteConfirmSuffix')}
               </DialogDescription>
             </DialogHeader>
             <Input
@@ -290,11 +316,13 @@ export function AccountSettings() {
               onChange={(e) => setDeleteConfirm(e.target.value)}
               placeholder='DELETE'
               autoComplete='off'
-              aria-label='Type DELETE to confirm'
+              aria-label={t('settings.account.typeDeleteAria')}
             />
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant='outline'>Cancel</Button>
+                <Button variant='outline'>
+                  {t('settings.account.cancel')}
+                </Button>
               </DialogClose>
               <Button
                 variant='destructive'
@@ -305,10 +333,10 @@ export function AccountSettings() {
                 {deleting ? (
                   <>
                     <Loader2Icon className='size-4 animate-spin' aria-hidden />
-                    Deleting...
+                    {t('settings.account.deleting')}
                   </>
                 ) : (
-                  <>Delete</>
+                  <>{t('settings.account.delete')}</>
                 )}
               </Button>
             </DialogFooter>

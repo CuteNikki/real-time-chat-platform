@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import type React from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
@@ -117,6 +118,7 @@ export function RoomsWorkspace({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslation();
   const urlChatId = searchParams.get('c');
 
   const { data: rooms = initialRooms, mutate } = useSWR<RoomSummary[]>(
@@ -181,7 +183,7 @@ export function RoomsWorkspace({
         mutate();
       } catch (err) {
         toast.error(
-          err instanceof Error ? err.message : 'Could not open channel',
+          err instanceof Error ? err.message : t('rooms.couldNotOpen'),
         );
         loadedFor.current = null;
         setActiveChatId(null);
@@ -231,10 +233,10 @@ export function RoomsWorkspace({
         void openChannel(chatId);
       })(),
       {
-        loading: `Creating #${trimmedName}...`,
-        success: `Created #${trimmedName}`,
+        loading: t('rooms.creating', { name: trimmedName }),
+        success: t('rooms.created', { name: trimmedName }),
         error: (err) =>
-          err instanceof Error ? err.message : 'Could not create room',
+          err instanceof Error ? err.message : t('rooms.couldNotCreate'),
       },
     );
 
@@ -243,7 +245,7 @@ export function RoomsWorkspace({
 
   async function handleDelete() {
     if (!activeChatId || deleting) return;
-    const roomName = activeRoom?.name ?? 'channel';
+    const roomName = activeRoom?.name ?? t('rooms.channelFallback');
     setDeleting(true);
 
     const targetChatId = activeChatId;
@@ -251,17 +253,17 @@ export function RoomsWorkspace({
     setDeleteOpen(false);
 
     toast.promise(deleteRoom(targetChatId), {
-      loading: `Deleting #${roomName}...`,
+      loading: t('rooms.deleting', { name: roomName }),
       success: () => {
         loadedFor.current = null;
         setActiveChatId(null);
         setMessages([]);
         router.replace('/app/rooms', { scroll: false });
         mutate();
-        return `Deleted #${roomName}`;
+        return t('rooms.deleted', { name: roomName });
       },
       error: (err) =>
-        err instanceof Error ? err.message : 'Could not delete room',
+        err instanceof Error ? err.message : t('rooms.couldNotDelete'),
     });
 
     setDeleting(false);
@@ -286,7 +288,7 @@ export function RoomsWorkspace({
             >
               {rooms.length === 0 ? (
                 <p className='text-muted-foreground px-2 py-6 text-center text-sm'>
-                  No channels yet. Create the first one.
+                  {t('rooms.noChannels')}
                 </p>
               ) : (
                 <ul className='flex flex-col gap-1'>
@@ -347,31 +349,35 @@ export function RoomsWorkspace({
                 <DialogTrigger asChild>
                   <Button variant='secondary' size='lg' className='w-full'>
                     <Plus aria-hidden />
-                    Create Channel
+                    {t('rooms.createChannel')}
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <form onSubmit={handleCreate}>
                     <DialogHeader>
-                      <DialogTitle>Create a Channel</DialogTitle>
+                      <DialogTitle>{t('rooms.createDialogTitle')}</DialogTitle>
                       <DialogDescription>
-                        Give it a name. Anyone can find and join it.
+                        {t('rooms.createDialogDesc')}
                       </DialogDescription>
                     </DialogHeader>
                     <div className='flex flex-col gap-2 py-4'>
-                      <Label htmlFor='room-name'>Channel Name</Label>
+                      <Label htmlFor='room-name'>
+                        {t('rooms.channelName')}
+                      </Label>
                       <Input
                         id='room-name'
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder='e.g. late night talks'
+                        placeholder={t('rooms.channelPlaceholder')}
                         maxLength={60}
                         autoFocus
                       />
                     </div>
                     <DialogFooter>
                       <Button type='submit' disabled={creating || !name.trim()}>
-                        {creating ? 'Creating…' : 'Create'}
+                        {creating
+                          ? t('rooms.creatingBtn')
+                          : t('rooms.createBtn')}
                       </Button>
                     </DialogFooter>
                   </form>
@@ -384,7 +390,7 @@ export function RoomsWorkspace({
           <div className='border-border hidden min-h-0 flex-1 flex-col border-t md:flex'>
             <div className='p-4 pb-2'>
               <span className='text-muted-foreground text-xs font-semibold tracking-wider uppercase'>
-                {`${members.length} online in this chat`}
+                {t('rooms.onlineInChat', { count: members.length })}
               </span>
             </div>
 
@@ -427,8 +433,8 @@ export function RoomsWorkspace({
         {!activeChatId ? (
           <EmptyState
             icon={MessagesSquareIcon}
-            title='Choose a channel'
-            description='Select a channel from the left to jump into the conversation, or create your own.'
+            title={t('rooms.chooseTitle')}
+            description={t('rooms.chooseDesc')}
             className='h-full'
           />
         ) : (
@@ -444,7 +450,7 @@ export function RoomsWorkspace({
                   setMessages([]);
                   router.replace('/app/rooms', { scroll: false });
                 }}
-                aria-label='Back to channels'
+                aria-label={t('rooms.back')}
               >
                 <ArrowLeftIcon aria-hidden />
               </Button>
@@ -454,7 +460,7 @@ export function RoomsWorkspace({
                   aria-hidden
                 />
                 <span className='truncate font-semibold'>
-                  {activeRoom?.name ?? 'Channel'}
+                  {activeRoom?.name ?? t('rooms.channelTitleFallback')}
                 </span>
               </div>
               <div className='text-muted-foreground flex items-center gap-2 text-sm md:hidden'>
@@ -470,17 +476,19 @@ export function RoomsWorkspace({
               </div>
               {canDelete && (
                 <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-                  <DialogTrigger asChild aria-label='Delete channel'>
+                  <DialogTrigger
+                    asChild
+                    aria-label={t('rooms.deleteChannelAria')}
+                  >
                     <Button variant='destructive' size='icon-lg'>
                       <Trash2Icon aria-hidden />
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>Delete Channel?</DialogTitle>
+                      <DialogTitle>{t('rooms.deleteTitle')}</DialogTitle>
                       <DialogDescription>
-                        This permanently deletes the channel and all of its
-                        messages for everyone. This action cannot be undone.
+                        {t('rooms.deleteDesc')}
                       </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
@@ -489,14 +497,16 @@ export function RoomsWorkspace({
                         onClick={() => setDeleteOpen(false)}
                         disabled={deleting}
                       >
-                        Cancel
+                        {t('rooms.cancel')}
                       </Button>
                       <Button
                         variant='destructive'
                         onClick={handleDelete}
                         disabled={deleting}
                       >
-                        {deleting ? 'Deleting…' : 'Delete'}
+                        {deleting
+                          ? t('rooms.deletingBtn')
+                          : t('rooms.deleteBtn')}
                       </Button>
                     </DialogFooter>
                   </DialogContent>
@@ -527,8 +537,8 @@ export function RoomsWorkspace({
                   emptyState={
                     <EmptyState
                       icon={MessageCircleQuestionMarkIcon}
-                      title='No messages yet'
-                      description='Be the first to say something.'
+                      title={t('rooms.noMessagesTitle')}
+                      description={t('rooms.noMessagesDesc')}
                       className='h-full'
                     />
                   }
@@ -542,11 +552,14 @@ export function RoomsWorkspace({
       <Dialog open={membersOpen} onOpenChange={setMembersOpen}>
         <DialogContent className='max-h-[70vh] gap-4 overflow-hidden'>
           <DialogHeader>
-            <DialogTitle>Members in this Channel</DialogTitle>
+            <DialogTitle>{t('rooms.membersTitle')}</DialogTitle>
             <DialogDescription>
               {activeRoom
-                ? `There's currently ${members.length} member(s) in ${activeRoom.name}.`
-                : `There's currently no active room.`}
+                ? t('rooms.membersDesc', {
+                    count: members.length,
+                    name: activeRoom.name,
+                  })
+                : t('rooms.membersDescNone')}
             </DialogDescription>
           </DialogHeader>
           <div className='relative min-w-0'>

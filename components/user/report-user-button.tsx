@@ -3,10 +3,11 @@
 import { useState } from 'react';
 
 import { FlagIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
+import { ReportDialog } from '@/components/report-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import type { VariantProps } from 'class-variance-authority';
-import { ReportDialog } from '@/components/report-dialog';
 
 // A self-contained "Report" button + dialog for reporting a user, for use on
 // surfaces (like the server-rendered profile header) that just need a drop-in
@@ -27,6 +28,7 @@ export function ReportUserButton({
   variant?: VariantProps<typeof buttonVariants>['variant'];
   size?: VariantProps<typeof buttonVariants>['size'];
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   return (
@@ -38,7 +40,7 @@ export function ReportUserButton({
         onClick={() => setOpen(true)}
       >
         <FlagIcon className='shrink-0' aria-hidden />
-        Report
+        {t('report.button')}
       </Button>
       <ReportDialog
         open={open}

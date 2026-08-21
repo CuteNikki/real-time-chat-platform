@@ -1,9 +1,9 @@
 'use client';
 
-import { deletePost, toggleLike, updatePost } from '@/app/actions/posts';
 import { moderatorDeletePost } from '@/app/actions/moderation';
-import { formatExactTimestamp, formatPostTime } from '@/lib/format-time';
+import { deletePost, toggleLike, updatePost } from '@/app/actions/posts';
 import { ImageLightbox } from '@/components/chat/image-lightbox';
+import { ReportDialog } from '@/components/report-dialog';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,14 +22,22 @@ import {
 import { MentionText } from '@/components/user/mention-text';
 import { MentionTextarea } from '@/components/user/mention-textarea';
 import { PostLikersDialog } from '@/components/user/post-likers-dialog';
-import { ReportDialog } from '@/components/report-dialog';
 import { UserAvatar } from '@/components/user/user-avatar';
+import { formatExactTimestamp, formatPostTime } from '@/lib/format-time';
 import type { PostSummary } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Flag, Heart, Loader2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import {
+  Flag,
+  Heart,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 export function PostCard({
@@ -49,6 +57,7 @@ export function PostCard({
   onLightboxOpenChange?: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [liked, setLiked] = useState(post.likedByMe);
   const [count, setCount] = useState(post.likeCount);
   const [pending, setPending] = useState(false);
@@ -151,9 +160,11 @@ export function PostCard({
       setCaption(res.caption);
       setEditing(false);
       onUpdatedAction?.(post.id, res.caption);
-      toast.success('Post updated');
+      toast.success(t('post.card.updated'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not update post');
+      toast.error(
+        err instanceof Error ? err.message : t('post.card.couldNotUpdate'),
+      );
     } finally {
       setSaving(false);
     }
@@ -174,9 +185,11 @@ export function PostCard({
       setRemoved(true);
       if (onDeletedAction) onDeletedAction(post.id);
       else router.refresh();
-      toast.success('Post deleted');
+      toast.success(t('post.card.deleted'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Could not delete post');
+      toast.error(
+        err instanceof Error ? err.message : t('post.card.couldNotDelete'),
+      );
       setDeleting(false);
     }
   }
@@ -194,7 +207,7 @@ export function PostCard({
   const profileHref = post.authorUsername
     ? `/app/u/${post.authorUsername}`
     : '#';
-  const displayName = post.authorName || 'Unknown';
+  const displayName = post.authorName || t('post.card.unknown');
 
   return (
     <article className='border-border bg-card overflow-hidden rounded-2xl border'>
@@ -246,7 +259,7 @@ export function PostCard({
           {showMenu ? (
             <DropdownMenu>
               <DropdownMenuTrigger
-                aria-label='Post options'
+                aria-label={t('post.card.options')}
                 className={cn(
                   buttonVariants({ variant: 'ghost', size: 'icon' }),
                   'text-muted-foreground -mr-1 size-8 shrink-0',
@@ -264,7 +277,7 @@ export function PostCard({
                     }}
                   >
                     <Pencil className='size-4' aria-hidden />
-                    Edit caption
+                    {t('post.card.editCaption')}
                   </DropdownMenuItem>
                 ) : null}
                 {canReport ? (
@@ -273,7 +286,7 @@ export function PostCard({
                     onClick={() => setReportOpen(true)}
                   >
                     <Flag className='size-4' aria-hidden />
-                    Report post
+                    {t('post.card.reportPost')}
                   </DropdownMenuItem>
                 ) : null}
                 {isOwner || showModeratorDelete ? (
@@ -283,7 +296,7 @@ export function PostCard({
                     onClick={() => setConfirmOpen(true)}
                   >
                     <Trash2 className='size-4' aria-hidden />
-                    Delete post
+                    {t('post.card.deletePost')}
                   </DropdownMenuItem>
                 ) : null}
               </DropdownMenuContent>
@@ -298,7 +311,11 @@ export function PostCard({
               the zoomable viewer, double-tap likes. */}
           <img
             src={post.imageUrl || '/placeholder.svg'}
-            alt={caption ? `Post: ${caption}` : 'Post image'}
+            alt={
+              caption
+                ? t('post.card.altWithCaption', { caption })
+                : t('post.card.altImage')
+            }
             onClick={onImageClick}
             draggable={false}
             className='h-full w-full cursor-zoom-in object-cover select-none'
@@ -309,7 +326,10 @@ export function PostCard({
               key={burst}
               className='pointer-events-none absolute inset-0 flex items-center justify-center'
             >
-              <Heart className='animate-heart-pop size-24 fill-white text-white opacity-0 drop-shadow-lg' aria-hidden />
+              <Heart
+                className='animate-heart-pop size-24 fill-white text-white opacity-0 drop-shadow-lg'
+                aria-hidden
+              />
             </span>
           ) : null}
         </div>
@@ -324,8 +344,8 @@ export function PostCard({
               onValueChange={setDraft}
               maxLength={500}
               rows={3}
-              placeholder='Write a caption...'
-              aria-label='Edit caption'
+              placeholder={t('post.composer.captionPlaceholder')}
+              aria-label={t('post.card.editCaption')}
               className='resize-none'
             />
             <div className='flex items-center justify-end gap-2'>
@@ -336,7 +356,7 @@ export function PostCard({
                 disabled={saving}
                 onClick={() => setEditing(false)}
               >
-                Cancel
+                {t('post.card.cancel')}
               </Button>
               <Button
                 type='button'
@@ -347,7 +367,7 @@ export function PostCard({
                 {saving ? (
                   <Loader2 className='size-4 animate-spin' aria-hidden />
                 ) : (
-                  'Save'
+                  t('post.card.save')
                 )}
               </Button>
             </div>
@@ -379,7 +399,7 @@ export function PostCard({
             onClick={toggle}
             className='flex items-center rounded-full p-0.5'
             aria-pressed={liked}
-            aria-label={liked ? 'Unlike' : 'Like'}
+            aria-label={liked ? t('post.card.unlike') : t('post.card.like')}
           >
             <Heart
               className={cn(
@@ -394,14 +414,14 @@ export function PostCard({
               <button
                 type='button'
                 className='rounded px-1 text-sm font-medium tabular-nums hover:underline'
-                aria-label={`See who liked this post (${count})`}
+                aria-label={t('post.card.seeWhoLiked', { count })}
               >
-                {count} {count === 1 ? 'like' : 'likes'}
+                {t('post.card.likes', { count })}
               </button>
             </PostLikersDialog>
           ) : (
             <span className='text-muted-foreground px-1 text-sm font-medium tabular-nums'>
-              No likes yet
+              {t('post.card.noLikes')}
             </span>
           )}
         </div>
@@ -413,11 +433,8 @@ export function PostCard({
       >
         <DialogContent className='max-w-sm'>
           <DialogHeader>
-            <DialogTitle>Delete this post?</DialogTitle>
-            <DialogDescription>
-              This permanently removes the post and its likes. This can&apos;t
-              be undone.
-            </DialogDescription>
+            <DialogTitle>{t('post.card.deleteTitle')}</DialogTitle>
+            <DialogDescription>{t('post.card.deleteDesc')}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
@@ -425,7 +442,7 @@ export function PostCard({
               disabled={deleting}
               onClick={() => setConfirmOpen(false)}
             >
-              Cancel
+              {t('post.card.cancel')}
             </Button>
             <Button
               variant='destructive'
@@ -435,7 +452,7 @@ export function PostCard({
               {deleting ? (
                 <Loader2 className='size-4 animate-spin' aria-hidden />
               ) : (
-                'Delete'
+                t('post.card.delete')
               )}
             </Button>
           </DialogFooter>
@@ -445,7 +462,11 @@ export function PostCard({
         <ImageLightbox
           open={lightboxOpen}
           src={post.imageUrl}
-          alt={caption ? `Post: ${caption}` : 'Post image'}
+          alt={
+            caption
+              ? t('post.card.altWithCaption', { caption })
+              : t('post.card.altImage')
+          }
           onClose={() => setLightbox(false)}
         />
       ) : null}

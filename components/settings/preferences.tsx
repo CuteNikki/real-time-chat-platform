@@ -7,6 +7,7 @@ import {
   AtSignIcon,
   Bell,
   HeartIcon,
+  LanguagesIcon,
   LaptopIcon,
   Loader2Icon,
   MessageCircleIcon,
@@ -22,6 +23,7 @@ import {
   VolumeIcon,
   VolumeXIcon,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { playNotificationSound } from '@/lib/notification-sound';
 import type {
@@ -29,6 +31,7 @@ import type {
   NotificationPreferences,
 } from '@/lib/types';
 
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { useNotificationPrefs } from '@/components/notification-prefs-provider';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -36,51 +39,20 @@ import { Switch } from '@/components/ui/switch';
 
 const CATEGORY_META: {
   key: NotificationCategory;
-  label: string;
-  description: string;
   icon: typeof Bell;
 }[] = [
-  {
-    key: 'friendRequest',
-    label: 'Friend Requests',
-    description: 'When someone sends you a request',
-    icon: UserPlus2Icon,
-  },
-  {
-    key: 'friendAccept',
-    label: 'Request Accepted',
-    description: 'When someone accepts your request',
-    icon: UserCheck2Icon,
-  },
-  {
-    key: 'directMessage',
-    label: 'Direct Messages',
-    description: 'New messages in a private chat',
-    icon: MessageCircleIcon,
-  },
-  {
-    key: 'roomMessage',
-    label: 'Room Messages',
-    description: 'New messages in a group room',
-    icon: Users2Icon,
-  },
-  {
-    key: 'like',
-    label: 'Post Likes',
-    description: 'When someone likes your post',
-    icon: HeartIcon,
-  },
-  {
-    key: 'mention',
-    label: 'Mentions',
-    description: 'When someone @tags you in a post or bio',
-    icon: AtSignIcon,
-  },
+  { key: 'friendRequest', icon: UserPlus2Icon },
+  { key: 'friendAccept', icon: UserCheck2Icon },
+  { key: 'directMessage', icon: MessageCircleIcon },
+  { key: 'roomMessage', icon: Users2Icon },
+  { key: 'like', icon: HeartIcon },
+  { key: 'mention', icon: AtSignIcon },
 ];
 
 export function PreferenceSettings() {
   const { prefs, update } = useNotificationPrefs();
   const { theme, setTheme } = useTheme();
+  const { t } = useTranslation();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -114,14 +86,18 @@ export function PreferenceSettings() {
       <section className='space-y-2'>
         <div className='flex items-center gap-2'>
           <SunIcon className='text-muted-foreground size-4' aria-hidden />
-          <h2 className='text-lg font-semibold tracking-tight'>Appearance</h2>
+          <h2 className='text-lg font-semibold tracking-tight'>
+            {t('settings.preferences.appearance')}
+          </h2>
         </div>
 
         <div className='border-border bg-card flex flex-col gap-4 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between'>
           <div className='min-w-0'>
-            <p className='text-sm font-medium'>Theme Preference</p>
+            <p className='text-sm font-medium'>
+              {t('settings.preferences.themePreference')}
+            </p>
             <p className='text-muted-foreground text-sm'>
-              Select how Orbit appears to you
+              {t('settings.preferences.themeDesc')}
             </p>
           </div>
 
@@ -133,7 +109,7 @@ export function PreferenceSettings() {
                     className='size-4 shrink-0 animate-spin'
                     aria-hidden
                   />
-                  Loading...
+                  {t('settings.preferences.loading')}
                 </Button>
               </>
             ) : (
@@ -144,7 +120,7 @@ export function PreferenceSettings() {
                   onClick={() => setTheme('light')}
                 >
                   <SunIcon className='shrink-0' aria-hidden />
-                  Light
+                  {t('settings.preferences.light')}
                 </Button>
                 <Button
                   variant={mounted && theme === 'dark' ? 'default' : 'ghost'}
@@ -152,7 +128,7 @@ export function PreferenceSettings() {
                   onClick={() => setTheme('dark')}
                 >
                   <MoonIcon className='shrink-0' aria-hidden />
-                  Dark
+                  {t('settings.preferences.dark')}
                 </Button>
                 <Button
                   variant={mounted && theme === 'system' ? 'default' : 'ghost'}
@@ -160,11 +136,27 @@ export function PreferenceSettings() {
                   onClick={() => setTheme('system')}
                 >
                   <LaptopIcon className='shrink-0' aria-hidden />
-                  System
+                  {t('settings.preferences.system')}
                 </Button>
               </>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* Language */}
+      <section className='space-y-2'>
+        <div className='flex items-center gap-2'>
+          <LanguagesIcon className='text-muted-foreground size-4' aria-hidden />
+          <h2 className='text-lg font-semibold tracking-tight'>
+            {t('settings.preferences.language')}
+          </h2>
+        </div>
+        <div className='border-border bg-card flex flex-col gap-3 rounded-xl border p-4'>
+          <p className='text-muted-foreground text-sm'>
+            {t('settings.preferences.languageDesc')}
+          </p>
+          <LanguageSwitcher />
         </div>
       </section>
 
@@ -175,27 +167,31 @@ export function PreferenceSettings() {
             className='text-muted-foreground size-4 shrink-0'
             aria-hidden
           />
-          <h2 className='text-lg font-semibold tracking-tight'>Sound</h2>
+          <h2 className='text-lg font-semibold tracking-tight'>
+            {t('settings.preferences.sound')}
+          </h2>
         </div>
 
         <div className='border-border bg-card flex items-center justify-between gap-2 rounded-xl border p-4'>
           <div className='min-w-0'>
-            <p className='text-sm font-medium'>Play Notification Sounds</p>
+            <p className='text-sm font-medium'>
+              {t('settings.preferences.playSounds')}
+            </p>
             <p className='text-muted-foreground text-sm'>
-              A short chime plays for enabled events
+              {t('settings.preferences.playSoundsDesc')}
             </p>
           </div>
           <Switch
             checked={prefs.soundEnabled}
             onCheckedChange={(v) => setMaster({ soundEnabled: v })}
-            aria-label='Play notification sounds'
+            aria-label={t('settings.preferences.playSounds')}
           />
         </div>
 
         <div className='border-border bg-card rounded-xl border p-4'>
           <div className='flex items-center justify-between pb-2'>
             <label htmlFor='volume' className='text-sm font-medium'>
-              Master Volume
+              {t('settings.preferences.masterVolume')}
             </label>
             <span className='text-muted-foreground flex items-center gap-2 text-sm tabular-nums'>
               {volumePct === 0 ? (
@@ -232,7 +228,7 @@ export function PreferenceSettings() {
               }
             >
               <Play className='shrink-0' aria-hidden />
-              Test
+              {t('settings.preferences.test')}
             </Button>
           </div>
         </div>
@@ -242,22 +238,28 @@ export function PreferenceSettings() {
       <section className='space-y-2'>
         <div className='flex items-center gap-2'>
           <Bell className='text-muted-foreground size-4 shrink-0' aria-hidden />
-          <h2 className='text-lg font-semibold tracking-tight'>Events</h2>
+          <h2 className='text-lg font-semibold tracking-tight'>
+            {t('settings.preferences.events')}
+          </h2>
         </div>
         <ul className='divide-border border-border bg-card divide-y overflow-hidden rounded-xl border'>
           <li className='p-4'>
             <div className='min-w-0'>
               <p className='text-sm font-medium'>
-                Configure Notification Settings
+                {t('settings.preferences.configureTitle')}
               </p>
               <p className='text-muted-foreground text-sm'>
-                Choose which events show a popup and which play a sound
+                {t('settings.preferences.configureDesc')}
               </p>
             </div>
           </li>
-          {CATEGORY_META.map(({ key, label, description, icon: Icon }) => {
+          {CATEGORY_META.map(({ key, icon: Icon }) => {
             const cat = prefs.categories[key];
             const soundOn = prefs.soundEnabled && cat.sound;
+            const label = t(`settings.preferences.categories.${key}.label`);
+            const description = t(
+              `settings.preferences.categories.${key}.description`,
+            );
             return (
               <li
                 key={key}
@@ -276,19 +278,27 @@ export function PreferenceSettings() {
                 </div>
                 <div className='flex items-center gap-6 sm:pl-0'>
                   <label className='flex items-center gap-2 text-sm'>
-                    <span className='text-muted-foreground'>Popup</span>
+                    <span className='text-muted-foreground'>
+                      {t('settings.preferences.popup')}
+                    </span>
                     <Switch
                       checked={cat.popup}
                       onCheckedChange={(v) => setCategory(key, { popup: v })}
-                      aria-label={`${label} popup`}
+                      aria-label={t('settings.preferences.popupAria', {
+                        label,
+                      })}
                     />
                   </label>
                   <label className='flex items-center gap-2 text-sm'>
-                    <span className='text-muted-foreground'>Sound</span>
+                    <span className='text-muted-foreground'>
+                      {t('settings.preferences.soundLabel')}
+                    </span>
                     <Switch
                       checked={cat.sound}
                       onCheckedChange={(v) => setCategory(key, { sound: v })}
-                      aria-label={`${label} sound`}
+                      aria-label={t('settings.preferences.soundAria', {
+                        label,
+                      })}
                     />
                   </label>
                   <Button
@@ -297,7 +307,9 @@ export function PreferenceSettings() {
                     size='icon'
                     disabled={!soundOn}
                     onClick={() => playNotificationSound(key, prefs.volume)}
-                    aria-label={`Preview ${label} sound`}
+                    aria-label={t('settings.preferences.previewAria', {
+                      label,
+                    })}
                   >
                     <Play className='shrink-0' aria-hidden />
                   </Button>
