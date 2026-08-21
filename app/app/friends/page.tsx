@@ -11,14 +11,13 @@ import { FriendsView } from '@/components/friends-view';
 import { PageHeader } from '@/components/ui/page-header';
 
 export default async function FriendsPage() {
-  const me = await getMyProfile();
-  if (!me) redirect('/sign-in');
-
-  const [pending, sent, friends] = await Promise.all([
+  const [me, pending, sent, friends] = await Promise.all([
+    getMyProfile(),
     getPendingInvites(),
     getSentInvites(),
     getFriends(),
   ]);
+  if (!me) redirect('/sign-in');
 
   return (
     <div className='xs:pt-20 h-full w-full scrollbar-gutter-stable overflow-y-auto pt-16 pb-14 md:pb-0'>

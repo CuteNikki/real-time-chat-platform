@@ -1,6 +1,16 @@
 'use server';
 
-import { and, desc, eq, ilike, inArray, isNull, notInArray, or, sql } from 'drizzle-orm';
+import {
+  and,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  notInArray,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { notify } from '@/app/actions/notifications';
@@ -49,17 +59,20 @@ async function decoratePosts(
   if (rows.length === 0) return [];
   const ids = rows.map((r) => r.id);
 
-  const likeCounts = await db
-    .select({ postId: postLike.postId, c: sql<number>`count(*)::int` })
-    .from(postLike)
-    .where(inArray(postLike.postId, ids))
-    .groupBy(postLike.postId);
+  // Total like counts and the viewer's own likes are independent — run both
+  // queries concurrently.
+  const [likeCounts, myLikes] = await Promise.all([
+    db
+      .select({ postId: postLike.postId, c: sql<number>`count(*)::int` })
+      .from(postLike)
+      .where(inArray(postLike.postId, ids))
+      .groupBy(postLike.postId),
+    db
+      .select({ postId: postLike.postId })
+      .from(postLike)
+      .where(and(inArray(postLike.postId, ids), eq(postLike.userId, viewerId))),
+  ]);
   const countMap = new Map(likeCounts.map((l) => [l.postId, l.c]));
-
-  const myLikes = await db
-    .select({ postId: postLike.postId })
-    .from(postLike)
-    .where(and(inArray(postLike.postId, ids), eq(postLike.userId, viewerId)));
   const likedSet = new Set(myLikes.map((l) => l.postId));
 
   return rows.map((r) => ({
@@ -121,7 +134,7 @@ export async function createPost(input: {
     text: caption,
   });
   revalidatePath('/app/feed');
-  revalidatePath('/app/settings/[tab]', 'page');
+  revalidatePath('/app/settings');
   return { id };
 }
 
@@ -146,7 +159,7 @@ export async function deletePost(postId: string) {
     .set({ deletedAt: new Date() })
     .where(and(eq(post.id, postId), eq(post.userId, userId)));
   revalidatePath('/app/feed');
-  revalidatePath('/app/settings/[tab]', 'page');
+  revalidatePath('/app/settings');
   return { ok: true };
 }
 
@@ -179,7 +192,7 @@ export async function updatePost(postId: string, caption: string) {
     previousText: owned.caption,
   });
   revalidatePath('/app/feed');
-  revalidatePath('/app/settings/[tab]', 'page');
+  revalidatePath('/app/settings');
   return { caption: next || null };
 }
 
@@ -244,7 +257,7 @@ export async function getFeed(
 
   // Own + friends' posts, newest-first. This is the entire "Friends" tab and
   // the top block of the "For You" tab.
-  const friendsRows = await db
+  const friendsQuery = db
     .select(postSelection)
     .from(post)
     .innerJoin(user, eq(user.id, post.userId))
@@ -253,12 +266,13 @@ export async function getFeed(
     .limit(FEED_LIMIT);
 
   if (scope === 'friends') {
-    return decoratePosts(friendsRows, viewer.id);
+    return decoratePosts(await friendsQuery, viewer.id);
   }
 
   // "For You": everyone else's posts underneath, newest-first — but never
-  // posts from a non-friend who restricts their posts to friends only.
-  const othersRows = await db
+  // posts from a non-friend who restricts their posts to friends only. The two
+  // sets are disjoint, so run both queries concurrently.
+  const othersQuery = db
     .select(postSelection)
     .from(post)
     .innerJoin(user, eq(user.id, post.userId))
@@ -271,6 +285,11 @@ export async function getFeed(
     )
     .orderBy(desc(post.createdAt))
     .limit(FEED_LIMIT);
+
+  const [friendsRows, othersRows] = await Promise.all([
+    friendsQuery,
+    othersQuery,
+  ]);
 
   // Friends first, then everyone else by recency. The two sets are disjoint
   // (authorIds vs. its complement), so no dedup is needed and decoratePosts

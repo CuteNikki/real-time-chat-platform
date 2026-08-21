@@ -375,44 +375,56 @@ export async function getPrivateConversations(): Promise<
       ),
     );
 
-  const results: PrivateConversation[] = [];
-  for (const { chatId, clearedAt } of myChats) {
-    const [partner] = await db
-      .select({
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        image: user.image,
-      })
-      .from(chatParticipant)
-      .innerJoin(user, eq(user.id, chatParticipant.userId))
-      .where(
-        and(
-          eq(chatParticipant.chatId, chatId),
-          ne(chatParticipant.userId, me.id),
-        ),
-      )
-      .limit(1);
+  if (myChats.length === 0) return [];
+  const chatIds = myChats.map((c) => c.chatId);
 
-    // Newest message the CALLER can still see: respect their clear-chat cutoff.
-    const [last] = await db
-      .select({
-        content: message.content,
-        imageUrl: message.imageUrl,
-        deletedAt: message.deletedAt,
-        createdAt: message.createdAt,
-        senderId: message.senderId,
-      })
-      .from(message)
-      .where(
-        and(
-          eq(message.chatId, chatId),
-          clearedAt ? gt(message.createdAt, clearedAt) : undefined,
-        ),
-      )
-      .orderBy(desc(message.createdAt))
-      .limit(1);
+  // Every conversation's partner in one query instead of one per chat.
+  const partnerRows = await db
+    .select({
+      chatId: chatParticipant.chatId,
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      image: user.image,
+    })
+    .from(chatParticipant)
+    .innerJoin(user, eq(user.id, chatParticipant.userId))
+    .where(
+      and(
+        inArray(chatParticipant.chatId, chatIds),
+        ne(chatParticipant.userId, me.id),
+      ),
+    );
+  const partnerByChat = new Map(partnerRows.map((r) => [r.chatId, r]));
 
+  // Latest visible message per chat, fetched concurrently — each respects the
+  // caller's own clear-chat cutoff, so they can't collapse into one query.
+  const lasts = await Promise.all(
+    myChats.map(({ chatId, clearedAt }) =>
+      db
+        .select({
+          content: message.content,
+          imageUrl: message.imageUrl,
+          deletedAt: message.deletedAt,
+          createdAt: message.createdAt,
+          senderId: message.senderId,
+        })
+        .from(message)
+        .where(
+          and(
+            eq(message.chatId, chatId),
+            clearedAt ? gt(message.createdAt, clearedAt) : undefined,
+          ),
+        )
+        .orderBy(desc(message.createdAt))
+        .limit(1)
+        .then((rows) => rows[0]),
+    ),
+  );
+
+  const results: PrivateConversation[] = myChats.map(({ chatId }, i) => {
+    const partner = partnerByChat.get(chatId);
+    const last = lasts[i];
     // A soft-deleted last message shows a neutral placeholder, never its
     // retained (moderation-only) text.
     const lastMessage = last
@@ -420,8 +432,7 @@ export async function getPrivateConversations(): Promise<
         ? 'Message deleted'
         : (last.content ?? (last.imageUrl ? 'Sent an image' : null))
       : null;
-
-    results.push({
+    return {
       chatId,
       partnerId: partner?.id ?? '',
       partnerName: partner?.name ?? 'Unknown',
@@ -430,8 +441,8 @@ export async function getPrivateConversations(): Promise<
       lastMessage,
       lastAt: last ? last.createdAt.toISOString() : null,
       lastFromMe: last ? last.senderId === me.id : false,
-    });
-  }
+    };
+  });
 
   // Most recent message first; conversations with no messages yet sink to the
   // bottom.

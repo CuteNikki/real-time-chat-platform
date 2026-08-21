@@ -84,14 +84,17 @@ async function buildProfile(
   viewerId: string,
   u: typeof user.$inferSelect,
 ): Promise<UserProfile> {
-  const [{ c: postCount }] = await db
-    .select({ c: sql<number>`count(*)::int` })
-    .from(post)
-    .where(and(eq(post.userId, u.id), isNull(post.deletedAt)));
-
-  const rel = await relationship(viewerId, u.id);
-  const fc = await friendCount(u.id);
-  const interests = await getInterests(u.id);
+  // Independent per-profile aggregates — fetch them concurrently.
+  const [postRows, rel, fc, interests] = await Promise.all([
+    db
+      .select({ c: sql<number>`count(*)::int` })
+      .from(post)
+      .where(and(eq(post.userId, u.id), isNull(post.deletedAt))),
+    relationship(viewerId, u.id),
+    friendCount(u.id),
+    getInterests(u.id),
+  ]);
+  const postCount = postRows[0]?.c ?? 0;
   const isSelf = u.id === viewerId;
   const postsVisible =
     isSelf || !u.friendsOnlyPosts || rel.friendStatus === 'friends';
@@ -113,6 +116,126 @@ async function buildProfile(
     friendsOnlyPosts: u.friendsOnlyPosts,
     postsVisible,
   };
+}
+
+// Batched buildProfile for many users from the viewer's POV: resolves every
+// user's post count, friend count, relationship, and interests in a fixed set
+// of grouped queries instead of one buildProfile (5 queries) per user.
+async function buildProfilesFor(
+  viewerId: string,
+  users: (typeof user.$inferSelect)[],
+): Promise<UserProfile[]> {
+  if (users.length === 0) return [];
+  const ids = users.map((u) => u.id);
+  const idSet = new Set(ids);
+
+  const [postCountRows, interestRows, friendRows, relRows] = await Promise.all([
+    db
+      .select({ userId: post.userId, c: sql<number>`count(*)::int` })
+      .from(post)
+      .where(and(inArray(post.userId, ids), isNull(post.deletedAt)))
+      .groupBy(post.userId),
+    db
+      .select({ userId: interest.userId, tag: interest.tag })
+      .from(interest)
+      .where(inArray(interest.userId, ids))
+      .orderBy(interest.tag),
+    db
+      .select({ senderId: invite.senderId, receiverId: invite.receiverId })
+      .from(invite)
+      .where(
+        and(
+          eq(invite.status, 'ACCEPTED'),
+          or(inArray(invite.senderId, ids), inArray(invite.receiverId, ids)),
+        ),
+      ),
+    db
+      .select({
+        senderId: invite.senderId,
+        receiverId: invite.receiverId,
+        status: invite.status,
+        chatId: invite.chatId,
+      })
+      .from(invite)
+      .where(
+        or(
+          and(eq(invite.senderId, viewerId), inArray(invite.receiverId, ids)),
+          and(eq(invite.receiverId, viewerId), inArray(invite.senderId, ids)),
+        ),
+      ),
+  ]);
+
+  const postCountByUser = new Map<string, number>();
+  for (const r of postCountRows) postCountByUser.set(r.userId, r.c);
+
+  const interestsByUser = new Map<string, string[]>();
+  for (const r of interestRows) {
+    const arr = interestsByUser.get(r.userId) ?? [];
+    arr.push(r.tag);
+    interestsByUser.set(r.userId, arr);
+  }
+
+  // count(*) for each user across the accepted rows they appear in (as either
+  // sender or receiver); two search results who are friends count each other.
+  const friendCountByUser = new Map<string, number>();
+  for (const r of friendRows) {
+    if (idSet.has(r.senderId))
+      friendCountByUser.set(
+        r.senderId,
+        (friendCountByUser.get(r.senderId) ?? 0) + 1,
+      );
+    if (idSet.has(r.receiverId))
+      friendCountByUser.set(
+        r.receiverId,
+        (friendCountByUser.get(r.receiverId) ?? 0) + 1,
+      );
+  }
+
+  const relByUser = new Map<
+    string,
+    { friendStatus: UserProfile['friendStatus']; dmChatId: string | null }
+  >();
+  for (const r of relRows) {
+    const targetId = r.senderId === viewerId ? r.receiverId : r.senderId;
+    const cur = relByUser.get(targetId) ?? {
+      friendStatus: 'none' as UserProfile['friendStatus'],
+      dmChatId: null,
+    };
+    if (r.status === 'ACCEPTED') {
+      cur.friendStatus = 'friends';
+      if (r.chatId) cur.dmChatId = r.chatId;
+    } else if (r.status === 'PENDING') {
+      cur.friendStatus = r.senderId === viewerId ? 'outgoing' : 'incoming';
+    }
+    relByUser.set(targetId, cur);
+  }
+
+  return users.map((u) => {
+    const rel = relByUser.get(u.id) ?? {
+      friendStatus: 'none' as UserProfile['friendStatus'],
+      dmChatId: null,
+    };
+    const isSelf = u.id === viewerId;
+    const postsVisible =
+      isSelf || !u.friendsOnlyPosts || rel.friendStatus === 'friends';
+    return {
+      id: u.id,
+      name: u.name,
+      username: u.username,
+      image: u.image,
+      bio: u.bio,
+      interests: interestsByUser.get(u.id) ?? [],
+      role: u.role === 'ADMIN' || u.role === 'MODERATOR' ? u.role : 'MEMBER',
+      postCount: postCountByUser.get(u.id) ?? 0,
+      friendCount: friendCountByUser.get(u.id) ?? 0,
+      createdAt: u.createdAt.toISOString(),
+      isSelf,
+      friendStatus: rel.friendStatus,
+      dmChatId: rel.dmChatId,
+      friendsOnlyPosts: u.friendsOnlyPosts,
+      postsVisible,
+    };
+  });
 }
 
 export async function getProfileByUsername(
@@ -141,9 +264,11 @@ export async function getProfilePreview(
 
 export async function getMyProfile() {
   const me = await getCurrentUser();
-  const [u] = await db.select().from(user).where(eq(user.id, me.id)).limit(1);
+  const [[u], interests] = await Promise.all([
+    db.select().from(user).where(eq(user.id, me.id)).limit(1),
+    getInterests(me.id),
+  ]);
   if (!u) return null;
-  const interests = await getInterests(u.id);
   return {
     id: u.id,
     name: u.name,
@@ -162,7 +287,7 @@ export async function updatePostsVisibility(friendsOnly: boolean) {
     .update(user)
     .set({ friendsOnlyPosts: friendsOnly, updatedAt: new Date() })
     .where(eq(user.id, userId));
-  revalidatePath('/app/settings/[tab]', 'page');
+  revalidatePath('/app/settings');
   revalidatePath('/app');
   return { friendsOnlyPosts: friendsOnly };
 }
@@ -194,7 +319,7 @@ export async function updateInterests(tags: string[]) {
       .onConflictDoNothing({ target: [interest.userId, interest.tag] });
   }
 
-  revalidatePath('/app/settings/[tab]', 'page');
+  revalidatePath('/app/settings');
   return { interests: cleaned };
 }
 
@@ -290,7 +415,7 @@ export async function updateProfile(input: {
       previousText: previousBio,
     });
   }
-  revalidatePath('/app/settings/[tab]', 'page');
+  revalidatePath('/app/settings');
   revalidatePath('/app');
   return { ok: true };
 }
@@ -321,7 +446,7 @@ export async function searchUsers(query: string): Promise<UserProfile[]> {
   );
 
   const rows = await db
-    .select({ id: user.id })
+    .select()
     .from(user)
     .where(
       and(
@@ -339,9 +464,7 @@ export async function searchUsers(query: string): Promise<UserProfile[]> {
 
   if (rows.length === 0) return [];
 
-  const profiles = await Promise.all(rows.map((r) => getProfilePreview(r.id)));
-
-  return profiles.filter((p): p is UserProfile => p !== null);
+  return buildProfilesFor(me.id, rows);
 }
 
 // Lightweight autocomplete for @mentions. Matches username or display name by

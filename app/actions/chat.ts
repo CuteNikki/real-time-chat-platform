@@ -186,10 +186,13 @@ export async function getMessages(
   limit = INITIAL_MESSAGE_LIMIT,
 ): Promise<ChatMessage[]> {
   const userId = await getUserId();
-  await assertCanAccessChat(chatId, userId);
 
-  // Respect this reader's own clear-chat cutoff, if any.
-  const cleared = await clearedAtFor(chatId, userId);
+  // The access check and the reader's clear-chat cutoff are independent; run
+  // them together before touching the message history.
+  const [, cleared] = await Promise.all([
+    assertCanAccessChat(chatId, userId),
+    clearedAtFor(chatId, userId),
+  ]);
 
   const rows: MessageRow[] = await db
     .select(messageColumns)
@@ -219,13 +222,16 @@ export async function getOlderMessages(
   limit = OLDER_MESSAGE_LIMIT,
 ): Promise<ChatMessage[]> {
   const userId = await getUserId();
-  await assertCanAccessChat(chatId, userId);
 
   const before = new Date(beforeCreatedAt);
   if (Number.isNaN(before.getTime())) throw new Error('Invalid cursor');
 
-  // Respect this reader's own clear-chat cutoff, if any.
-  const cleared = await clearedAtFor(chatId, userId);
+  // The access check and the reader's clear-chat cutoff are independent; run
+  // them together before touching the message history.
+  const [, cleared] = await Promise.all([
+    assertCanAccessChat(chatId, userId),
+    clearedAtFor(chatId, userId),
+  ]);
 
   const rows: MessageRow[] = await db
     .select(messageColumns)

@@ -1,12 +1,11 @@
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 
 import { MatchFinder } from '@/components/match-finder';
 
 export default async function MatchPage() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSession();
 
   if (!session?.user) redirect('/sign-in');
 

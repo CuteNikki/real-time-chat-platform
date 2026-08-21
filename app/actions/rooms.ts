@@ -23,7 +23,9 @@ import type { RoomSummary } from '@/lib/types';
 export async function listRooms(): Promise<RoomSummary[]> {
   await getCurrentUser();
 
-  const rows = await db
+  // The room list (DB) and the live presence head-counts (Pusher HTTP) are
+  // independent, so fetch them concurrently.
+  const roomsQuery = db
     .select({ id: chat.id, name: chat.name, createdAt: chat.createdAt })
     .from(chat)
     .where(and(eq(chat.type, 'GROUP'), isNull(chat.endedAt)));
@@ -32,24 +34,29 @@ export async function listRooms(): Promise<RoomSummary[]> {
   // rooms with nobody connected are simply absent (count 0). Because this reads
   // live presence rather than persisted rows, the count can't drift. Fail open
   // to 0 if the lookup itself errors.
-  const counts = new Map<string, number>();
-  try {
-    const res = await pusherServer.get({
-      path: '/channels',
-      params: { filter_by_prefix: 'presence-chat-', info: 'user_count' },
-    });
-    const data = (await res.json()) as {
-      channels?: Record<string, { user_count?: number }>;
-    };
-    for (const [channel, meta] of Object.entries(data.channels ?? {})) {
-      counts.set(channel, meta.user_count ?? 0);
+  const presenceLookup = (async () => {
+    const counts = new Map<string, number>();
+    try {
+      const res = await pusherServer.get({
+        path: '/channels',
+        params: { filter_by_prefix: 'presence-chat-', info: 'user_count' },
+      });
+      const data = (await res.json()) as {
+        channels?: Record<string, { user_count?: number }>;
+      };
+      for (const [channel, meta] of Object.entries(data.channels ?? {})) {
+        counts.set(channel, meta.user_count ?? 0);
+      }
+    } catch (err) {
+      console.log(
+        '[v0] room presence count lookup failed, showing 0:',
+        err instanceof Error ? err.message : err,
+      );
     }
-  } catch (err) {
-    console.log(
-      '[v0] room presence count lookup failed, showing 0:',
-      err instanceof Error ? err.message : err,
-    );
-  }
+    return counts;
+  })();
+
+  const [rows, counts] = await Promise.all([roomsQuery, presenceLookup]);
 
   // Busiest rooms first; stable by age (oldest first) within a tie.
   return rows

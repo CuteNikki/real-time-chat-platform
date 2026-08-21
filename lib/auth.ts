@@ -59,6 +59,11 @@ export const auth = betterAuth({
   database: new Pool({ connectionString: process.env.DATABASE_URL }),
   baseURL: getBaseURL(),
   trustedOrigins: getTrustedOrigins(),
+  session: {
+    // Skip the per-request DB session lookup via a signed cookie cache; safe
+    // because roles (getMyRole) and bans (getEffectiveBan) are read fresh.
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
+  },
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
